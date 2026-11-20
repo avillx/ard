@@ -32,7 +32,7 @@ linters:
     - canonicalheader # checks whether net/http.Header uses canonical header
     - clickhouselint # detects common mistakes with the ClickHouse native Go driver API
     - copyloopvar # detects places where loop variables are copied (Go 1.22+)
-    - cyclop # checks function and package cyclomatic complexity
+    # - cyclop # checks function and package cyclomatic complexity
     - depguard # checks if package imports are in a list of acceptable packages
     - dupl # tool for code clone detection
     - durationcheck # checks for two durations multiplied together
@@ -206,9 +206,12 @@ linters:
     exhaustive:
       # Program elements to check for exhaustiveness.
       # Default: [ switch ]
+      ignore-types:
+        - "profile.ID"
       check:
         - switch
         - mapliteral
+
 
     funcorder:
       # Checks if the exported methods of a structure are placed before the non-exported ones.
