@@ -4,11 +4,11 @@ import (
 	"github.com/rs/xid"
 )
 
-type UUIDGenerator struct{}
+type generator struct{}
 
-func NewUUIDGenerator() *UUIDGenerator { return &UUIDGenerator{} }
+func NewGenerator() *generator { return &generator{} }
 
-func (g *UUIDGenerator) New() string {
+func (g *generator) New() string {
 	id := xid.New()
 	return id.String()
 }

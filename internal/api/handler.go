@@ -52,7 +52,7 @@ func NewHTTPHandler(
 		agentRepo:        srv.AgentFiles,
 		providerSvc:      srv.ProviderSvc,
 		activitySvc:      srv.ActivitySvc,
-		idGen:            uuid.NewUUIDGenerator(),
+		idGen:            uuid.NewGenerator(),
 	}
 
 	h.registerRoutes()

@@ -122,7 +122,7 @@ func New(
 		return nil, err
 	}
 
-	idGen := uuid.NewUUIDGenerator()
+	idGen := uuid.NewGenerator()
 	sessFiles := files.NewSessionFiles(fileStorage)
 	sessSvc := session.NewService(
 		sessFiles,
