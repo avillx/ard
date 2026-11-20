@@ -160,7 +160,7 @@ type AgentDTO struct {
 
 func parseTomlAgentFile(data []byte) (AgentDTO, error) {
 	var dto AgentDTO
-	if err := toml.Unmarshal([]byte(data), &dto); err != nil {
+	if err := toml.Unmarshal(data, &dto); err != nil {
 		return AgentDTO{}, err
 	}
 	return dto, nil

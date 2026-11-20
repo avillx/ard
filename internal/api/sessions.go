@@ -69,7 +69,7 @@ func (h *sessionHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 	return NewJSONResponse(http.StatusOK, dto)
 }
 
-func (h *sessionHandler) Sessions(_ http.ResponseWriter, r *http.Request) Response {
+func (h *sessionHandler) Sessions(_ http.ResponseWriter, _ *http.Request) Response {
 	dtos := []HeaderDTO{}
 
 	sessions, err := h.sessSvc.Headers()
