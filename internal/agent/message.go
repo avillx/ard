@@ -229,7 +229,7 @@ func MergeMatchedPair(a, b Message) (Message, error) {
 	case *AgentMessage:
 		callsA := typedA.ToolCalls()
 		// this way is guaranteed safe cast
-		callsB := b.(*AgentMessage).ToolCalls()
+		callsB := b.(*AgentMessage).ToolCalls() //nolint:errcheck
 		toolCalls := slices.Concat(callsA, callsB)
 
 		return NewAgentMessage(content, toolCalls), nil

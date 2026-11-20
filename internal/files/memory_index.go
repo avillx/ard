@@ -1,14 +1,15 @@
 package files
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"errors"
 	"io/fs"
 	"log/slog"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"ard/internal/agent"
+	"ard/internal/types"
 )
 
 const MemoryFolder = "memory"
@@ -45,7 +46,7 @@ func (f *MemoryFiles) MemoryIndex(agentID agent.ID) (map[string]string, error) {
 		return nil, err
 	}
 
-	fs.WalkDir(f.storage.FS(), memoryPath, func(p string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(f.storage.FS(), memoryPath, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			f.logger.Error("walking dir", "path", p, "error", err)
 			return nil
@@ -77,6 +78,9 @@ func (f *MemoryFiles) MemoryIndex(agentID agent.ID) (map[string]string, error) {
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return index, nil
 }

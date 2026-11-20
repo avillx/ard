@@ -1,6 +1,13 @@
 package server
 
 import (
+	"context"
+	"fmt"
+	"log/slog"
+	"path"
+	"path/filepath"
+	"time"
+
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/cleanup"
@@ -22,12 +29,6 @@ import (
 	"ard/internal/tools/shell"
 	"ard/internal/tools/todo"
 	"ard/internal/uuid"
-	"context"
-	"fmt"
-	"log/slog"
-	"path"
-	"path/filepath"
-	"time"
 )
 
 // Simple orchestrator.
@@ -299,20 +300,24 @@ func attachBuildinToolServers(
 	if err != nil {
 		return err
 	}
-	toolSvc.Connect("filesystem", fsToolSrv)
-	toolSvc.Connect("todo", todo.NewTodoToolServer(todoStorage))
-	toolSvc.Connect("agent", tools.NewCallAgentToolServer(
+	if err := toolSvc.Connect("filesystem", fsToolSrv); err != nil {
+		return err
+	}
+	if err := toolSvc.Connect("todo", todo.NewTodoToolServer(todoStorage)); err != nil {
+		return err
+	}
+	if err := toolSvc.Connect("agent", tools.NewCallAgentToolServer(
 		subagent.NewService(chatExecutor, sessSvc, logger),
 		agentRepo,
-	))
-	toolSvc.Connect("shell", shell.NewShellToolServer(
+	)); err != nil {
+		return err
+	}
+	return toolSvc.Connect("shell", shell.NewShellToolServer(
 		datapath,
 		secretSvc,
 		agentShell,
 		agentShellAttributes,
 	))
-
-	return nil
 }
 
 func buildMemoryConsolidationService(

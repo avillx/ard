@@ -186,10 +186,10 @@ func (t *ShellTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]ag
 		_ = kill(cmd.Process, pg)
 
 		select {
-		case <-done:
+		case cmdErr = <-done:
 		case <-time.After(3 * time.Second):
 			_ = cmd.Process.Kill()
-			<-done
+			cmdErr = <-done
 		}
 	case cmdErr = <-done:
 	}
