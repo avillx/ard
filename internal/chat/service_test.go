@@ -1,10 +1,6 @@
 package chat_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/chat"
-	"ard/internal/runtime"
-	"ard/internal/session"
 	"context"
 	"errors"
 	"fmt"
@@ -14,6 +10,11 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/chat"
+	"ard/internal/runtime"
+	"ard/internal/session"
 )
 
 // mockAgentRepo implements agent.Repo.

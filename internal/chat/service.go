@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"ard/internal/agent"
-	"ard/internal/prompt"
 	"ard/internal/runtime"
 	"ard/internal/session"
 	"ard/internal/types"
@@ -162,39 +162,37 @@ func (s *Service) Chat(
 	ctx = withAgentID(ctx, r.AgentID)
 	ctx = withSessionID(ctx, r.SessionID)
 
-	s.runAgentLoopWithCallbacks(
+	logger := s.logger.With(
+		"agent", r.AgentID,
+		"session", sess.ID(),
+	)
+
+	h := NewChatEventHandler(r.AgentID, sess, s.sessionRepo, s.activityLogger, r.Logging, logger)
+
+	runAgentLoopWithHandlers(
 		ctx,
 		model,
-		r.AgentID,
-		sess,
 		agentContext,
 		extractTools(toolServers),
-		r.Logging,
+		[]EventHandler{h},
 		s.hooks,
 		r.Sink,
+		logger,
 	)
 
 	return nil
 }
 
-// TODO: think about soloving complexity
-// nolint: funlen
-func (s *Service) runAgentLoopWithCallbacks(
+func runAgentLoopWithHandlers(
 	ctx context.Context,
 	model agent.Model,
-	agentID agent.ID,
-	sess session.Session,
 	agentContext []agent.Message,
 	toolKit []agent.Tool,
-	observe bool,
+	eventHandlers []EventHandler,
 	hooks []any,
 	sink chan runtime.Event,
+	logger *slog.Logger,
 ) {
-	logger := s.logger.With(
-		"agent", agentID,
-		"session", sess.ID(),
-	)
-
 	// sink
 	evCh := make(chan runtime.Event, 16)
 
@@ -210,98 +208,50 @@ func (s *Service) runAgentLoopWithCallbacks(
 		)
 	}()
 
-	// This cycle flush event to output sink and then start service processing
-	// of course i think to make producer / consumer with buffered channels
-	// but in that case, service processing order can be broken.
 	for rawEv := range evCh {
-		outEv := rawEv
+		sinkEvent(rawEv, sink)
+		handleEventHandlerGroup(ctx, rawEv, eventHandlers, logger)
+	}
+}
 
-		// flush to sink
-		go func() {
-			// if context cancelled then is not a error
-			if ev, ok := outEv.(*runtime.LoopExitEvent); ok {
-				if errors.Is(ev.Err(), context.Canceled) {
-					outEv = runtime.NewLoopExitEvent(nil)
-				}
-			}
-			select {
-			case sink <- outEv:
-			case <-ctx.Done():
-			}
-		}()
-
-		switch ev := rawEv.(type) {
-		// loop exit event
-		case *runtime.LoopExitEvent:
-
-			switch err := ev.Err(); {
-			case err == nil:
-				logger.InfoContext(ctx, "loop exit")
-
-			case errors.Is(err, context.Canceled):
-				sess.AddMessages(agent.NewUserMessage(prompt.InterruptionExplanation()))
-				logger.InfoContext(ctx, "loop interrupted")
-
-			default:
-				logger.ErrorContext(ctx, "loop exit with error", "error", err)
-			}
-
-			if err := s.sessionRepo.Save(agentID, sess); err != nil {
-				logger.ErrorContext(ctx, "save session", "error", err)
-			}
-
-		// compaction event
-		case *runtime.CompactionEvent:
-			logger.WarnContext(ctx, "session compacted")
-			sess.OverwriteMessages(0, ev.CompactedContext())
-
-		// complete event
-		case *runtime.CompleteEvent:
-			c := ev.Complete()
-			logger.InfoContext(ctx, "completion",
-				"tool_calls", len(c.ToolCalls),
-				"input_tokens", c.InputTokens,
-				"output_tokens", c.CompletionTokens,
-			)
-			// modify session
-			sess.ApplyCompletion(c)
-
-			// observe
-			if observe {
-				completion := ev.Complete()
-				msg := agent.NewAgentMessage(completion.Content, completion.ToolCalls)
-				msgs := []agent.Message{msg}
-
-				s.activityLogger.Commit(agentID, sess.ID(), msgs)
-			}
-
-		// completion mistake
-		case *runtime.CompletionMistakeEvent:
-			logger.InfoContext(ctx, "compltion mistake",
-				"error", ev.Err(),
-			)
-
-		// tool result
-		case *runtime.ToolResultEvent:
-			logger.InfoContext(ctx, "tool result recivied",
-				"tool", ev.Call().ToolName,
-			)
-			sess.AddMessages(agent.NewToolResultMessage(ev.Result()))
-
-		// tool call error
-		case *runtime.ToolCallErrEvent:
-			err := ev.Err()
-			if _, ok := errors.AsType[*types.AgentMistakeError](err); ok {
-				logger.WarnContext(ctx, "bad tool call",
-					"tool", ev.ToolName(),
-				)
-			} else {
-				logger.ErrorContext(ctx, "tool call error",
-					"tool", ev.ToolName(),
-					"error", ev.Err(),
-				)
-			}
+func sinkEvent(ev runtime.Event, sink chan runtime.Event) {
+	outEv := ev
+	if ev, ok := outEv.(*runtime.LoopExitEvent); ok {
+		if errors.Is(ev.Err(), context.Canceled) {
+			outEv = runtime.NewLoopExitEvent(nil)
 		}
+	}
+	sink <- outEv
+}
+
+func handleEventHandlerGroup(ctx context.Context, ev runtime.Event, eventHandlers []EventHandler, logger *slog.Logger) {
+	var wg sync.WaitGroup
+	for _, h := range eventHandlers {
+		wg.Go(func() {
+			if err := handleEvent(ctx, h, ev); err != nil {
+				logger.ErrorContext(ctx, "handling runtime problems", "error", err)
+			}
+		})
+	}
+	wg.Wait()
+}
+
+func handleEvent(ctx context.Context, h EventHandler, rawEv runtime.Event) error {
+	switch ev := rawEv.(type) {
+	case *runtime.LoopExitEvent:
+		return h.HandleLoopExitEvent(ctx, ev)
+	case *runtime.ToolCallErrEvent:
+		return h.HandleToolCallErrEvent(ctx, ev)
+	case *runtime.ToolResultEvent:
+		return h.HandleToolResultEvent(ctx, ev)
+	case *runtime.CompletionMistakeEvent:
+		return h.HandleCompletionMistakeEvent(ctx, ev)
+	case *runtime.CompleteEvent:
+		return h.HandleCompleteEvent(ctx, ev)
+	case *runtime.CompactionEvent:
+		return h.HandleCompactionEvent(ctx, ev)
+	default:
+		return fmt.Errorf("unknown event")
 	}
 }
 
