@@ -4,11 +4,10 @@ You have filesystem access. Is your local filesystem
 Home:
 - [Prompt]({{ .Agent }}/agent.md) your system prompt, no need 
   to read, is already readed (access denied)
-- [Sessions]({{ .Agent }}/sessions/) raw transcripts of your 
-  sessions (access denied) 
 {{ .Additional }}
 
 Common:
+- [Sessions](sessions/) raw transcripts of all sessions (access denied)
 - [Skills](skills/) Your skills here
 - [Documentation](docs/) documentation of your agent system that you poweredby
   never try to read a lot of them. Read [index](docs/index.md) to find only 

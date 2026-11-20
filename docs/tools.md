@@ -94,7 +94,7 @@ call. Rules are evaluated in order, and the first match wins:
 - the agent log file is read-only;
 - `secrets.toml` is read-only (and its values are masked anyway);
 - an agent's own `agent.md` cannot be accessed;
-- session files (`<agent>/sessions/**`) are completely off-limits — the agent
+- session files (`sessions/**`) are completely off-limits — the agent
   cannot read or write conversation history;
 - the agent's activity folder is read-only;
 - everything else is writable.

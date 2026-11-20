@@ -201,7 +201,7 @@ func New(
 
 	// builtin tools
 	skipPatterns := []string{
-		path.Join("*", "sessions", "**.jsonl"),
+		path.Join("sessions", "**.jsonl"),
 	}
 
 	if err = attachBuildinToolServers(

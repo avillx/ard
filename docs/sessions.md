@@ -20,7 +20,7 @@ session.
 ## Where sessions are stored
 
 Session history lives in the data directory under
-`<agent>/sessions/<session_id>.jsonl` ([configuration.md](configuration.md)) —
+`sessions/<session_id>.jsonl` ([configuration.md](configuration.md)) —
 one line of metadata, then one line per message.
 
 The agent **cannot access session files**: file-tool access to the sessions

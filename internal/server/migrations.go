@@ -26,6 +26,7 @@ func safeApplyMigrations(root files.FileStorage) {
 	moveConfigsInDir(root)
 	activityToRoot(root)
 	memoryToRoot(root)
+	sessionsToRoot(root)
 	agentsMarkdownToToml(root)
 	cleanAgentFolder(root)
 	cleanRootFolder(root)
@@ -103,6 +104,7 @@ func cleanRootFolder(root files.FileStorage) {
 	keep := map[string]bool{
 		"activity": true,
 		"memory":   true,
+		"sessions": true,
 		"repos":    true,
 		"conf":     true,
 		"tmp":      true,
@@ -346,6 +348,52 @@ func memoryToRoot(root files.FileStorage) {
 
 		if err := root.Remove(src); err != nil {
 			slog.Error("remove migrated memory folder failed", "agent", e.Name(), "error", err)
+		}
+	}
+}
+
+func sessionsToRoot(root files.FileStorage) {
+	// hardcoded on purpose: migrations must stay idempotent even if the app changes the folder name
+	const sessionsDir = "sessions"
+
+	entries, err := fs.ReadDir(root.FS(), ".")
+	if err != nil {
+		return
+	}
+
+	moveSession := func(src, dst string) error {
+		// a session id is unique, so a duplicate name means the same session already moved
+		if exists(root, dst) {
+			slog.Warn("skip duplicated session file", "agent", path.Dir(src), "file", path.Base(src))
+			return root.Remove(src)
+		}
+		return root.Rename(src, dst)
+	}
+
+	for _, e := range entries {
+		if !isAgentDir(root, e) {
+			continue
+		}
+
+		src := path.Join(e.Name(), sessionsDir)
+		if !exists(root, src) {
+			continue
+		}
+
+		// nothing to merge with: move the whole folder
+		if !exists(root, sessionsDir) {
+			if err := moveTo(root, src, sessionsDir); err == nil {
+				continue
+			}
+		}
+
+		if err := mergeDirs(root, src, sessionsDir, moveSession); err != nil {
+			slog.Error("migrate sessions folder failed", "agent", e.Name(), "error", err)
+			continue
+		}
+
+		if err := root.Remove(src); err != nil {
+			slog.Error("remove migrated sessions folder failed", "agent", e.Name(), "error", err)
 		}
 	}
 }
