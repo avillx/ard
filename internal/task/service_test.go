@@ -1,6 +1,9 @@
 package task_test
 
 import (
+	"ard/internal/agent"
+	"ard/internal/task"
+	"ard/internal/types"
 	"context"
 	"errors"
 	"log/slog"
@@ -9,10 +12,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/task"
-	"ard/internal/types"
 )
 
 //go:fix inline
@@ -330,8 +329,8 @@ func TestValidate_EmptyRequest(t *testing.T) {
 	cfg.Request = ""
 
 	err := svc.Add(cfg)
-	if got := validationProblem(t, err, "request"); got != "must be not empty" {
-		t.Fatalf("request problem = %q, want %q", got, "must be not empty")
+	if got := validationProblem(t, err, "request"); got != task.Required {
+		t.Fatalf("request problem = %q, want %q", got, task.Required)
 	}
 	if got := len(repo.saved()); got != 0 {
 		t.Fatalf("expected no saves, got %d", got)
