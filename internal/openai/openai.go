@@ -1,12 +1,11 @@
 package openai
 
 import (
-	"ard/internal/agent"
-	"ard/internal/runtime"
 	"errors"
-
 	"reflect"
 
+	"ard/internal/agent"
+	"ard/internal/runtime"
 	"github.com/invopop/jsonschema"
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/shared"
@@ -25,86 +24,101 @@ func messagesToOpenAI(internalFromatMessages []agent.Message) []openai.ChatCompl
 }
 
 func messageToOpenAI(internalFromatMessage agent.Message) []openai.ChatCompletionMessageParamUnion {
-	var (
-		result            openai.ChatCompletionMessageParamUnion
-		additionalContent = []openai.ChatCompletionContentPartUnionParam{}
-	)
+	var result openai.ChatCompletionMessageParamUnion
 
 	switch msg := internalFromatMessage.(type) {
 	case *agent.AgentMessage:
-
-		internalContent := msg.Content()
-		openAIContent := make(
-			[]openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion,
-			len(internalContent),
-		)
-		for i, cp := range internalContent {
-			openAIContent[i] = openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion{
-				OfText: &openai.ChatCompletionContentPartTextParam{
-					Text: cp.Text,
-				},
-			}
-		}
-
-		assistantMsg := openai.AssistantMessage(openAIContent)
-
-		toolCalls := msg.ToolCalls()
-		if len(toolCalls) > 0 {
-			assistantMsg.OfAssistant.ToolCalls = toolCallsToOpenAi(toolCalls)
-		}
-		result = assistantMsg
-
+		result = agentMessageToOpenAI(msg)
 	case *agent.SystemMessage:
-
-		internalContent := msg.Content()
-		openAIContent := make([]openai.ChatCompletionContentPartTextParam, len(internalContent))
-		for i, cp := range internalContent {
-			openAIContent[i] = openai.ChatCompletionContentPartTextParam{Text: cp.Text}
-		}
-		result = openai.SystemMessage(openAIContent)
+		result = systemMessageToOpenAI(msg)
 	case *agent.UserMessage:
-
-		internalContent := msg.Content()
-		openAIContent := make([]openai.ChatCompletionContentPartUnionParam, len(internalContent))
-		for i, cp := range internalContent {
-			if cp.Text != "" {
-				openAIContent[i].OfText = &openai.ChatCompletionContentPartTextParam{Text: cp.Text}
-			}
-			if cp.ImageURL != "" {
-				openAIContent[i].OfImageURL = &openai.ChatCompletionContentPartImageParam{
-					ImageURL: openai.ChatCompletionContentPartImageImageURLParam{URL: cp.ImageURL},
-				}
-			}
-		}
-		result = openai.UserMessage(openAIContent)
-
+		result = userMessageToOpenAI(msg)
 	case *agent.ToolResultMessage:
-
-		internalContent := msg.Content()
-
-		openAIContent := make([]openai.ChatCompletionContentPartTextParam, len(internalContent))
-
-		for i, cp := range internalContent {
-			if cp.ImageURL != "" {
-				imagePartContent := openai.ChatCompletionContentPartUnionParam{
-					OfImageURL: &openai.ChatCompletionContentPartImageParam{
-						ImageURL: openai.ChatCompletionContentPartImageImageURLParam{URL: cp.ImageURL},
-					},
-				}
-				additionalContent = append(additionalContent, imagePartContent)
-			}
-
-			openAIContent[i] = openai.ChatCompletionContentPartTextParam{Text: cp.Text}
-		}
-
-		result = openai.ToolMessage(openAIContent, msg.ToolCallID())
+		return toolResultMessageToOpenAI(msg)
 	}
 
-	resultBundle := []openai.ChatCompletionMessageParamUnion{result}
+	return []openai.ChatCompletionMessageParamUnion{result}
+}
+
+func agentMessageToOpenAI(msg *agent.AgentMessage) openai.ChatCompletionMessageParamUnion {
+	internalContent := msg.Content()
+	openAIContent := make(
+		[]openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion,
+		len(internalContent),
+	)
+	for i, cp := range internalContent {
+		openAIContent[i] = openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion{
+			OfText: &openai.ChatCompletionContentPartTextParam{
+				Text: cp.Text,
+			},
+		}
+	}
+
+	assistantMsg := openai.AssistantMessage(openAIContent)
+
+	toolCalls := msg.ToolCalls()
+	if len(toolCalls) > 0 {
+		assistantMsg.OfAssistant.ToolCalls = toolCallsToOpenAi(toolCalls)
+	}
+
+	return assistantMsg
+}
+
+func systemMessageToOpenAI(msg *agent.SystemMessage) openai.ChatCompletionMessageParamUnion {
+	internalContent := msg.Content()
+	openAIContent := make([]openai.ChatCompletionContentPartTextParam, len(internalContent))
+	for i, cp := range internalContent {
+		openAIContent[i] = openai.ChatCompletionContentPartTextParam{Text: cp.Text}
+	}
+
+	return openai.SystemMessage(openAIContent)
+}
+
+func userMessageToOpenAI(msg *agent.UserMessage) openai.ChatCompletionMessageParamUnion {
+	internalContent := msg.Content()
+	openAIContent := make([]openai.ChatCompletionContentPartUnionParam, len(internalContent))
+	for i, cp := range internalContent {
+		if cp.Text != "" {
+			openAIContent[i].OfText = &openai.ChatCompletionContentPartTextParam{Text: cp.Text}
+		}
+		if cp.ImageURL != "" {
+			openAIContent[i].OfImageURL = imageContentPart(cp.ImageURL)
+		}
+	}
+
+	return openai.UserMessage(openAIContent)
+}
+
+// toolResultMessageToOpenAI returns the tool message followed by a user message
+// carrying every image of the result, since tool messages accept text only.
+func toolResultMessageToOpenAI(msg *agent.ToolResultMessage) []openai.ChatCompletionMessageParamUnion {
+	internalContent := msg.Content()
+
+	openAIContent := make([]openai.ChatCompletionContentPartTextParam, len(internalContent))
+	additionalContent := make([]openai.ChatCompletionContentPartUnionParam, 0, len(internalContent))
+
+	for i, cp := range internalContent {
+		if cp.ImageURL != "" {
+			additionalContent = append(additionalContent, openai.ChatCompletionContentPartUnionParam{
+				OfImageURL: imageContentPart(cp.ImageURL),
+			})
+		}
+
+		openAIContent[i] = openai.ChatCompletionContentPartTextParam{Text: cp.Text}
+	}
+
+	resultBundle := []openai.ChatCompletionMessageParamUnion{openai.ToolMessage(openAIContent, msg.ToolCallID())}
 	if len(additionalContent) > 0 {
 		resultBundle = append(resultBundle, openai.UserMessage(additionalContent))
 	}
+
 	return resultBundle
+}
+
+func imageContentPart(imageURL string) *openai.ChatCompletionContentPartImageParam {
+	return &openai.ChatCompletionContentPartImageParam{
+		ImageURL: openai.ChatCompletionContentPartImageImageURLParam{URL: imageURL},
+	}
 }
 
 func toolCallsToOpenAi(toolCalls []*agent.ToolCall) []openai.ChatCompletionMessageToolCallUnionParam {
@@ -173,7 +187,8 @@ func openAIResponseFormat[T any](strict bool) openai.ChatCompletionNewParamsResp
 				Name:   "Response",
 				Strict: openai.Bool(strict),
 				Schema: generateScheme[T](),
-			}},
+			},
+		},
 	}
 }
 
