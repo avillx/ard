@@ -34,7 +34,7 @@ RUN useradd -m -d /home/$USER -s /bin/bash $USER
 
 RUN mkdir $ARD_DATAPATH && chown $USER:$USER $ARD_DATAPATH && chmod 755 $ARD_DATAPATH
 
-COPY --chmod=444 ./README.md ./LICENSE /opt/ard/
+COPY --chmod=555 ./README.md ./LICENSE /opt/ard/
 COPY --chmod=555 ./docs /opt/ard/docs
 COPY --chmod=555 ./skills /opt/ard/skills
 COPY --chmod=555 --from=builder /build/ard /opt/ard/ard
