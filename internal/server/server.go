@@ -120,8 +120,7 @@ func New(
 	profilesRepo := files.NewProfileFiles(fileStorage)
 	toolSvc := tools.NewService()
 
-	// TODO: expose syncers
-	profileSvc, err := profile.NewService(toolSvc, modelsSvc, profilesRepo, []profile.Sync{})
+	profileSvc, err := profile.NewService(toolSvc, modelsSvc, profilesRepo)
 	if err != nil {
 		return nil, err
 	}

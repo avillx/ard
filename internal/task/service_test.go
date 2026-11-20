@@ -221,7 +221,7 @@ func newService(
 ) *task.Service {
 	t.Helper()
 
-	profileSvc, err := profile.NewService(nil, nil, profiles, nil)
+	profileSvc, err := profile.NewService(nil, nil, profiles)
 	if err != nil {
 		t.Fatalf("unexpected profile service error: %v", err)
 	}

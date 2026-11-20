@@ -161,11 +161,10 @@ func newTestService(
 	storage *mockRepo,
 	models *mockModelRegistry,
 	tools *mockToolRegistry,
-	syncs ...profile.Sync,
 ) *profile.Service {
 	t.Helper()
 
-	svc, err := profile.NewService(tools, models, storage, syncs)
+	svc, err := profile.NewService(tools, models, storage)
 	if err != nil {
 		t.Fatalf("NewService() error = %v", err)
 	}
@@ -235,7 +234,6 @@ func TestNewService_DoesNotTouchStorage(t *testing.T) {
 		newMockToolRegistry("filesystem"),
 		newMockModelRegistry("model-a"),
 		storage,
-		nil,
 	)
 	if err != nil {
 		t.Fatalf("NewService() error = %v, want nil", err)
@@ -505,7 +503,9 @@ func TestDelete_DeletesFromStorageAndSyncs(t *testing.T) {
 	storage := newTestStorage(t, newProfile("writer"))
 	sync1 := &mockSync{}
 	sync2 := &mockSync{}
-	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync1, sync2)
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+	svc.AttachSyncer(sync1)
+	svc.AttachSyncer(sync2)
 
 	if err := svc.Delete("writer"); err != nil {
 		t.Fatalf("Delete() error = %v", err)
@@ -540,7 +540,8 @@ func TestDelete_StorageErrorSkipsSyncs(t *testing.T) {
 	storage := newTestStorage(t, newProfile("writer"))
 	storage.saveErr = wantErr
 	sync := &mockSync{}
-	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync)
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+	svc.AttachSyncer(sync)
 
 	err := svc.Delete("writer")
 	if !errors.Is(err, wantErr) {
@@ -556,7 +557,9 @@ func TestDelete_ContinuesSyncsAfterError(t *testing.T) {
 	storage := newTestStorage(t, newProfile("writer"))
 	sync1 := &mockSync{err: syncErr}
 	sync2 := &mockSync{}
-	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync1, sync2)
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+	svc.AttachSyncer(sync1)
+	svc.AttachSyncer(sync2)
 
 	err := svc.Delete("writer")
 	if !errors.Is(err, syncErr) {
@@ -579,9 +582,9 @@ func TestDelete_JoinsSyncErrors(t *testing.T) {
 		storage,
 		newMockModelRegistry("model-a"),
 		newMockToolRegistry("filesystem"),
-		&mockSync{err: err1},
-		&mockSync{err: err2},
 	)
+	svc.AttachSyncer(&mockSync{err: err1})
+	svc.AttachSyncer(&mockSync{err: err2})
 
 	err := svc.Delete("writer")
 	if !errors.Is(err, err1) || !errors.Is(err, err2) {

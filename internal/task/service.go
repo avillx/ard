@@ -22,6 +22,8 @@ type taskRuntime struct {
 	config  Config
 }
 
+var _ profile.Sync = (*Service)(nil)
+
 type Service struct {
 	mu          sync.Mutex
 	repo        Repo
@@ -47,6 +49,8 @@ func NewService(
 		profilesSvc: profilesSvc,
 		logger:      logger.WithGroup("tasks"),
 	}
+
+	profilesSvc.AttachSyncer(svc)
 
 	tasks, err := repo.All()
 	if err != nil {
@@ -260,6 +264,32 @@ func (s *Service) Delete(name string) error {
 	defer s.mu.Unlock()
 
 	return s.repo.Delete(name)
+}
+
+func (s *Service) DeleteProfile(id profile.ID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	tasks, err := s.repo.All()
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+	for taskName, task := range tasks {
+		task.Recipients = slices.DeleteFunc(task.Recipients, func(recipientID profile.ID) bool {
+			return recipientID == id
+		})
+		if len(task.Recipients) == 0 {
+			if err := s.repo.Delete(taskName); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		if err := s.repo.Save(task); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func (s *Service) validateRecipients(recipients []profile.ID) error {

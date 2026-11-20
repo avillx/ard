@@ -43,7 +43,6 @@ func NewService(
 	toolReg agent.ToolRegistry,
 	modelRepo agent.ModelRegistry,
 	storage Repo,
-	syncs []Sync,
 ) (*Service, error) {
 	defaultProfile := NewProfile(
 		DefaultProfileID,
@@ -59,7 +58,7 @@ func NewService(
 		toolReg:        toolReg,
 		modelRepo:      modelRepo,
 		storage:        storage,
-		syncs:          syncs,
+		syncs:          []Sync{},
 	}
 
 	return svc, nil
@@ -151,4 +150,8 @@ func (s *Service) Delete(id ID) error {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
+}
+
+func (s *Service) AttachSyncer(syncer Sync) {
+	s.syncs = append(s.syncs, syncer)
 }

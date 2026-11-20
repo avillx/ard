@@ -254,7 +254,7 @@ func newTestService(
 		activity = &mockActivityLogger{}
 	}
 
-	profileSvc, err := profile.NewService(toolRegistry, modelRepo, storage, nil)
+	profileSvc, err := profile.NewService(toolRegistry, modelRepo, storage)
 	if err != nil {
 		t.Fatalf("unexpected profile service error: %v", err)
 	}
