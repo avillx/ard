@@ -175,16 +175,7 @@ func (s *Service) Chat(
 		s.activityLogger.Commit(c.Session().ID(), []agent.Message{r.UserMessage})
 	}
 
-	// inject id's
-	ctx = withProfileID(ctx, c.Profile().ID())
-	ctx = withSessionID(ctx, r.SessionID)
-
-	logger := s.logger.With(
-		"profile", c.Profile().ID(),
-		"session", c.Session().ID(),
-	)
-
-	h := NewChatEventHandler(c.Profile().ID(), c.Session(), s.sessionRepo, s.activityLogger, r.Logging, logger)
+	h := NewChatEventHandler(c.Profile().ID(), c.Session(), s.sessionRepo, s.activityLogger, r.Logging, s.logger)
 
 	c.Run(
 		ctx,
@@ -192,7 +183,7 @@ func (s *Service) Chat(
 		[]EventHandler{h},
 		s.hooks,
 		r.Sink,
-		logger,
+		s.logger,
 	)
 
 	return nil
@@ -224,27 +215,4 @@ func extractTools(toolServers []agent.ToolServer) []agent.Tool {
 		toolKit = append(toolKit, ts.Tools()...)
 	}
 	return toolKit
-}
-
-type (
-	agentIDCTXKey   struct{}
-	sessionIDCTXKey struct{}
-)
-
-func withProfileID(ctx context.Context, id profile.ID) context.Context {
-	return context.WithValue(ctx, agentIDCTXKey{}, id)
-}
-
-func ProfileIDFromContext(ctx context.Context) (profile.ID, bool) {
-	id, ok := ctx.Value(agentIDCTXKey{}).(profile.ID)
-	return id, ok
-}
-
-func withSessionID(ctx context.Context, id session.ID) context.Context {
-	return context.WithValue(ctx, sessionIDCTXKey{}, id)
-}
-
-func SessionIDFromContext(ctx context.Context) (session.ID, bool) {
-	id, ok := ctx.Value(sessionIDCTXKey{}).(session.ID)
-	return id, ok
 }

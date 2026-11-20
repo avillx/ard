@@ -67,6 +67,15 @@ func (c *Chat) Run(
 	sink chan runtime.Event,
 	logger *slog.Logger,
 ) {
+	// inject id's
+	ctx = withProfileID(ctx, c.Profile().ID())
+	ctx = withSessionID(ctx, c.Session().ID())
+
+	logger = logger.With(
+		"profile", c.Profile().ID(),
+		"session", c.Session().ID(),
+	)
+
 	// sink
 	evCh := make(chan runtime.Event, runtimeEventBuffer)
 
@@ -127,4 +136,27 @@ func handleEvent(ctx context.Context, h EventHandler, rawEv runtime.Event) error
 	default:
 		return fmt.Errorf("unknown event")
 	}
+}
+
+type (
+	agentIDCTXKey   struct{}
+	sessionIDCTXKey struct{}
+)
+
+func withProfileID(ctx context.Context, id profile.ID) context.Context {
+	return context.WithValue(ctx, agentIDCTXKey{}, id)
+}
+
+func ProfileIDFromContext(ctx context.Context) (profile.ID, bool) {
+	id, ok := ctx.Value(agentIDCTXKey{}).(profile.ID)
+	return id, ok
+}
+
+func withSessionID(ctx context.Context, id session.ID) context.Context {
+	return context.WithValue(ctx, sessionIDCTXKey{}, id)
+}
+
+func SessionIDFromContext(ctx context.Context) (session.ID, bool) {
+	id, ok := ctx.Value(sessionIDCTXKey{}).(session.ID)
+	return id, ok
 }
