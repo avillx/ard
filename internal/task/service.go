@@ -59,7 +59,7 @@ func NewService(
 	return svc, nil
 }
 
-func (s *Service) Reload(_ context.Context) error {
+func (s *Service) Reload(ctx context.Context) error {
 	tasks, err := s.repo.All()
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func (s *Service) Reload(_ context.Context) error {
 	// stop deleted tasks
 	for name, rt := range s.runtimes {
 		if _, ok := tasks[rt.config.Name]; !ok {
-			s.logger.Info("task deleted", "task", name)
+			s.logger.InfoContext(ctx, "task deleted", "task", name)
 			s.stopRuntime(name)
 		}
 	}
@@ -96,7 +96,7 @@ func (s *Service) Reload(_ context.Context) error {
 
 	s.runTasks(loadCandidates)
 
-	s.logger.Info("reloaded")
+	s.logger.InfoContext(ctx, "reloaded")
 
 	return nil
 }

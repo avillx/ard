@@ -39,7 +39,7 @@ const (
 	Declined   Status = "declined"
 )
 
-var statusBadge = map[Status]string{ // nolint: gochecknoglobals
+var statusBadge = map[Status]string{ //nolint: gochecknoglobals
 	Pending:    "[ ]",
 	InProgress: "[>]",
 	Done:       "[x]",

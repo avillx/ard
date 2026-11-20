@@ -44,7 +44,7 @@ func RunAgentLoop(
 
 		// run completion
 		completion, err := processCompletion(ctx, model, tools, messages, hooks)
-		// nolint: nestif
+		//nolint: nestif
 		if err != nil {
 			// overflow handling
 			if errors.Is(err, ErrContextOverflow) {
@@ -222,7 +222,7 @@ func resolveCallSafely(
 	ctx context.Context,
 	tool agent.Tool,
 	call *agent.ToolCall,
-) (result *agent.ToolResult, err error) { // nolint: nonamedreturns
+) (result *agent.ToolResult, err error) { //nolint: nonamedreturns
 	defer func() {
 		if p := recover(); p != nil {
 			err = fmt.Errorf("tool %s panicked: %v", tool.Name(), p)

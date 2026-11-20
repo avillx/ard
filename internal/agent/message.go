@@ -108,7 +108,7 @@ func NewUserMessage[T string | []ContentPart](content T) *UserMessage {
 	}
 }
 
-type AgentMessage struct { // nolint: revive
+type AgentMessage struct { //nolint: revive
 	messageBase
 
 	toolCalls []*ToolCall

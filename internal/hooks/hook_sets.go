@@ -1,10 +1,11 @@
 package hooks
 
 import (
+	"path/filepath"
+
 	"ard/internal/agent"
 	"ard/internal/files"
 	"ard/internal/logging"
-	"path/filepath"
 )
 
 const _24kb = 24 * 1024

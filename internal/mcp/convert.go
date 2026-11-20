@@ -1,9 +1,9 @@
 package mcp
 
 import (
-	"ard/internal/agent"
 	"fmt"
 
+	"ard/internal/agent"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

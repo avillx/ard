@@ -43,14 +43,14 @@ const (
 	ModeSticky     = os.ModeSticky
 	ModeIrregular  = os.ModeIrregular
 
-	O_RDONLY = os.O_RDONLY // nolint: revive,staticcheck
-	O_WRONLY = os.O_WRONLY // nolint: revive,staticcheck
-	O_RDWR   = os.O_RDWR   // nolint: revive,staticcheck
-	O_APPEND = os.O_APPEND // nolint: revive,staticcheck
-	O_CREATE = os.O_CREATE // nolint: revive,staticcheck
-	O_EXCL   = os.O_EXCL   // nolint: revive,staticcheck
-	O_SYNC   = os.O_SYNC   // nolint: revive,staticcheck
-	O_TRUNC  = os.O_TRUNC  // nolint: revive,staticcheck
+	O_RDONLY = os.O_RDONLY //nolint: revive,staticcheck
+	O_WRONLY = os.O_WRONLY //nolint: revive,staticcheck
+	O_RDWR   = os.O_RDWR   //nolint: revive,staticcheck
+	O_APPEND = os.O_APPEND //nolint: revive,staticcheck
+	O_CREATE = os.O_CREATE //nolint: revive,staticcheck
+	O_EXCL   = os.O_EXCL   //nolint: revive,staticcheck
+	O_SYNC   = os.O_SYNC   //nolint: revive,staticcheck
+	O_TRUNC  = os.O_TRUNC  //nolint: revive,staticcheck
 )
 
 type File struct {

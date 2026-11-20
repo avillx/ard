@@ -98,7 +98,7 @@ func (g *processGateway) createSession(ctx context.Context) (*mcp.ClientSession,
 	defer g.mu.Unlock()
 
 	// TODO: Technically agent with mcp config edit premissions can execute any command
-	cmd := exec.Command(g.command, g.args...) // nolint: gosec
+	cmd := exec.Command(g.command, g.args...) //nolint: gosec
 	cmd.Env = append(os.Environ(), envToSlice(g.env)...)
 
 	client := newClient()

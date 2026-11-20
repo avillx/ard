@@ -14,7 +14,7 @@ import (
 const (
 	SecretsConfigFileMode = 0o700
 	SecretsConfigFile     = "secrets.toml"
-	// nolint: gosec
+	//nolint: gosec
 	secretsFileDoc = `# Secrets storage
 
 	# Key names should prefer upper snake case (e.g. SOME_VARIABLE)
@@ -29,7 +29,7 @@ const (
 	# After edit, ensure file consistency and comment integrity`
 )
 
-var SecretsConfigFilePath = filepath.Join(ConfigDir, SecretsConfigFile) // nolint: gochecknoglobals
+var SecretsConfigFilePath = filepath.Join(ConfigDir, SecretsConfigFile) //nolint: gochecknoglobals
 
 var _ secrets.Repo = (*SecretsFiles)(nil)
 

@@ -11,7 +11,7 @@ import (
 )
 
 func killProcessGroup(cmd *exec.Cmd) error {
-	return exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(cmd.Process.Pid)).Run() // nolint: gosec
+	return exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(cmd.Process.Pid)).Run() //nolint: gosec
 }
 
 func setProcAttrs(cmd *exec.Cmd) {

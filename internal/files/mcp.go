@@ -47,7 +47,7 @@ const (
 	# After edit, ensure file consistency and comment integrity`
 )
 
-var MCPConfigFilePath = filepath.Join(ConfigDir, MCPConfigFile) // nolint: gochecknoglobals
+var MCPConfigFilePath = filepath.Join(ConfigDir, MCPConfigFile) //nolint: gochecknoglobals
 
 var _ mcp.ConfigRepo = (*MCPFiles)(nil)
 

@@ -1,11 +1,12 @@
 package server
 
 import (
-	"ard/internal/files"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"path"
+
+	"ard/internal/files"
 )
 
 // Generated shit
@@ -27,7 +28,7 @@ func safeApplyMigrations(root files.FileStorage) {
 func moveConfigsInDir(root files.FileStorage) {
 	const (
 		configDir     = "conf"
-		configDirMode = 0755
+		configDirMode = 0o755
 	)
 
 	configs := []string{
@@ -132,7 +133,7 @@ func cleanAgentFolder(root files.FileStorage) {
 func moveAgentSkills(root files.FileStorage, agent string) {
 	const (
 		skillsDir     = "skills"
-		skillsDirMode = 0777
+		skillsDirMode = 0o777
 	)
 
 	agentSkills := path.Join(agent, skillsDir)
@@ -188,8 +189,8 @@ func isAgentDir(root files.FileStorage, e fs.DirEntry) bool {
 func moveToRepos(root files.FileStorage, src, name string, isDir bool) {
 	const (
 		reposDir     = "repos"
-		reposDirMode = 0777
-		dirPerm      = 0755
+		reposDirMode = 0o777
+		dirPerm      = 0o755
 	)
 
 	if err := root.MkdirAll(reposDir, reposDirMode); err != nil {
@@ -217,7 +218,7 @@ func moveToRepos(root files.FileStorage, src, name string, isDir bool) {
 
 // moveTo renames src to dst, creating missing parents of dst.
 func moveTo(root files.FileStorage, src, dst string) error {
-	const dirPerm = 0755
+	const dirPerm = 0o755
 
 	if parent := path.Dir(dst); parent != "." {
 		if err := root.MkdirAll(parent, dirPerm); err != nil {
