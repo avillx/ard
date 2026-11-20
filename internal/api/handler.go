@@ -30,7 +30,7 @@ type HTTPHandler struct {
 	memoryRepo       agent.ConsolidatorRepo
 	memoryIndexer    agent.MemoryIndexer
 	activityStore    agent.ActivityRepo
-	profileRepo      profile.Repo
+	profileSvc       *profile.Service
 	idGen            IDGenerator
 }
 
@@ -49,7 +49,7 @@ func NewHTTPHandler(
 		memoryRepo:       srv.MemoryFiles,
 		memoryIndexer:    srv.MemoryFiles,
 		activityStore:    srv.ActivityFiles,
-		profileRepo:      srv.ProfileFiles,
+		profileSvc:       srv.ProfileSvc,
 		providerSvc:      srv.ProviderSvc,
 		activitySvc:      srv.ActivitySvc,
 		idGen:            uuid.NewGenerator(),
@@ -100,12 +100,12 @@ func (s *HTTPHandler) registerRoutes() {
 	s.HandleFunc("GET /activity/config", activityHandler.Config)
 	s.HandleFunc("POST /activity/config", activityHandler.SetConfig)
 
-	agentHandler := &profileHandler{repo: s.profileRepo}
-	s.HandleFunc("GET /agent", agentHandler.List)
-	s.HandleFunc("GET /agent/{id}", agentHandler.Read)
-	s.HandleFunc("POST /agent/{id}", agentHandler.Create)
-	s.HandleFunc("PUT /agent/{id}", agentHandler.Update)
-	s.HandleFunc("DELETE /agent/{id}", agentHandler.Delete)
+	profHandler := &profileHandler{svc: s.profileSvc}
+	s.HandleFunc("GET /profile", profHandler.List)
+	s.HandleFunc("GET /profile/{id}", profHandler.Read)
+	s.HandleFunc("POST /profile/{id}", profHandler.Create)
+	s.HandleFunc("PUT /profile/{id}", profHandler.Update)
+	s.HandleFunc("DELETE /profile/{id}", profHandler.Delete)
 
 	providerHandler := &providerHandler{providerSvc: s.providerSvc}
 	s.HandleFunc("GET /providers", providerHandler.GetAll)

@@ -9,6 +9,7 @@ type ID string
 
 var _ Profile = (*profile)(nil)
 
+// divide pathch and Merge for avoid saveing external modified profiles
 type Profile interface {
 	ID() ID
 	Description() string

@@ -16,14 +16,18 @@ import (
 type CallAgentToolServer struct {
 	*BuildInToolServer
 
-	logger       *slog.Logger
-	profilesRepo profile.Repo
+	logger      *slog.Logger
+	profilesSvc *profile.Service
 }
 
-func NewCallAgentToolServer(s *subagent.Service, profilesRepo profile.Repo, logger *slog.Logger) *CallAgentToolServer {
+func NewCallAgentToolServer(
+	s *subagent.Service,
+	profilesSvc *profile.Service,
+	logger *slog.Logger,
+) *CallAgentToolServer {
 	return &CallAgentToolServer{
-		profilesRepo: profilesRepo,
-		logger:       logger.WithGroup("call_agent_tool"),
+		profilesSvc: profilesSvc,
+		logger:      logger.WithGroup("call_agent_tool"),
 		BuildInToolServer: NewBuildInToolServer(
 			&CallAgentTool{
 				subagentSvc: s,
@@ -42,7 +46,7 @@ Called sub agent is stateless. If sub agent clarify something
 then sub agent need full request with clarificaton again.
 `
 
-	profiles, err := t.profilesRepo.All()
+	profiles, err := t.profilesSvc.All()
 	if err != nil {
 		t.logger.Error("call agent tool", "error", "can't gather agents")
 		return ""

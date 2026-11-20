@@ -46,7 +46,7 @@ func (s *executor) Execute(ctx context.Context, t Config) {
 
 func (s *executor) processRecipientTask(ctx context.Context, profileID profile.ID, request string) error {
 	// TODO: just a user message over session instruction
-	sessID, err := s.sessionSvc.Create(prompt.GetAutonomusGuidance())
+	sessID, err := s.sessionSvc.Create(profileID, prompt.GetAutonomusGuidance())
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,6 @@ func (s *executor) processRecipientTask(ctx context.Context, profileID profile.I
 	return s.chatExecutor.Chat(
 		ctx,
 		chat.Request{
-			ProfileID:           profileID,
 			SessionID:           sessID,
 			UserMessage:         agent.NewUserMessage(request),
 			Logging:             true,

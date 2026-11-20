@@ -18,7 +18,6 @@ type ActivityLogger interface {
 }
 
 type Request struct {
-	ProfileID           profile.ID
 	SessionID           session.ID
 	UserMessage         *agent.UserMessage
 	ProvidedToolServers []agent.ToolServer
@@ -27,10 +26,6 @@ type Request struct {
 }
 
 func (r Request) validate() error {
-	if r.ProfileID == "" {
-		return fmt.Errorf("completion request must include agentID")
-	}
-
 	if r.SessionID == "" {
 		return fmt.Errorf("completion request must include sessionID")
 	}
@@ -75,7 +70,7 @@ type SystemMessageBuilder interface {
 }
 
 type Service struct {
-	profileRepo          profile.Repo
+	profileSvc           *profile.Service
 	sessionRepo          session.SessionsRepo
 	modelRepo            agent.ModelRegistry
 	toolRegistry         agent.ToolRegistry
@@ -86,7 +81,7 @@ type Service struct {
 }
 
 func NewService(
-	profileRepo profile.Repo,
+	profileSvc *profile.Service,
 	sessionRepo session.SessionsRepo,
 	modelRepo agent.ModelRegistry,
 	toolRegistry agent.ToolRegistry,
@@ -96,7 +91,7 @@ func NewService(
 	logger *slog.Logger,
 ) *Service {
 	return &Service{
-		profileRepo:          profileRepo,
+		profileSvc:           profileSvc,
 		sessionRepo:          sessionRepo,
 		modelRepo:            modelRepo,
 		toolRegistry:         toolRegistry,
@@ -116,8 +111,14 @@ func (s *Service) Chat(
 		return err
 	}
 
-	// agent
-	p, err := s.profileRepo.Get(r.ProfileID)
+	// session
+	sess, err := s.sessionRepo.Session(r.SessionID)
+	if err != nil {
+		return err
+	}
+
+	// profile
+	p, err := s.profileSvc.Get(sess.ProfileID())
 	if err != nil {
 		return err
 	}
@@ -130,12 +131,6 @@ func (s *Service) Chat(
 
 	// tools
 	toolServers, err := resolveToolServers(s.toolRegistry, p, r.ProvidedToolServers, s.logger)
-	if err != nil {
-		return err
-	}
-
-	// session
-	sess, err := s.sessionRepo.Session(r.SessionID)
 	if err != nil {
 		return err
 	}
@@ -162,15 +157,15 @@ func (s *Service) Chat(
 	}
 
 	// inject id's
-	ctx = withProfileID(ctx, r.ProfileID)
+	ctx = withProfileID(ctx, p.ID())
 	ctx = withSessionID(ctx, r.SessionID)
 
 	logger := s.logger.With(
-		"profile", r.ProfileID,
+		"profile", p.ID(),
 		"session", sess.ID(),
 	)
 
-	h := NewChatEventHandler(r.ProfileID, sess, s.sessionRepo, s.activityLogger, r.Logging, logger)
+	h := NewChatEventHandler(p.ID(), sess, s.sessionRepo, s.activityLogger, r.Logging, logger)
 
 	runAgentLoopWithHandlers(
 		ctx,

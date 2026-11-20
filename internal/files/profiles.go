@@ -2,7 +2,6 @@ package files
 
 import (
 	"ard/internal/profile"
-	"ard/internal/types"
 	"path/filepath"
 	"sync"
 
@@ -31,7 +30,7 @@ func NewProfileFiles(
 	}
 }
 
-func (s *ProfileFiles) All() ([]profile.Profile, error) {
+func (s *ProfileFiles) Load() (map[profile.ID]profile.Profile, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -40,61 +39,28 @@ func (s *ProfileFiles) All() ([]profile.Profile, error) {
 		return nil, err
 	}
 
-	profiles := []profile.Profile{}
-	for id, profile := range cfg {
-		agt := dtoToAgent(id, profile)
-		profiles = append(profiles, agt)
+	profiles := map[profile.ID]profile.Profile{}
+	for id, dto := range cfg {
+		profiles[id] = dtoToProfile(id, dto)
 	}
 
 	return profiles, nil
 }
 
-func (s *ProfileFiles) Get(id profile.ID) (profile.Profile, error) {
+func (s *ProfileFiles) Save(profiles map[profile.ID]profile.Profile) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	cfg, err := s.loadConfig()
-	if err != nil {
-		return nil, err
+	cfg := map[profile.ID]ProfileDTO{}
+	for id, p := range profiles {
+		cfg[id] = ProfileDTO{
+			Description:  p.Description(),
+			Model:        p.Model(),
+			HasMemory:    p.HasMemory(),
+			ToolServers:  p.ToolServers(),
+			SystemPrompt: p.SystemPrompt(),
+		}
 	}
-
-	if profile, ok := cfg[id]; ok {
-		return dtoToAgent(id, profile), nil
-	}
-
-	return nil, types.ErrIsNotExist
-}
-
-func (s *ProfileFiles) Save(p profile.Profile) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	cfg, err := s.loadConfig()
-	if err != nil {
-		return err
-	}
-
-	cfg[p.ID()] = ProfileDTO{
-		Description:  p.Description(),
-		Model:        p.Model(),
-		HasMemory:    p.HasMemory(),
-		ToolServers:  p.ToolServers(),
-		SystemPrompt: p.SystemPrompt(),
-	}
-
-	return s.saveConfig(cfg)
-}
-
-func (s *ProfileFiles) Delete(profileID profile.ID) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	cfg, err := s.loadConfig()
-	if err != nil {
-		return err
-	}
-
-	delete(cfg, profileID)
 
 	return s.saveConfig(cfg)
 }
@@ -130,7 +96,7 @@ type ProfileDTO struct {
 	SystemPrompt string   `toml:"prompt"                 multiline:"true"`
 }
 
-func dtoToAgent(id profile.ID, p ProfileDTO) profile.Profile {
+func dtoToProfile(id profile.ID, p ProfileDTO) profile.Profile {
 	return profile.NewProfile(
 		id,
 		p.Description,

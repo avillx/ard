@@ -198,7 +198,7 @@ func New(
 	)
 
 	// task service
-	taskSvc, err := buildTaskService(fileStorage, sessSvc, chatSvc, profilesRepo, logger)
+	taskSvc, err := buildTaskService(fileStorage, sessSvc, chatSvc, profileSvc, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func New(
 
 	if err = attachBuildinToolServers(
 		datapath, agentShell, agentShellAttributes, toolSvc, secretSvc, fileStorage,
-		skipPatterns, todoStorage, chatSvc, sessSvc, logger, profilesRepo,
+		skipPatterns, todoStorage, chatSvc, sessSvc, logger, profileSvc,
 	); err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func buildTaskService(
 	storage files.FileStorage,
 	sessSvc *session.Service,
 	chatSvc *chat.Service,
-	profileRepo profile.Repo,
+	profileSvc *profile.Service,
 	logger *slog.Logger,
 ) (*task.Service, error) {
 	taskRepo, err := files.NewTaskFiles(storage)
@@ -276,7 +276,7 @@ func buildTaskService(
 		taskRepo,
 		executor,
 		func(s string) (task.Cron, error) { return cron.NewRobfigCron(s) },
-		profileRepo,
+		profileSvc,
 		logger,
 	)
 	if err != nil {
@@ -298,7 +298,7 @@ func attachBuildinToolServers(
 	chatExecutor chat.Executor,
 	sessSvc *session.Service,
 	logger *slog.Logger,
-	profileRepo profile.Repo,
+	profileSvc *profile.Service,
 ) error {
 	fsToolSrv, err := fstools.NewFileSystemToolServer(fileStorage, skipPatterns)
 	if err != nil {
@@ -312,7 +312,7 @@ func attachBuildinToolServers(
 	}
 	if err := toolSvc.Connect("agent", tools.NewCallAgentToolServer(
 		subagent.NewService(chatExecutor, sessSvc, logger),
-		profileRepo,
+		profileSvc,
 		logger,
 	)); err != nil {
 		return err

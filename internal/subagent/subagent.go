@@ -49,7 +49,7 @@ func (s *Service) Call(
 	}
 
 	// create session
-	sessID, err := s.sessService.Create(prompt.SubAgentGuidance())
+	sessID, err := s.sessService.Create(profileID, prompt.SubAgentGuidance())
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +63,6 @@ func (s *Service) Call(
 		err := s.chatExecutor.Chat(
 			ctx,
 			chat.Request{
-				ProfileID:   profileID,
 				SessionID:   sessID,
 				UserMessage: agent.NewUserMessage(request),
 				Logging:     false,

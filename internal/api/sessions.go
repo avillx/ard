@@ -2,6 +2,7 @@ package api
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/session"
 	"ard/internal/types"
 	"errors"
@@ -103,7 +104,8 @@ func (h *sessionHandler) Sessions(_ http.ResponseWriter, _ *http.Request) Respon
 
 func (h *sessionHandler) Create(_ http.ResponseWriter, r *http.Request) Response {
 	type SessionCreateDTO struct {
-		Instructon string `json:"instruction,omitempty"`
+		ProfileID  profile.ID `json:"profile_id,omitempty"`
+		Instructon string     `json:"instruction,omitempty"`
 	}
 
 	requestDTO, err := decode[SessionCreateDTO](r)
@@ -111,7 +113,7 @@ func (h *sessionHandler) Create(_ http.ResponseWriter, r *http.Request) Response
 		return NewInvalidRequest(err)
 	}
 
-	sessID, err := h.sessSvc.Create(requestDTO.Instructon)
+	sessID, err := h.sessSvc.Create(requestDTO.ProfileID, requestDTO.Instructon)
 	if err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			return NewBadRequest("agent is not exist")

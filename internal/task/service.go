@@ -5,6 +5,7 @@ import (
 	"ard/internal/types"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"maps"
 	"slices"
@@ -28,7 +29,7 @@ type Service struct {
 	runtimes    map[string]*taskRuntime
 	executor    Executor
 	cronFactory func(string) (Cron, error)
-	agentRepo   profile.Repo
+	profilesSvc *profile.Service
 	logger      *slog.Logger
 }
 
@@ -36,7 +37,7 @@ func NewService(
 	repo Repo,
 	executor Executor,
 	cronFactory func(string) (Cron, error),
-	agentRepo profile.Repo,
+	profilesSvc *profile.Service,
 	logger *slog.Logger,
 ) (*Service, error) {
 	svc := &Service{
@@ -44,7 +45,7 @@ func NewService(
 		runtimes:    map[string]*taskRuntime{},
 		cronFactory: cronFactory,
 		executor:    executor,
-		agentRepo:   agentRepo,
+		profilesSvc: profilesSvc,
 		logger:      logger.WithGroup("tasks"),
 	}
 
@@ -265,12 +266,14 @@ func (s *Service) Delete(name string) error {
 func (s *Service) validateRecipients(recipients []profile.ID) error {
 	problems := map[string]string{}
 	for _, r := range recipients {
-		if _, err := s.agentRepo.Get(r); err != nil {
-			if errors.Is(err, types.ErrIsNotExist) {
-				problems[string(r)] = "is not exist"
-				continue
-			}
+
+		exist, err := s.profilesSvc.IsExist(r)
+		if err != nil {
 			return err
+		}
+
+		if !exist {
+			return fmt.Errorf("Recipient %s is not exist", r)
 		}
 	}
 

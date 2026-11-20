@@ -1,6 +1,7 @@
 package files
 
 import (
+	"ard/internal/profile"
 	"ard/internal/session"
 	"ard/internal/types"
 	"bufio"
@@ -110,6 +111,7 @@ func (r *SessionFiles) Headers() ([]session.Header, error) {
 			header.OutputTokens,
 			header.CreatedAt,
 			header.UpdatedAt,
+			header.ProfileID,
 			header.Extras,
 		))
 	}
@@ -126,6 +128,7 @@ type HeaderDTO struct {
 	OutputTokens int64          `json:"output_tokens"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
+	ProfileID    profile.ID     `json:"profile_id"`
 	Extras       map[string]any `json:"extras"`
 }
 
@@ -139,6 +142,7 @@ func marshalSession(s session.Session) ([]byte, error) {
 		OutputTokens: s.OutputTokens(),
 		CreatedAt:    s.CreatedAt(),
 		UpdatedAt:    s.UpdatedAt(),
+		ProfileID:    s.ProfileID(),
 		Extras:       s.Extras(),
 	}); err != nil {
 		return nil, err
@@ -189,6 +193,7 @@ func dtoToSession(sessionID session.ID, headerDTO HeaderDTO, messagesDTO []Messa
 			headerDTO.OutputTokens,
 			headerDTO.CreatedAt,
 			headerDTO.UpdatedAt,
+			headerDTO.ProfileID,
 			headerDTO.Extras,
 		),
 		msgs,

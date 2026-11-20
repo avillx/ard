@@ -2,6 +2,7 @@ package session
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"fmt"
 	"slices"
 	"sync"
@@ -64,6 +65,8 @@ type Header interface {
 	CreatedAt() time.Time
 	UpdatedAt() time.Time
 
+	ProfileID() profile.ID
+
 	Extras() map[string]any
 }
 
@@ -88,7 +91,9 @@ type sessionHeader struct {
 	outputTokens int64
 	createdAt    time.Time
 	updatedAt    time.Time
-	mu           sync.RWMutex
+	profileID    profile.ID
+
+	mu sync.RWMutex
 
 	extras map[string]any
 }
@@ -99,6 +104,7 @@ func NewHeader(
 	outputTokens int64,
 	createdAt time.Time,
 	updatedAt time.Time,
+	profileID profile.ID,
 	extras map[string]any,
 ) *sessionHeader {
 	return &sessionHeader{
@@ -107,6 +113,7 @@ func NewHeader(
 		outputTokens: outputTokens,
 		createdAt:    createdAt,
 		updatedAt:    updatedAt,
+		profileID:    profileID,
 		extras:       extras,
 	}
 }
@@ -146,6 +153,13 @@ func (s *sessionHeader) UpdatedAt() time.Time {
 	return s.updatedAt
 }
 
+func (s *sessionHeader) ProfileID() profile.ID {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.profileID
+}
+
 func (s *sessionHeader) Extras() map[string]any {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -161,9 +175,9 @@ type session struct {
 	messages []agent.Message
 }
 
-func NewSession(id ID) *session {
+func NewSession(id ID, profileID profile.ID) *session {
 	return &session{
-		sessionHeader: NewHeader(id, 0, 0, time.Now(), time.Now(), map[string]any{}),
+		sessionHeader: NewHeader(id, 0, 0, time.Now(), time.Now(), profileID, map[string]any{}),
 		messages:      []agent.Message{},
 	}
 }

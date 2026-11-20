@@ -3,7 +3,6 @@ package api
 import (
 	"ard/internal/agent"
 	"ard/internal/chat"
-	"ard/internal/profile"
 	"ard/internal/runtime"
 	"ard/internal/session"
 	"encoding/json"
@@ -69,9 +68,8 @@ func (h *chatHandler) Interrupt(w http.ResponseWriter, r *http.Request) Response
 	return NewResponse(http.StatusOK)
 }
 
-// POST /chat/{agent}/{session}.
+// POST /chat/{session}.
 func (h *chatHandler) Chat(w http.ResponseWriter, r *http.Request) Response {
-	profileID := profile.ID(r.PathValue("agent"))
 	sessionID := session.ID(r.PathValue("session"))
 
 	type RequestDTO struct {
@@ -89,7 +87,6 @@ func (h *chatHandler) Chat(w http.ResponseWriter, r *http.Request) Response {
 	if err != nil {
 		stream.sendError(http.StatusBadRequest, err)
 		h.logger.ErrorContext(r.Context(), "bad request",
-			"profile", profileID,
 			"session", sessionID,
 			"error", err,
 		)
@@ -109,7 +106,6 @@ func (h *chatHandler) Chat(w http.ResponseWriter, r *http.Request) Response {
 	go func() {
 		defer close(evCh)
 		err = h.chatDispatcher.Chat(r.Context(), chat.Request{
-			ProfileID:           profileID,
 			SessionID:           sessionID,
 			UserMessage:         agent.NewUserMessage(chatReqDTO.UserRequest),
 			Logging:             chatReqDTO.Logging,
@@ -119,7 +115,6 @@ func (h *chatHandler) Chat(w http.ResponseWriter, r *http.Request) Response {
 		if err != nil {
 			stream.sendError(http.StatusBadRequest, err)
 			h.logger.ErrorContext(r.Context(), "chat error",
-				"profile", profileID,
 				"session", sessionID,
 				"error", err,
 			)

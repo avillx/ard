@@ -5,6 +5,8 @@ import (
 	"ard/internal/prompt"
 	"ard/internal/types"
 	"errors"
+	"maps"
+	"slices"
 )
 
 const (
@@ -21,15 +23,9 @@ const (
 )
 
 type Repo interface {
-	All() ([]Profile, error)
-	Get(ID) (Profile, error)
-	Save(Profile) error
-
-	// TODO: tasks is not updating automaticly
-	Delete(ID) error
+	Load() (map[ID]Profile, error)
+	Save(map[ID]Profile) error
 }
-
-var _ Repo = (*Service)(nil)
 
 type Sync interface {
 	DeleteProfile(ID) error
@@ -70,31 +66,45 @@ func NewService(
 }
 
 func (s *Service) All() ([]Profile, error) {
-	return s.storage.All()
+	profiles, err := s.storage.Load()
+	if err != nil {
+		return nil, err
+	}
+	return slices.Collect(maps.Values(profiles)), nil
+}
+
+func (s *Service) IsExist(id ID) (bool, error) {
+	m, err := s.storage.Load()
+	if err != nil {
+		return false, err
+	}
+	_, ok := m[id]
+	return ok, nil
 }
 
 func (s *Service) Get(id ID) (Profile, error) {
 	defaultCopy := *s.defaultProfile
 	p := &defaultCopy
 
+	stored, err := s.storage.Load()
+	if err != nil {
+		return nil, err
+	}
+
 	// default patch with profile
 	if id != "" && id != s.defaultProfile.ID() {
-		selectedProfile, err := s.storage.Get(id)
-		if err != nil {
-			return nil, err
+		selectedProfile, ok := stored[id]
+		if !ok {
+			return nil, types.ErrIsNotExist
 		}
 		p.Patch(selectedProfile)
 	}
 
 	// merge with global
-	globalProfile, err := s.storage.Get(GlobalProfileID)
-	if err != nil {
-		if !errors.Is(err, types.ErrIsNotExist) {
-			return nil, err
-		}
+	globalProfile, ok := stored[GlobalProfileID]
+	if !ok {
 		globalProfile = NewProfile("", "", "", "", []string{}, false)
 	}
-
 	p.Merge(globalProfile)
 
 	return p, nil
@@ -111,16 +121,27 @@ func (s *Service) Save(p Profile) error {
 		return err
 	}
 
-	return s.storage.Save(p)
+	profiles, err := s.storage.Load()
+	if err != nil {
+		return err
+	}
+
+	profiles[p.ID()] = p
+
+	return s.storage.Save(profiles)
 }
 
 func (s *Service) Delete(id ID) error {
 	// validate agent existence
-	if _, err := s.storage.Get(id); err != nil {
+
+	profiles, err := s.storage.Load()
+	if err != nil {
 		return err
 	}
 
-	if err := s.storage.Delete(id); err != nil {
+	delete(profiles, id)
+
+	if err := s.storage.Save(profiles); err != nil {
 		return err
 	}
 

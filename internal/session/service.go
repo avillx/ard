@@ -1,6 +1,7 @@
 package session
 
 import (
+	"ard/internal/profile"
 	"log/slog"
 )
 
@@ -35,9 +36,11 @@ func NewService(
 	}
 }
 
-func (s *Service) Create(instruction string) (ID, error) {
+func (s *Service) Create(profileID profile.ID, instruction string) (ID, error) {
+	// TODO: Check profile existence
+
 	newSessionID := ID(s.uuid.New())
-	newSession := NewSession(newSessionID)
+	newSession := NewSession(newSessionID, profileID)
 
 	if instruction != "" {
 		newExtras := map[string]any{
@@ -46,9 +49,6 @@ func (s *Service) Create(instruction string) (ID, error) {
 		newSession.SetExtras(newExtras)
 	}
 
-	// TODO: is agent is not exist expecting err not exist
-	// on other storage not existence path expect path was created and return no errors
-	// other problems is other problems
 	if err := s.repo.Save(newSession); err != nil {
 		return "", err
 	}
