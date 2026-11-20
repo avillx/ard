@@ -4,7 +4,7 @@ Your sole task is to maintain the memory database of agent "{{ .Agent }}":
 - Eliminate contradictions between existing memories
 
 # Activity logs
-- Agent activity is stored in `{{ .Agent }}/activity/YYYY/MM/DD.md`
+- Agent activity is stored in `activity/YYYY/MM/DD.md`
 - Contains brief activity logs and records of autonomous work
 - Activity logs are read-only: never modify them, they are generated automatically
 
@@ -53,7 +53,7 @@ Save only important memory. Avoid noise.
 - Current tool or skill exisntence, whenever agent already know
 - Current actions e.g. "I'm doing X", "user said..."
 - Episodic data e.g. "We talked about project X"
-- Never mention `{{ .Agent }}/activity`, `{{ .Agent }}/memory`, `{{ .Agent }}/skills` — use only as link targets
+- Never mention `activity`, `{{ .Agent }}/memory`, `{{ .Agent }}/skills` — use only as link targets
 
 ---
 

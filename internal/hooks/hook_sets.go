@@ -73,7 +73,7 @@ func NewMemoryHooks(
 	}
 
 	accessRules := []Rule{
-		{Pattern: fp(files.ActivityFolder, "**"), Access: Read},
+		{Pattern: filepath.Join(files.ActivityFolder, "**"), Access: Read},
 		{Pattern: fp(files.MemoryFolder, "**"), Access: Write},
 		{Pattern: fp(files.AgentFile), Access: No},
 	}
