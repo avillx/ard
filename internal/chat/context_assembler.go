@@ -101,7 +101,7 @@ func (a *ContextAssembler) BuildSystemMessage(
 
 	parts := []SystemMessageParticipant{
 		&ProflilePart{p: p},
-		&MemoryPart{repo: a.memoryRepo},
+		&MemoryPart{p: p, repo: a.memoryRepo},
 		&SkillPart{repo: a.skillRepo, logger: a.logger},
 		&ToolAwarePart{toolServers: toolServers},
 		&SessionPart{sess: sess},
@@ -156,6 +156,10 @@ type MemoryPart struct {
 }
 
 func (i *MemoryPart) Part(_ context.Context) (string, error) {
+	if !i.p.HasMemory() {
+		return "", nil
+	}
+
 	// load persistent memory prompt
 	idx, err := i.repo.MemoryIndex()
 	if err != nil {

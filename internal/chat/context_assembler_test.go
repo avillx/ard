@@ -45,8 +45,8 @@ type instructedToolServer struct {
 func (s *instructedToolServer) Tools() []agent.Tool { return nil }
 func (s *instructedToolServer) Instruction() string { return s.instruction }
 
-func newAssemblerProfile(prompt string) profile.Profile {
-	return profile.NewProfile("agent-1", "test profile", prompt, "model-1", nil, false)
+func newAssemblerProfile(prompt string, hasMemory bool) profile.Profile {
+	return profile.NewProfile("agent-1", "test profile", prompt, "model-1", nil, hasMemory)
 }
 
 func newAssemblerSession(extras map[string]any) session.Session {
@@ -139,7 +139,7 @@ func TestBuildSystemMessage_HappyPath(t *testing.T) {
 		t,
 		memoryRepo,
 		skillRepo,
-		newAssemblerProfile(profilePrompt),
+		newAssemblerProfile(profilePrompt, true),
 		toolServers,
 		newAssemblerSession(map[string]any{"instruction": sessionInstruction}),
 	)
@@ -176,7 +176,7 @@ func TestProfilePart_IncludesCustomSystemPrompt(t *testing.T) {
 	const prompt = "custom system prompt"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerProfile(prompt), nil,
+		newAssemblerProfile(prompt, false), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -189,7 +189,7 @@ func TestProfilePart_FallsBackToDefaultPrompt(t *testing.T) {
 	const prompt = "custom system prompt"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", false), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -208,7 +208,7 @@ func TestMemoryPart_IncludesMemoryIndex(t *testing.T) {
 	repo := &mockConsolidatorRepo{idx: map[string]string{path: desc}}
 
 	text, err := buildSystemMessage(t, repo, &mockSkillsRepo{},
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", true), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -223,7 +223,7 @@ func TestMemoryPart_SkipsEmptyIndex(t *testing.T) {
 	repo := &mockConsolidatorRepo{idx: map[string]string{}}
 
 	text, err := buildSystemMessage(t, repo, &mockSkillsRepo{},
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", true), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -236,7 +236,7 @@ func TestMemoryPart_ErrorWhenIndexNotReached(t *testing.T) {
 	repo := &mockConsolidatorRepo{err: errors.New("memory repo is down")}
 
 	_, err := buildSystemMessage(t, repo, &mockSkillsRepo{},
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", true), nil,
 		newAssemblerSession(nil))
 	if err == nil {
 		t.Fatal("expected error when memory index is not reached")
@@ -250,7 +250,7 @@ func TestSkillPart_IncludesSkillIndex(t *testing.T) {
 	repo := &mockSkillsRepo{skills: map[string]string{path: desc}}
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, repo,
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", false), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -265,7 +265,7 @@ func TestSkillPart_SkipsEmptyIndex(t *testing.T) {
 	repo := &mockSkillsRepo{skills: map[string]string{}}
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, repo,
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", false), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -282,7 +282,7 @@ func TestToolAwarePart_IncludesToolInstructions(t *testing.T) {
 	}
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerProfile(""), toolServers,
+		newAssemblerProfile("", false), toolServers,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -300,7 +300,7 @@ func TestToolAwarePart_IgnoresServersWithoutInstructions(t *testing.T) {
 	}
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerProfile(""), toolServers,
+		newAssemblerProfile("", false), toolServers,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -313,7 +313,7 @@ func TestToolAwarePart_SkipsWhenNoTools(t *testing.T) {
 	const toolInstruction = "shell tool instruction"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", false), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -326,7 +326,7 @@ func TestSessionPart_IncludesInstruction(t *testing.T) {
 	const instruction = "always answer in english"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", false), nil,
 		newAssemblerSession(map[string]any{"instruction": instruction}))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -339,7 +339,7 @@ func TestSessionPart_SkipsWithoutInstruction(t *testing.T) {
 	const instruction = "always answer in english"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", false), nil,
 		newAssemblerSession(map[string]any{"other": "no instruction here"}))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -350,7 +350,7 @@ func TestSessionPart_SkipsWithoutInstruction(t *testing.T) {
 
 func TestSessionPart_ErrorOnBadInstructionType(t *testing.T) {
 	_, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerProfile(""), nil,
+		newAssemblerProfile("", false), nil,
 		newAssemblerSession(map[string]any{"instruction": 42}))
 	if err == nil {
 		t.Fatal("expected error when session instruction is not a string")

@@ -12,8 +12,6 @@ import (
 
 type ConsolidationInstuctFS struct {
 	agent.ToolServer
-
-	cwd string
 }
 
 func NewConsolidationInstuctFS(storage files.FileStorage, skipPatterns []string) (*ConsolidationInstuctFS, error) {
