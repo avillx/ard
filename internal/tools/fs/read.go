@@ -163,12 +163,8 @@ func (t *ReadTool) ReadDir(p string) (string, error) {
 }
 
 func isDepthLevelLimit(rootPathParts []string, currentPath string, depthLimit int) bool {
-	// skip if depth greather than 2 levels
 	parts := strings.Split(currentPath, string(os.PathSeparator))
-	if len(parts) > len(rootPathParts)+depthLimit {
-		return true
-	}
-	return false
+	return len(parts) > len(rootPathParts)+depthLimit
 }
 
 func (t *ReadTool) defineLabels(path string, d fs.DirEntry, err error) []string {
