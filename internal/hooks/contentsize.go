@@ -41,7 +41,8 @@ func (h *ContentSizeLimitHook) Apply(
 			imagesContent = append(imagesContent, agent.ContentPart{ImageURL: p.ImageURL})
 		}
 	}
-	tc.Result = append(truncatedContent, imagesContent...)
+	truncatedContent = append(truncatedContent, imagesContent...)
+	tc.Result = truncatedContent
 
 	// representation
 	keptPercent := h.limitBytes * percentScale / len(buf)

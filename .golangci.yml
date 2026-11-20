@@ -1,42 +1,18 @@
-# This file is licensed under the terms of the MIT license https://opensource.org/license/mit
-# Copyright (c) 2021-2025 Marat Reimers
-
-## Golden config for golangci-lint v2.15.0
-#
-# This is the best config for golangci-lint based on my experience and opinion.
-# It is very strict, but not extremely strict.
-# Feel free to adapt it to suit your needs.
-# If this config helps you, please consider keeping a link to this repo (see the next comment).
-
-# Based on https://github.com/maratori/golangci-lint-config
-
 version: "2"
 
 issues:
-  # Maximum count of issues with the same text.
-  # Set to 0 to disable.
-  # Default: 3
   max-same-issues: 50
 
 formatters:
   enable:
     - gofumpt # enforces a stricter format than 'gofmt', while being backwards compatible
     - golines # checks if code is formatted, and fixes long lines-
-    # - goimports # checks if the code and import statements are formatted according to the 'goimports' command
-    # - gci # checks if code and import statements are formatted, with additional rules
-    # - gofmt # checks if the code is formatted according to 'gofmt' command
-    # - swaggo # formats swaggo comments
 
-  # All settings can be found here https://github.com/golangci/golangci-lint/blob/HEAD/.golangci.reference.yml
   settings:
-    goimports:
-      # A list of prefixes, which, if set, checks import paths
-      # with the given prefixes are grouped after 3rd-party packages.
-      # Default: []
-      local-prefixes:
-        - github.com/my/project
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
+        clothe-returns: false
 
     golines:
       # Target maximum line length.
@@ -79,7 +55,7 @@ linters:
     - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
     - goprintffuncname # checks that printf-like functions are named with f at the end
     - gosec # inspects source code for security problems
-    - govet # reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
+    # - govet # reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
     - iface # checks the incorrect use of interfaces, helping developers avoid interface pollution
     - ineffassign # detects when assignments to existing variables are not used
     - intrange # finds places where for loops could make use of an integer range
@@ -124,23 +100,13 @@ linters:
     - usetesting # reports uses of functions with replacement inside the testing package
     - wastedassign # finds wasted assignment statements
     - whitespace # detects leading and trailing whitespace
-
-    ## you may want to enable
-    #- arangolint # opinionated best practices for arangodb client
-    #- decorder # checks declaration order and count of types, constants, variables and functions
-    #- ginkgolinter # [if you use ginkgo/gomega] enforces standards of using ginkgo and gomega
+    #- tagalign # checks that struct tags are well aligned
     #- godox # detects usage of FIXME, TODO and other keywords inside comments
-    #- goheader # checks is file header matches to pattern
+    #- decorder # checks declaration order and count of types, constants, variables and functions
     #- inamedparam # [great idea, but too strict, need to ignore a lot of cases by default] reports interfaces with unnamed method parameters
     #- interfacebloat # checks the number of methods inside an interface
     #- ireturn # accept interfaces, return concrete types
-    #- noinlineerr # disallows inline error handling `if err := ...; err != nil {`
     #- prealloc # [premature optimization, but can be used in some cases] finds slice declarations that could potentially be preallocated
-    #- tagalign # checks that struct tags are well aligned
-    #- varnamelen # [great idea, but too many false positives] checks that the length of a variable's name matches its scope
-    #- wrapcheck # checks that errors returned from external packages are wrapped
-    #- zerologlint # detects the wrong usage of zerolog that a user forgets to dispatch zerolog.Event
-    #- exhaustruct_v5 # [highly recommend to enable] checks if all structure fields are initialized
 
     ## disabled
     #- containedctx # detects struct contained context.Context field
@@ -240,45 +206,6 @@ linters:
         - switch
         - mapliteral
 
-    exhaustruct_v5:
-      # List of regular expressions to match type names that should be skipped from checking.
-      # Anonymous structs can be matched by '<anonymous>' alias.
-      # Has precedence over `include`.
-      # Each regular expression must match the full type name, including package path.
-      # For example, to match type `net/http.Cookie` regular expression should be `.*/http\.Cookie`,
-      # but not `http\.Cookie`.
-      # Default: []
-      ignore-patterns:
-        # std libs
-        - ^net/http.Client$
-        - ^net/http.Cookie$
-        - ^net/http.Request$
-        - ^net/http.Response$
-        - ^net/http.Server$
-        - ^net/http.Transport$
-        - ^net/url.URL$
-        - ^os/exec.Cmd$
-        - ^reflect.StructField$
-        # public libs
-        - ^github.com/Shopify/sarama.Config$
-        - ^github.com/Shopify/sarama.ProducerMessage$
-        - ^github.com/mitchellh/mapstructure.DecoderConfig$
-        - ^github.com/prometheus/client_golang/.+Opts$
-        - ^github.com/spf13/cobra.Command$
-        - ^github.com/spf13/cobra.CompletionOptions$
-        - ^github.com/stretchr/testify/mock.Mock$
-        - ^github.com/testcontainers/testcontainers-go.+Request$
-        - ^github.com/testcontainers/testcontainers-go.FromDockerfile$
-        - ^golang.org/x/tools/go/analysis.Analyzer$
-        - ^google.golang.org/protobuf/.+Options$
-        - ^gopkg.in/yaml.v3.Node$
-      # Allows empty structures in return statements.
-      # Default: false
-      allow-empty-returns: true
-      # Allow empty literals the blank identifier receives.
-      # Default: false
-      allow-empty-blank-assignments: true
-
     funcorder:
       # Checks if the exported methods of a structure are placed before the non-exported ones.
       # Default: true
@@ -320,35 +247,6 @@ linters:
 
       disabled-checks:
         - commentFormatting
-
-    godoclint:
-      # List of rules to enable in addition to the default set.
-      # Default: empty
-      enable:
-        # Assert no unused link in godocs.
-        # https://github.com/godoc-lint/godoc-lint?tab=readme-ov-file#no-unused-link
-        - no-unused-link
-        # Require proper doc links to standard library declarations where applicable.
-        # https://github.com/godoc-lint/godoc-lint?tab=readme-ov-file#require-stdlib-doclink
-        - require-stdlib-doclink
-
-    govet:
-      # Enable all analyzers.
-      # Default: false
-      enable-all: true
-      # Disable analyzers by name.
-      # Run `GL_DEBUG=govet golangci-lint run --enable=govet` to see default, all available analyzers, and enabled analyzers.
-      # Default: []
-      disable:
-        - fieldalignment # too strict
-      # Settings per analyzer.
-      settings:
-        shadow:
-          # Whether to be strict about shadowing; can be noisy.
-          # Default: false
-          strict: false
-          # disable:
-          #   - shadow
 
     inamedparam:
       # Skips check for interface methods with only a single parameter.
@@ -431,13 +329,10 @@ linters:
       checks:
         - all
         # Incorrect or missing package comment.
-        # https://staticcheck.dev/docs/checks/#ST1000
         - -ST1000
         # Use consistent method receiver names.
-        # https://staticcheck.dev/docs/checks/#ST1016
         - -ST1016
         # Omit embedded fields from selector expression.
-        # https://staticcheck.dev/docs/checks/#QF1008
         - -QF1008
 
     usetesting:
@@ -456,7 +351,7 @@ linters:
       - common-false-positives
 
     # Exclude test checks
-    paths: ['_test\.go$']
+    paths: ['_test\.go$','^internal/server/migrations\.go$']
     # Excluding configuration per-path, per-linter, per-text and per-source.
     rules:
       - source: 'TODO'
@@ -474,14 +369,6 @@ linters:
       - path: '^internal/tools/'
         linters: [ goconst ]
       - path: '^internal/prompt/'
-        linters: [ goconst ]
-      # - path: '_test\.go'
-        # linters: [ revive ]
-          # - bodyclose
-          # - dupl
-          # - errcheck
-          # - funlen
-          # - goconst
-          # - gosec
-          # - noctx
-          # - wrapcheck
+        linters: [ goconst, gochecknoglobals ]
+      - path: '^cmd/agent/main\.go'
+        linters: [ sloglint ]

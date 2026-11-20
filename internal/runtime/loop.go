@@ -22,7 +22,7 @@ var (
 	ErrTooManyMistakes  = errors.New("agent makes too much mistakes")
 )
 
-// nolint: gocognit
+//nolint:gocognit // Refactor already planned
 func RunAgentLoop(
 	ctx context.Context,
 	model agent.Model,
@@ -43,7 +43,7 @@ func RunAgentLoop(
 
 		// run completion
 		completion, err := processCompletion(ctx, model, tools, messages, hooks)
-		//nolint: nestif
+		//nolint: nestif // refactor already planned
 		if err != nil {
 			// overflow handling
 			if errors.Is(err, ErrContextOverflow) {
@@ -218,7 +218,7 @@ func resolveCallSafely(
 	ctx context.Context,
 	tool agent.Tool,
 	call *agent.ToolCall,
-) (result *agent.ToolResult, err error) { //nolint: nonamedreturns
+) (result *agent.ToolResult, err error) { //nolint: nonamedreturns // is a require for recover
 	defer func() {
 		if p := recover(); p != nil {
 			err = fmt.Errorf("tool %s panicked: %v", tool.Name(), p)

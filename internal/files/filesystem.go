@@ -106,7 +106,7 @@ func NewFileStorage(dir string) (*fileStorage, error) {
 		if !errors.Is(err, types.ErrIsNotExist) {
 			return nil, err
 		}
-		if err := os.MkdirAll(dir, ModeDirPerm); err != nil {
+		if err = os.MkdirAll(dir, ModeDirPerm); err != nil {
 			return nil, err
 		}
 	}

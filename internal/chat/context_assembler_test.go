@@ -1,15 +1,15 @@
 package chat_test
 
 import (
-	"context"
-	"errors"
-	"strings"
-	"testing"
-	"time"
-
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/session"
+	"context"
+	"errors"
+	"log/slog"
+	"strings"
+	"testing"
+	"time"
 )
 
 // mockConsolidatorRepo implements chat.ConsolidatorRepo.
@@ -90,7 +90,7 @@ func buildSystemMessage(
 ) (string, error) {
 	t.Helper()
 
-	assembler := chat.NewContextAssembler(skillRepo, memoryRepo)
+	assembler := chat.NewContextAssembler(skillRepo, memoryRepo, slog.New(slog.DiscardHandler))
 	msg, err := assembler.BuildSystemMessage(context.Background(), agt, toolServers, sess)
 	if err != nil {
 		return "", err

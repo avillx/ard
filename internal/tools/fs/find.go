@@ -92,7 +92,7 @@ func (t *FindTool) Call(_ context.Context, rawArgs agent.ToolArguments) ([]agent
 		if err != nil {
 			matchedLines = []string{fmt.Sprintf("Can't read file: %v", err)}
 		}
-		if len(matchedLines) <= 0 {
+		if len(matchedLines) == 0 {
 			// skip when has no matches
 			continue
 		}

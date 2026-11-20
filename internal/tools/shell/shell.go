@@ -46,7 +46,7 @@ func NewToolServer(
 		shell = defaultShell
 	}
 
-	if shell == defaultShell && len(shellAttributes) <= 0 {
+	if shell == defaultShell && len(shellAttributes) == 0 {
 		shellAttributes = defaultShellAttributes
 	}
 
@@ -145,7 +145,10 @@ func (t *Tool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.C
 	envs = append(envs, secrets...)
 	envs = append(envs, metadataToEnv(ctx)...)
 
-	cmd := exec.CommandContext(ctx, t.shell, append(t.shellAttributes, args.Command)...) //nolint: gosec
+	cmd := exec.CommandContext( //nolint: gosec // is a one of core features
+		ctx,
+		t.shell,
+		append(t.shellAttributes, args.Command)...)
 	cmd.Dir = t.cwd
 	if args.Cwd != "" {
 		cmd.Dir = args.Cwd

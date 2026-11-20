@@ -237,7 +237,7 @@ func toolCallsToDTO(calls []*agent.ToolCall) []ToolCallDTO {
 	for _, c := range calls {
 		var args map[string]any
 		if err := json.Unmarshal(c.Arguments, &args); err != nil {
-			slog.Error("api: bad completion", "error", err)
+			args = map[string]any{"inavlid_args": string(c.Arguments)}
 		}
 		dtos = append(dtos, ToolCallDTO{
 			ID:   c.ID,
@@ -256,7 +256,7 @@ type providedToolRegister interface {
 func registerProvidedToolServers(r providedToolRegister, s *Stream, toolServers []agent.ToolServer) unregisterFunc {
 	unregFuncs := []unregisterFunc{}
 
-	if len(toolServers) <= 0 {
+	if len(toolServers) == 0 {
 		return func() {}
 	}
 	for _, ts := range toolServers {

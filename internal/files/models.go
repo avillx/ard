@@ -56,7 +56,7 @@ const (
 	# After edit, ensure file consistency and comment integrity`
 )
 
-var ModelsConfigFilePath = filepath.Join(
+var ModelsConfigFilePath = filepath.Join( //nolint: gochecknoglobals // os safe path
 	ConfigDir,
 	ModelsConfigFile,
 )

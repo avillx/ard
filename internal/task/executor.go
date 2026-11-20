@@ -34,7 +34,7 @@ func (s *executor) Execute(ctx context.Context, t Config) {
 	logger := s.logger.With("task", t.Name)
 
 	for _, r := range t.Recipients {
-		logger := logger.With("agent", r)
+		logger = logger.With("agent", r)
 
 		logger.InfoContext(ctx, "processing started")
 		if err := s.processRecipientTask(ctx, r, t.Request); err != nil {

@@ -38,7 +38,7 @@ func (r Request) validate() error {
 		return fmt.Errorf("completion request must include user message")
 	}
 
-	if len(r.UserMessage.Content()) <= 0 {
+	if len(r.UserMessage.Content()) == 0 {
 		return fmt.Errorf("user message must has content")
 	}
 

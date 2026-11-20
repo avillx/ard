@@ -70,16 +70,19 @@ type ContextAssembler struct {
 	skillRepo  SkillsRepo
 	memoryRepo ConsolidatorRepo
 	cache      *SystemMessageCache
+	logger     *slog.Logger
 }
 
 func NewContextAssembler(
 	skillRepo SkillsRepo,
 	memoryRepo ConsolidatorRepo,
+	logger *slog.Logger,
 ) *ContextAssembler {
 	return &ContextAssembler{
 		skillRepo:  skillRepo,
 		memoryRepo: memoryRepo,
 		cache:      NewSystemMessageCache(),
+		logger:     logger.WithGroup("context_assembler"),
 	}
 }
 
@@ -101,7 +104,7 @@ func (a *ContextAssembler) BuildSystemMessage(
 	parts := []SystemMessageParticipant{
 		&AgentPart{agt: agt},
 		&MemoryPart{agentID: agt.ID(), repo: a.memoryRepo},
-		&SkillPart{agentID: agt.ID(), repo: a.skillRepo},
+		&SkillPart{agentID: agt.ID(), repo: a.skillRepo, logger: a.logger},
 		&ToolAwarePart{agt: agt, toolServers: toolServers},
 		&SessionPart{sess: sess},
 	}
@@ -162,7 +165,7 @@ func (i *MemoryPart) Part(_ context.Context) (string, error) {
 	}
 
 	// has no memories, no need to guide it
-	if len(idx) <= 0 {
+	if len(idx) == 0 {
 		return "", nil
 	}
 
@@ -185,16 +188,17 @@ type SkillsRepo interface {
 type SkillPart struct {
 	agentID agent.ID
 	repo    SkillsRepo
+	logger  *slog.Logger
 }
 
-func (i *SkillPart) Part(ctx context.Context) (string, error) {
-	skills, err := i.repo.Skills(i.agentID)
+func (p *SkillPart) Part(ctx context.Context) (string, error) {
+	skills, err := p.repo.Skills(p.agentID)
 	if err != nil {
-		slog.ErrorContext(ctx, "skill load", "error", err)
+		p.logger.ErrorContext(ctx, "skill load", "error", err)
 	}
 
 	// has no skills no need to guide it
-	if len(skills) <= 0 {
+	if len(skills) == 0 {
 		return "", nil
 	}
 
@@ -225,7 +229,7 @@ type ToolAwarePart struct {
 
 func (i *ToolAwarePart) Part(_ context.Context) (string, error) {
 	// if has no tools no need to guide it
-	if len(i.toolServers) <= 0 {
+	if len(i.toolServers) == 0 {
 		return "", nil
 	}
 
@@ -256,7 +260,7 @@ type SessionPart struct {
 
 func (i *SessionPart) Part(_ context.Context) (string, error) {
 	extras := i.sess.Extras()
-	if len(extras) <= 0 {
+	if len(extras) == 0 {
 		return "", nil
 	}
 

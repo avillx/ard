@@ -52,7 +52,7 @@ const (
 	# After edit, ensure file consistency and comment integrity`
 )
 
-var MemoryConfigFilePath = filepath.Join(
+var MemoryConfigFilePath = filepath.Join( //nolint: gochecknoglobals // os safe path
 	ConfigDir,
 	MemoryConfigFile,
 )
@@ -88,7 +88,7 @@ func (r *MemoryFile) Save(patch MemoryConfigDTO) error {
 	}
 
 	var dto MemoryConfigDTO
-	if err := toml.Unmarshal(data, &dto); err != nil {
+	if err = toml.Unmarshal(data, &dto); err != nil {
 		return err
 	}
 

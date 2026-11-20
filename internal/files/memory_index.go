@@ -73,7 +73,7 @@ func (f *MemoryFiles) MemoryIndex(agentID agent.ID) (map[string]string, error) {
 			return nil
 		}
 
-		index[filepath.Join(p)] = hook.Hook
+		index[filepath.Clean(p)] = hook.Hook
 
 		return nil
 	})

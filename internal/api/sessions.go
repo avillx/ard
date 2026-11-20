@@ -82,14 +82,14 @@ func (h *sessionHandler) Sessions(_ http.ResponseWriter, r *http.Request) Respon
 			return NewBadRequest("agent is not exist")
 		}
 
-		var BrokenHeadersError *session.BrokenHeadersError
+		var brokenHeadersError *session.BrokenHeadersError
 		// if is not a broken headers then is some the real internal problem
-		if !errors.As(err, &BrokenHeadersError) {
+		if !errors.As(err, &brokenHeadersError) {
 			return NewInternalError(err)
 		}
 
 		// packing broken headers
-		for _, e := range BrokenHeadersError.Errors {
+		for _, e := range brokenHeadersError.Errors {
 			dtos = append(dtos, HeaderDTO{
 				ID:    e.SessID,
 				Cause: e.Error(),

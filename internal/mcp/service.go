@@ -143,10 +143,11 @@ func (s *Service) connectServer(ctx context.Context, id ServerID, cfg ServerGate
 
 	s.servers[srv.ID()] = srv
 
-	go func() {
+	go func() { //nolint:gosec // this a mcp sever runtime context do not use connectionb context
+		ctx := context.Background()
 		logger := s.logger.With("server", srv.ID())
 		// this stuff use separated context cause it works in separated goroutine
-		if err := srv.Run(context.Background()); err != nil {
+		if err := srv.Run(ctx); err != nil {
 			logger.ErrorContext(ctx, "bad connection", "error", err)
 			srv.setErr(err)
 		}

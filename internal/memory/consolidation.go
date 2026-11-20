@@ -67,7 +67,7 @@ func NewConsolidationService(
 	memoryRepo ConsolidatorRepo,
 	logger *slog.Logger,
 ) (*ConsolidationService, error) {
-	if len(toolServer) <= 0 {
+	if len(toolServer) == 0 {
 		return nil, fmt.Errorf("no tools for managing memory")
 	}
 

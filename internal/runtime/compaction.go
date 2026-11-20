@@ -5,6 +5,7 @@ import (
 	"ard/internal/prompt"
 	"context"
 	"fmt"
+	"slices"
 )
 
 const (
@@ -56,7 +57,7 @@ func doCompact(
 	// assemble new context
 	summary := prompt.SummaryExplanation(completion.Content)
 	tailContextMsgs = roleSafePushback(tailContextMsgs, agent.NewUserMessage(summary))
-	compactedContext := append(preContextMsgs, tailContextMsgs...)
+	compactedContext := slices.Concat(preContextMsgs, tailContextMsgs)
 
 	evCh <- NewCompactionEvent(
 		completion.Content,
@@ -76,7 +77,7 @@ func roleSafePushback(
 		prevFirstContent := firstMessage.Content()
 		newFirstContent := newFirstMessage.Content()
 
-		contentUnion := append(prevFirstContent, newFirstContent...)
+		contentUnion := slices.Concat(prevFirstContent, newFirstContent)
 		firstMessage.SetContent(contentUnion)
 
 		return messages

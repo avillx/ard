@@ -12,7 +12,11 @@ import (
 
 const defaultShell = "powershell.exe"
 
-var defaultShellAttributes = []string{"-NoProfile", "-NonInteractive", "-Command"} //nolint: gochecknoglobals
+var defaultShellAttributes = []string{ //nolint: gochecknoglobals // global var over factory
+	"-NoProfile",
+	"-NonInteractive",
+	"-Command",
+}
 
 type processGroup struct {
 	jobHandle     windows.Handle
@@ -47,7 +51,7 @@ func createProcessGroup(proc *os.Process) (*processGroup, error) {
 	handle, err := windows.OpenProcess(
 		windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE,
 		false,
-		uint32(proc.Pid), //nolint: gosec
+		uint32(proc.Pid), //nolint:gosec // yep. is a packages limitations
 	)
 	if err != nil {
 		_ = windows.CloseHandle(job)

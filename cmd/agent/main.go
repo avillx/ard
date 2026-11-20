@@ -121,4 +121,5 @@ func getEnv[T any](key string, def T, parse func(string) (T, error)) T {
 }
 
 func parseString(s string) (string, error) { return s, nil }
-func parseInt64(s string) (int64, error)   { return strconv.ParseInt(s, 10, 64) }
+
+// func parseInt64(s string) (int64, error)   { return strconv.ParseInt(s, 10, 64) }

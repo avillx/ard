@@ -56,18 +56,18 @@ type clientKey struct {
 }
 
 func (f *Factory) getOrCreateClient(
-	BaseURL string,
-	KeyReference string,
+	baseURL string,
+	keyReference string,
 ) (*openai.Client, error) {
 	f.clientsMu.Lock()
 	defer f.clientsMu.Unlock()
 
-	apiKey, found := f.secrets.Get(KeyReference)
+	apiKey, found := f.secrets.Get(keyReference)
 	if !found {
-		return nil, fmt.Errorf("api key %s is not found in secrets", KeyReference)
+		return nil, fmt.Errorf("api key %s is not found in secrets", keyReference)
 	}
 
-	cacheKey := clientKey{URL: BaseURL, KeyRef: KeyReference}
+	cacheKey := clientKey{URL: baseURL, KeyRef: keyReference}
 
 	if client, ok := f.clients[cacheKey]; ok {
 		return client, nil
@@ -75,7 +75,7 @@ func (f *Factory) getOrCreateClient(
 
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
-		option.WithBaseURL(BaseURL),
+		option.WithBaseURL(baseURL),
 	)
 
 	f.clients[cacheKey] = &client

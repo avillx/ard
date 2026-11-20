@@ -218,7 +218,7 @@ func (s *mcpServer) Run(ctx context.Context) error {
 	// shutdowner
 	go func() {
 		<-s.shutdownCh
-		sess.Close() //nolint: gosec
+		sess.Close() //nolint: gosec // this func always return context.Cancelled error on every server disconnect
 	}()
 
 	return sess.Wait()

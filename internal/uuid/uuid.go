@@ -6,7 +6,7 @@ import (
 
 type generator struct{}
 
-func NewGenerator() *generator { return &generator{} } //nolint: revive
+func NewGenerator() *generator { return &generator{} } //nolint: revive // Only one creation point. For prevent repo corruption
 
 func (g *generator) New() string {
 	id := xid.New()

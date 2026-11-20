@@ -52,7 +52,7 @@ type Server struct {
 	AgentFiles             *files.AgentFiles
 }
 
-// nolint: funlen
+//nolint:funlen // Is a long DI
 func New(
 	ctx context.Context,
 	datapath string,
@@ -187,7 +187,7 @@ func New(
 		sessSvc,
 		modelsSvc,
 		toolSvc,
-		chat.NewContextAssembler(skillFiles, memoryFiles),
+		chat.NewContextAssembler(skillFiles, memoryFiles, logger),
 		activitySvc,
 		agentHooks,
 		logger,
@@ -204,7 +204,7 @@ func New(
 		path.Join("*", "sessions", "**.jsonl"),
 	}
 
-	if err := attachBuildinToolServers(
+	if err = attachBuildinToolServers(
 		datapath, agentShell, agentShellAttributes, toolSvc, secretSvc, fileStorage,
 		skipPatterns, todoStorage, chatSvc, sessSvc, logger, agentRepo,
 	); err != nil {
