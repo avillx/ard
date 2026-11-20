@@ -1,7 +1,6 @@
 package task
 
 import (
-	"ard/internal/agent"
 	"ard/internal/profile"
 	"ard/internal/types"
 	"context"
@@ -263,7 +262,7 @@ func (s *Service) Delete(name string) error {
 	return s.repo.Delete(name)
 }
 
-func (s *Service) validateRecipients(recipients []agent.ID) error {
+func (s *Service) validateRecipients(recipients []profile.ID) error {
 	problems := map[string]string{}
 	for _, r := range recipients {
 		if _, err := s.agentRepo.Get(r); err != nil {

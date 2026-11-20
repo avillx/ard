@@ -1,7 +1,6 @@
 package files
 
 import (
-	"ard/internal/agent"
 	"ard/internal/profile"
 	"ard/internal/types"
 	"path/filepath"
@@ -11,28 +10,28 @@ import (
 )
 
 const (
-	AgentFile     = "profiles.toml"
-	AgentFileMode = 0o755
+	ProfileFile     = "profiles.toml"
+	ProfileFileMode = 0o755
 )
 
-var AgentFilePath = filepath.Join(ConfigDir, AgentFile) //nolint: gochecknoglobals // os safe path
+var ProfileFilePath = filepath.Join(ConfigDir, ProfileFile) //nolint: gochecknoglobals // os safe path
 
-var _ profile.Repo = (*AgentFiles)(nil)
+var _ profile.Repo = (*ProfileFiles)(nil)
 
-type AgentFiles struct {
+type ProfileFiles struct {
 	storage FileStorage
 	mu      sync.RWMutex
 }
 
-func NewAgentFiles(
+func NewProfileFiles(
 	storage FileStorage,
-) *AgentFiles {
-	return &AgentFiles{
+) *ProfileFiles {
+	return &ProfileFiles{
 		storage: storage,
 	}
 }
 
-func (s *AgentFiles) All() ([]agent.Agent, error) {
+func (s *ProfileFiles) All() ([]profile.Profile, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -41,16 +40,16 @@ func (s *AgentFiles) All() ([]agent.Agent, error) {
 		return nil, err
 	}
 
-	agents := []agent.Agent{}
+	profiles := []profile.Profile{}
 	for id, profile := range cfg {
-		agt := profileToAgent(id, profile)
-		agents = append(agents, agt)
+		agt := dtoToAgent(id, profile)
+		profiles = append(profiles, agt)
 	}
 
-	return agents, nil
+	return profiles, nil
 }
 
-func (s *AgentFiles) Get(id agent.ID) (agent.Agent, error) {
+func (s *ProfileFiles) Get(id profile.ID) (profile.Profile, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -60,13 +59,13 @@ func (s *AgentFiles) Get(id agent.ID) (agent.Agent, error) {
 	}
 
 	if profile, ok := cfg[id]; ok {
-		return profileToAgent(id, profile), nil
+		return dtoToAgent(id, profile), nil
 	}
 
 	return nil, types.ErrIsNotExist
 }
 
-func (s *AgentFiles) Save(agt agent.Agent) error {
+func (s *ProfileFiles) Save(p profile.Profile) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -75,18 +74,18 @@ func (s *AgentFiles) Save(agt agent.Agent) error {
 		return err
 	}
 
-	cfg[agt.ID()] = ProfileDTO{
-		Description:  agt.Description(),
-		Model:        agt.Model(),
-		HasMemory:    agt.HasMemory(),
-		ToolServers:  agt.ToolServers(),
-		SystemPrompt: agt.SystemPrompt(),
+	cfg[p.ID()] = ProfileDTO{
+		Description:  p.Description(),
+		Model:        p.Model(),
+		HasMemory:    p.HasMemory(),
+		ToolServers:  p.ToolServers(),
+		SystemPrompt: p.SystemPrompt(),
 	}
 
 	return s.saveConfig(cfg)
 }
 
-func (s *AgentFiles) Delete(agentID agent.ID) error {
+func (s *ProfileFiles) Delete(profileID profile.ID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -95,18 +94,18 @@ func (s *AgentFiles) Delete(agentID agent.ID) error {
 		return err
 	}
 
-	delete(cfg, agentID)
+	delete(cfg, profileID)
 
 	return s.saveConfig(cfg)
 }
 
-func (s *AgentFiles) loadConfig() (map[agent.ID]ProfileDTO, error) {
-	data, err := s.storage.ReadFile(AgentFilePath)
+func (s *ProfileFiles) loadConfig() (map[profile.ID]ProfileDTO, error) {
+	data, err := s.storage.ReadFile(ProfileFilePath)
 	if err != nil {
 		return nil, err
 	}
 
-	var dto map[agent.ID]ProfileDTO
+	var dto map[profile.ID]ProfileDTO
 	if err := toml.Unmarshal(data, &dto); err != nil {
 		return nil, err
 	}
@@ -114,13 +113,13 @@ func (s *AgentFiles) loadConfig() (map[agent.ID]ProfileDTO, error) {
 	return dto, nil
 }
 
-func (s *AgentFiles) saveConfig(cfg map[agent.ID]ProfileDTO) error {
+func (s *ProfileFiles) saveConfig(cfg map[profile.ID]ProfileDTO) error {
 	data, err := toml.Marshal(cfg)
 	if err != nil {
 		return err
 	}
 
-	return s.storage.WriteFile(AgentFilePath, data, AgentFileMode)
+	return s.storage.WriteFile(ProfileFilePath, data, ProfileFileMode)
 }
 
 type ProfileDTO struct {
@@ -131,13 +130,13 @@ type ProfileDTO struct {
 	SystemPrompt string   `toml:"prompt"                 multiline:"true"`
 }
 
-func profileToAgent(id agent.ID, profile ProfileDTO) agent.Agent {
-	return agent.NewAgent(
+func dtoToAgent(id profile.ID, p ProfileDTO) profile.Profile {
+	return profile.NewProfile(
 		id,
-		profile.Description,
-		profile.SystemPrompt,
-		profile.Model,
-		profile.ToolServers,
-		profile.HasMemory,
+		p.Description,
+		p.SystemPrompt,
+		p.Model,
+		p.ToolServers,
+		p.HasMemory,
 	)
 }

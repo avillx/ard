@@ -27,8 +27,8 @@ func NewConsolidationInstuctFS(storage files.FileStorage, skipPatterns []string)
 	}, nil
 }
 
-func (r *ConsolidationInstuctFS) AgentInstruction(agt agent.Agent) string {
-	return prompt.ConsolidationFSInstruction(r.cwd, agt.ID())
+func (r *ConsolidationInstuctFS) Instruction() string {
+	return prompt.ConsolidationFSInstruction()
 }
 
 type FileSystemToolServer struct {
@@ -69,8 +69,8 @@ func NewRawFileSystemToolServer(storage files.FileStorage, skipPatterns []string
 	), nil
 }
 
-func (r *FileSystemToolServer) AgentInstruction(agt agent.Agent) string {
-	return prompt.FileSystemInstruction("", agt.ID(), agt.HasMemory())
+func (r *FileSystemToolServer) Instruction() string {
+	return prompt.FileSystemInstruction()
 }
 
 func mapErrs(err error) error {

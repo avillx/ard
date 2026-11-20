@@ -1,10 +1,10 @@
-package agent
+package profile
 
 type ID string
 
-var _ Agent = (*agent)(nil)
+var _ Profile = (*profile)(nil)
 
-type Agent interface {
+type Profile interface {
 	ID() ID
 	Description() string
 	SystemPrompt() string
@@ -13,7 +13,7 @@ type Agent interface {
 	HasMemory() bool
 }
 
-type agent struct {
+type profile struct {
 	id           ID
 	description  string
 	systemPrompt string
@@ -22,19 +22,19 @@ type agent struct {
 	hasMemory    bool
 }
 
-func NewAgent(
+func NewProfile(
 	id ID,
 	description string,
 	systemPrompt string,
 	model string,
 	toolServers []string,
 	hasMemory bool,
-) *agent {
+) *profile {
 	if toolServers == nil {
 		toolServers = []string{}
 	}
 
-	return &agent{
+	return &profile{
 		id:           id,
 		description:  description,
 		systemPrompt: systemPrompt,
@@ -44,9 +44,9 @@ func NewAgent(
 	}
 }
 
-func (a *agent) ID() ID                { return a.id }
-func (a *agent) Description() string   { return a.description }
-func (a *agent) SystemPrompt() string  { return a.systemPrompt }
-func (a *agent) Model() string         { return a.model }
-func (a *agent) ToolServers() []string { return a.toolServers }
-func (a *agent) HasMemory() bool       { return a.hasMemory }
+func (a *profile) ID() ID                { return a.id }
+func (a *profile) Description() string   { return a.description }
+func (a *profile) SystemPrompt() string  { return a.systemPrompt }
+func (a *profile) Model() string         { return a.model }
+func (a *profile) ToolServers() []string { return a.toolServers }
+func (a *profile) HasMemory() bool       { return a.hasMemory }

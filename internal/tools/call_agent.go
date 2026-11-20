@@ -32,7 +32,7 @@ func NewCallAgentToolServer(s *subagent.Service, profilesRepo profile.Repo, logg
 	}
 }
 
-func (t *CallAgentToolServer) AgentInstruction(agt agent.Agent) string {
+func (t *CallAgentToolServer) Instruction() string {
 	const instruction = `## Call Agents:
 You can call sub agent for delegateing task. To agent with diffirent capabilities.
 Sub agents is your side instance with clean context,
@@ -42,7 +42,7 @@ Called sub agent is stateless. If sub agent clarify something
 then sub agent need full request with clarificaton again.
 `
 
-	agents, err := t.profilesRepo.All()
+	profiles, err := t.profilesRepo.All()
 	if err != nil {
 		t.logger.Error("call agent tool", "error", "can't gather agents")
 		return ""
@@ -52,13 +52,8 @@ then sub agent need full request with clarificaton again.
 
 	sb.WriteString(instruction + "\n")
 	sb.WriteString("Profiles:\n")
-	for _, a := range agents {
-		isYouLabel := ""
-		if a.ID() == agt.ID() {
-			isYouLabel = " (You)"
-		}
-
-		fmt.Fprintf(&sb, "%s%s - %s\n", string(a.ID()), isYouLabel, a.Description())
+	for _, a := range profiles {
+		fmt.Fprintf(&sb, "%s - %s\n", string(a.ID()), a.Description())
 		fmt.Fprintf(&sb, "tools: %s\n\n", strings.Join(a.ToolServers(), ", "))
 	}
 
@@ -103,8 +98,8 @@ func (t *CallAgentTool) Schema() map[string]any {
 
 func (t *CallAgentTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
 	args, err := UnwrapArgs[struct {
-		Name    agent.ID `json:"name"`
-		Request string   `json:"request"`
+		Name    profile.ID `json:"name"`
+		Request string     `json:"request"`
 	}](rawArgs)
 	if err != nil {
 		return nil, err

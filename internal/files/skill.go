@@ -1,7 +1,6 @@
 package files
 
 import (
-	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/types"
 	"errors"
@@ -39,7 +38,7 @@ func NewSkillFiles(
 	return sf, nil
 }
 
-func (f *SkillFiles) Skills(_ agent.ID) (map[string]string, error) {
+func (f *SkillFiles) Skills() (map[string]string, error) {
 	skillsIndex := map[string]string{}
 
 	skills, err := f.loadSkills(SkillsDir)

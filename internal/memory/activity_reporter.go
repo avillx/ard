@@ -16,11 +16,6 @@ import (
 
 var _ chat.ActivityLogger = (*ActivityService)(nil)
 
-type sessionKey struct {
-	AgentID   agent.ID
-	SessionID session.ID
-}
-
 const defaultFlushInterval = 120 // multiplies on seconds
 
 // concurent safe messages buffer.
@@ -82,8 +77,8 @@ type ActivityService struct {
 	model     agent.Model
 	cfgMu     sync.RWMutex
 
-	messageBuffers map[sessionKey]*messageBuffer
-	flushTimer     map[sessionKey]*time.Timer
+	messageBuffers map[session.ID]*messageBuffer
+	flushTimer     map[session.ID]*time.Timer
 	mu             sync.RWMutex
 
 	activityRepo agent.ActivityRepo
@@ -100,8 +95,8 @@ func NewActivityService(
 	logger *slog.Logger,
 ) *ActivityService {
 	svc := &ActivityService{
-		messageBuffers: map[sessionKey]*messageBuffer{},
-		flushTimer:     map[sessionKey]*time.Timer{},
+		messageBuffers: map[session.ID]*messageBuffer{},
+		flushTimer:     map[session.ID]*time.Timer{},
 		logger:         logger.WithGroup("activity"),
 		activityRepo:   activityRepo,
 		interval:       defaultFlushInterval,
@@ -116,68 +111,63 @@ func NewActivityService(
 	return svc
 }
 
-func (s *ActivityService) Commit(agentID agent.ID, sessID session.ID, msgs []agent.Message) {
+func (s *ActivityService) Commit(sessID session.ID, msgs []agent.Message) {
 	if !s.Config().Enabled {
 		// if sevice disabled then drop commits silently
 		return
 	}
 
-	key := sessionKey{
-		AgentID:   agentID,
-		SessionID: sessID,
-	}
-
-	buf := s.getBuffer(key)
+	buf := s.getBuffer(sessID)
 	buf.append(msgs)
 }
 
-func (s *ActivityService) releaseBuffer(key sessionKey) (*messageBuffer, error) {
+func (s *ActivityService) releaseBuffer(sessID session.ID) (*messageBuffer, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	buf, ok := s.messageBuffers[key]
+	buf, ok := s.messageBuffers[sessID]
 	if !ok {
 		return nil, types.ErrIsNotExist
 	}
 
-	delete(s.flushTimer, key)
-	delete(s.messageBuffers, key)
+	delete(s.flushTimer, sessID)
+	delete(s.messageBuffers, sessID)
 
 	return buf, nil
 }
 
-func (s *ActivityService) getBuffer(key sessionKey) *messageBuffer {
+func (s *ActivityService) getBuffer(sessID session.ID) *messageBuffer {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	buf, ok := s.messageBuffers[key]
+	buf, ok := s.messageBuffers[sessID]
 	if !ok {
 		buf = newMessageBuffer()
 		interval := time.Duration(s.Config().Interval) * time.Second
 		timer := time.AfterFunc(interval, func() {
-			logger := s.logger.With("agent", key.AgentID, "session", key.SessionID)
+			logger := s.logger.With("session", sessID)
 
 			if !s.Config().Enabled {
 				logger.Warn("not logged, service disabled")
 				return
 			}
 
-			if err := s.flush(context.Background(), key); err != nil {
+			if err := s.flush(context.Background(), sessID); err != nil {
 				logger.Error("not logged", "error", err)
 				return
 			}
 
 			logger.Info("logged")
 		})
-		s.flushTimer[key] = timer
-		s.messageBuffers[key] = buf
+		s.flushTimer[sessID] = timer
+		s.messageBuffers[sessID] = buf
 	}
 
 	return buf
 }
 
-func (s *ActivityService) flush(ctx context.Context, key sessionKey) error {
-	buf, err := s.releaseBuffer(key)
+func (s *ActivityService) flush(ctx context.Context, sessID session.ID) error {
+	buf, err := s.releaseBuffer(sessID)
 	if err != nil {
 		return err
 	}

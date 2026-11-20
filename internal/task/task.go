@@ -1,7 +1,7 @@
 package task
 
 import (
-	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/types"
 	"errors"
 	"slices"
@@ -32,13 +32,13 @@ type Repo interface {
 }
 
 type Config struct {
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Recipients  []agent.ID `json:"recipients"`
-	Reglament   string     `json:"schedule"`
-	Request     string     `json:"request"`
-	Active      bool       `json:"active"`
-	Oneshot     bool       `json:"oneshot"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Recipients  []profile.ID `json:"recipients"`
+	Reglament   string       `json:"schedule"`
+	Request     string       `json:"request"`
+	Active      bool         `json:"active"`
+	Oneshot     bool         `json:"oneshot"`
 }
 
 func (t Config) Equals(other Config) bool {
@@ -52,13 +52,13 @@ func (t Config) Equals(other Config) bool {
 }
 
 type Patch struct {
-	Active      *bool       `json:"active,omitempty"`
-	Name        *string     `json:"name,omitempty"`
-	Description *string     `json:"description,omitempty"`
-	Recipients  *[]agent.ID `json:"recipients,omitempty"`
-	Reglament   *string     `json:"schedule,omitempty"`
-	Request     *string     `json:"request,omitempty"`
-	Oneshot     *bool       `json:"oneshot,omitempty"`
+	Active      *bool         `json:"active,omitempty"`
+	Name        *string       `json:"name,omitempty"`
+	Description *string       `json:"description,omitempty"`
+	Recipients  *[]profile.ID `json:"recipients,omitempty"`
+	Reglament   *string       `json:"schedule,omitempty"`
+	Request     *string       `json:"request,omitempty"`
+	Oneshot     *bool         `json:"oneshot,omitempty"`
 }
 
 func applyPatch(cfg Config, patch Patch) Config {
@@ -75,7 +75,7 @@ func applyPatch(cfg Config, patch Patch) Config {
 	}
 
 	if patch.Recipients != nil {
-		cfg.Recipients = append([]agent.ID{}, (*patch.Recipients)...)
+		cfg.Recipients = append([]profile.ID{}, (*patch.Recipients)...)
 	}
 
 	if patch.Reglament != nil {

@@ -3,6 +3,7 @@ package subagent
 import (
 	"ard/internal/agent"
 	"ard/internal/chat"
+	"ard/internal/profile"
 	"ard/internal/prompt"
 	"ard/internal/runtime"
 	"ard/internal/session"
@@ -39,10 +40,10 @@ func NewService(
 
 func (s *Service) Call(
 	ctx context.Context,
-	subAgentID agent.ID,
+	profileID profile.ID,
 	request string,
 ) (string, error) {
-	ctx, isOverflow := subAgentCallStack(ctx, subAgentCall{subagent: subAgentID})
+	ctx, isOverflow := subAgentCallStack(ctx, subAgentCall{subagentProfile: profileID})
 	if isOverflow {
 		return "", ErrCallStackOverflow
 	}
@@ -53,7 +54,7 @@ func (s *Service) Call(
 		return "", err
 	}
 
-	logger := s.logger.With("sub_agent", subAgentID, "session", sessID)
+	logger := s.logger.With("profile", profileID, "session", sessID)
 
 	evCh := make(chan runtime.Event, runtimeEventBuffer)
 	chatErrCh := make(chan error, 1)
@@ -62,7 +63,7 @@ func (s *Service) Call(
 		err := s.chatExecutor.Chat(
 			ctx,
 			chat.Request{
-				AgentID:     subAgentID,
+				ProfileID:   profileID,
 				SessionID:   sessID,
 				UserMessage: agent.NewUserMessage(request),
 				Logging:     false,
@@ -81,7 +82,7 @@ func (s *Service) Call(
 		switch ev := ev.(type) {
 		case *runtime.LoopExitEvent:
 			if ev.Err() != nil {
-				message := fmt.Sprintf("sub agent %s, fall with error", subAgentID)
+				message := fmt.Sprintf("sub agent: profile %s: fall with error", profileID)
 				lastAgentMessageContent += message
 
 				logger.ErrorContext(ctx,
@@ -95,12 +96,7 @@ func (s *Service) Call(
 	}
 
 	if err := <-chatErrCh; err != nil {
-		agentID, _ := chat.AgentIDFromContext(ctx)
-		sessID, _ := chat.SessionIDFromContext(ctx)
-		s.logger.ErrorContext(ctx, "agent has problems with sub agent",
-			"agent", agentID,
-			"session", sessID,
-			"subagent", subAgentID,
+		logger.ErrorContext(ctx, "agent has problems with sub agent",
 			"error", err,
 		)
 		return "", err
@@ -112,7 +108,7 @@ func (s *Service) Call(
 type ctxKey struct{}
 
 type subAgentCall struct {
-	subagent agent.ID
+	subagentProfile profile.ID
 }
 
 func subAgentCallStack(ctx context.Context, s subAgentCall) (context.Context, bool) {

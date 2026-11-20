@@ -1,18 +1,12 @@
 package chat
 
 import (
-	"ard/internal/agent"
 	"ard/internal/session"
 	"context"
 	"sync"
 )
 
 var _ Executor = (*Dispatcher)(nil)
-
-type sessionKey struct {
-	AgentID   agent.ID
-	SessionID session.ID
-}
 
 type requestProcessing struct {
 	cancel context.CancelFunc
@@ -22,7 +16,7 @@ type requestProcessing struct {
 type Dispatcher struct {
 	*Service
 
-	processes map[sessionKey]*requestProcessing
+	processes map[session.ID]*requestProcessing
 	mu        sync.Mutex
 }
 
@@ -31,23 +25,18 @@ func NewDispatcher(
 ) *Dispatcher {
 	return &Dispatcher{
 		Service:   s,
-		processes: map[sessionKey]*requestProcessing{},
+		processes: map[session.ID]*requestProcessing{},
 	}
 }
 
 func (d *Dispatcher) Chat(ctx context.Context, r Request) error {
-	key := sessionKey{
-		AgentID:   r.AgentID,
-		SessionID: r.SessionID,
-	}
-
 	ctx, cancel := context.WithCancel(ctx)
 	p := &requestProcessing{
 		cancel: cancel,
 		done:   make(chan struct{}),
 	}
 
-	if prev := d.swap(key, p); prev != nil {
+	if prev := d.swap(r.SessionID, p); prev != nil {
 		prev.cancel()
 		<-prev.done
 	}
@@ -55,42 +44,37 @@ func (d *Dispatcher) Chat(ctx context.Context, r Request) error {
 	defer func() {
 		cancel()
 		close(p.done)
-		d.remove(key, p)
+		d.remove(r.SessionID, p)
 	}()
 
 	return d.Service.Chat(ctx, r)
 }
 
-func (d *Dispatcher) Interrupt(sessID session.ID, agentID agent.ID) {
+func (d *Dispatcher) Interrupt(sessID session.ID) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	key := sessionKey{
-		AgentID:   agentID,
-		SessionID: sessID,
-	}
-
-	if prev := d.processes[key]; prev != nil {
+	if prev := d.processes[sessID]; prev != nil {
 		prev.cancel()
 		<-prev.done
-		d.logger.Info("agent interrupted", "session", key.SessionID, "agent", key.AgentID)
+		d.logger.Info("agent interrupted", "session", sessID)
 	}
 }
 
-func (d *Dispatcher) swap(key sessionKey, p *requestProcessing) *requestProcessing {
+func (d *Dispatcher) swap(sessID session.ID, p *requestProcessing) *requestProcessing {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	prev := d.processes[key]
-	d.processes[key] = p
+	prev := d.processes[sessID]
+	d.processes[sessID] = p
 	return prev
 }
 
-func (d *Dispatcher) remove(key sessionKey, p *requestProcessing) {
+func (d *Dispatcher) remove(sessID session.ID, p *requestProcessing) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.processes[key] == p {
-		delete(d.processes, key)
+	if d.processes[sessID] == p {
+		delete(d.processes, sessID)
 	}
 }

@@ -14,11 +14,11 @@ import (
 )
 
 type ActivityLogger interface {
-	Commit(agent.ID, session.ID, []agent.Message)
+	Commit(session.ID, []agent.Message)
 }
 
 type Request struct {
-	AgentID             agent.ID
+	ProfileID           profile.ID
 	SessionID           session.ID
 	UserMessage         *agent.UserMessage
 	ProvidedToolServers []agent.ToolServer
@@ -27,7 +27,7 @@ type Request struct {
 }
 
 func (r Request) validate() error {
-	if r.AgentID == "" {
+	if r.ProfileID == "" {
 		return fmt.Errorf("completion request must include agentID")
 	}
 
@@ -68,14 +68,14 @@ type Executor interface {
 type SystemMessageBuilder interface {
 	BuildSystemMessage(
 		ctx context.Context,
-		agt agent.Agent,
+		p profile.Profile,
 		toolServers []agent.ToolServer,
 		sess session.Session,
 	) (*agent.SystemMessage, error)
 }
 
 type Service struct {
-	agentRepo            profile.Repo
+	profileRepo          profile.Repo
 	sessionRepo          session.SessionsRepo
 	modelRepo            agent.ModelRegistry
 	toolRegistry         agent.ToolRegistry
@@ -86,7 +86,7 @@ type Service struct {
 }
 
 func NewService(
-	agentRepo profile.Repo,
+	profileRepo profile.Repo,
 	sessionRepo session.SessionsRepo,
 	modelRepo agent.ModelRegistry,
 	toolRegistry agent.ToolRegistry,
@@ -96,7 +96,7 @@ func NewService(
 	logger *slog.Logger,
 ) *Service {
 	return &Service{
-		agentRepo:            agentRepo,
+		profileRepo:          profileRepo,
 		sessionRepo:          sessionRepo,
 		modelRepo:            modelRepo,
 		toolRegistry:         toolRegistry,
@@ -117,7 +117,7 @@ func (s *Service) Chat(
 	}
 
 	// agent
-	agt, err := s.agentRepo.Get(r.AgentID)
+	agt, err := s.profileRepo.Get(r.ProfileID)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,6 @@ func (s *Service) Chat(
 	// build context
 	systemMessage, err := s.systemMessageBuilder.BuildSystemMessage(
 		ctx,
-		agt,
 		toolServers,
 		sess,
 	)
@@ -158,19 +157,19 @@ func (s *Service) Chat(
 	agentContext = append(agentContext, sess.Messages()...)
 
 	if r.Logging {
-		s.activityLogger.Commit(agt.ID(), sess.ID(), []agent.Message{r.UserMessage})
+		s.activityLogger.Commit(sess.ID(), []agent.Message{r.UserMessage})
 	}
 
 	// inject id's
-	ctx = withAgentID(ctx, r.AgentID)
+	ctx = withProfileID(ctx, r.ProfileID)
 	ctx = withSessionID(ctx, r.SessionID)
 
 	logger := s.logger.With(
-		"agent", r.AgentID,
+		"profile", r.ProfileID,
 		"session", sess.ID(),
 	)
 
-	h := NewChatEventHandler(r.AgentID, sess, s.sessionRepo, s.activityLogger, r.Logging, logger)
+	h := NewChatEventHandler(r.ProfileID, sess, s.sessionRepo, s.activityLogger, r.Logging, logger)
 
 	runAgentLoopWithHandlers(
 		ctx,
@@ -260,11 +259,11 @@ func handleEvent(ctx context.Context, h EventHandler, rawEv runtime.Event) error
 
 func resolveToolServers(
 	reg agent.ToolRegistry,
-	agt agent.Agent,
+	p profile.Profile,
 	provided []agent.ToolServer,
 	logger *slog.Logger,
 ) ([]agent.ToolServer, error) {
-	toolServers, err := reg.ToolServers(agt.ToolServers()...)
+	toolServers, err := reg.ToolServers(p.ToolServers()...)
 	if err != nil {
 		if err := types.DistillErrNotExist(fmt.Sprintf("agent %s", err), err, logger); err != nil {
 			return nil, err
@@ -291,12 +290,12 @@ type (
 	sessionIDCTXKey struct{}
 )
 
-func withAgentID(ctx context.Context, id agent.ID) context.Context {
+func withProfileID(ctx context.Context, id profile.ID) context.Context {
 	return context.WithValue(ctx, agentIDCTXKey{}, id)
 }
 
-func AgentIDFromContext(ctx context.Context) (agent.ID, bool) {
-	id, ok := ctx.Value(agentIDCTXKey{}).(agent.ID)
+func ProfileIDFromContext(ctx context.Context) (profile.ID, bool) {
+	id, ok := ctx.Value(agentIDCTXKey{}).(profile.ID)
 	return id, ok
 }
 

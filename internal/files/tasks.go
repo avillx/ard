@@ -1,7 +1,7 @@
 package files
 
 import (
-	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/sentinel"
 	"ard/internal/task"
 	"ard/internal/types"
@@ -159,12 +159,12 @@ func flushTasks(storage FileStorage, tasks map[string]task.Config) error {
 }
 
 type TaskDTO struct {
-	Description string     `toml:"description"`
-	Recipients  []agent.ID `toml:"recipients"`
-	Reglament   string     `toml:"schedule"`
-	Active      bool       `toml:"active"`
-	Oneshot     bool       `toml:"once"`
-	Request     string     `toml:"request"     multiline:"true"`
+	Description string       `toml:"description"`
+	Recipients  []profile.ID `toml:"recipients"`
+	Reglament   string       `toml:"schedule"`
+	Active      bool         `toml:"active"`
+	Oneshot     bool         `toml:"once"`
+	Request     string       `toml:"request"     multiline:"true"`
 }
 
 func UnmarshalTasks(data []byte) (map[string]task.Config, error) {

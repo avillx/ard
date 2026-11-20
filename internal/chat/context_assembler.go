@@ -2,6 +2,7 @@ package chat
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/prompt"
 	"ard/internal/session"
 	"context"
@@ -15,48 +16,48 @@ import (
 const cacheLifeTime = 30 * time.Minute
 
 type SystemMessageCache struct {
-	messages     map[sessionKey]string
-	deleteTimers map[sessionKey]*time.Timer
+	messages     map[session.ID]string
+	deleteTimers map[session.ID]*time.Timer
 
 	mu sync.Mutex
 }
 
 func NewSystemMessageCache() *SystemMessageCache {
 	return &SystemMessageCache{
-		messages:     map[sessionKey]string{},
-		deleteTimers: map[sessionKey]*time.Timer{},
+		messages:     map[session.ID]string{},
+		deleteTimers: map[session.ID]*time.Timer{},
 	}
 }
 
-func (c *SystemMessageCache) Put(key sessionKey, message string) {
+func (c *SystemMessageCache) Put(sessID session.ID, message string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	// try to delete
-	delete(c.messages, key)
-	if t, ok := c.deleteTimers[key]; ok {
+	delete(c.messages, sessID)
+	if t, ok := c.deleteTimers[sessID]; ok {
 		t.Stop()
-		delete(c.deleteTimers, key)
+		delete(c.deleteTimers, sessID)
 	}
 
-	c.messages[key] = message
-	c.deleteTimers[key] = time.AfterFunc(cacheLifeTime, func() {
+	c.messages[sessID] = message
+	c.deleteTimers[sessID] = time.AfterFunc(cacheLifeTime, func() {
 		c.mu.Lock()
 		defer c.mu.Unlock()
 
-		delete(c.messages, key)
-		delete(c.deleteTimers, key)
+		delete(c.messages, sessID)
+		delete(c.deleteTimers, sessID)
 	})
 }
 
-func (c *SystemMessageCache) Get(key sessionKey) (string, bool) {
+func (c *SystemMessageCache) Get(sessID session.ID) (string, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	msg, ok := c.messages[key]
+	msg, ok := c.messages[sessID]
 
 	if ok {
-		c.deleteTimers[key].Reset(cacheLifeTime)
+		c.deleteTimers[sessID].Reset(cacheLifeTime)
 	}
 
 	return msg, ok
@@ -65,6 +66,8 @@ func (c *SystemMessageCache) Get(key sessionKey) (string, bool) {
 type SystemMessageParticipant interface {
 	Part(ctx context.Context) (string, error)
 }
+
+var _ SystemMessageBuilder = (*ContextAssembler)(nil)
 
 type ContextAssembler struct {
 	skillRepo  SkillsRepo
@@ -88,24 +91,19 @@ func NewContextAssembler(
 
 func (a *ContextAssembler) BuildSystemMessage(
 	ctx context.Context,
-	agt agent.Agent,
+	p profile.Profile,
 	toolServers []agent.ToolServer,
 	sess session.Session,
 ) (*agent.SystemMessage, error) {
-	key := sessionKey{
-		AgentID:   agt.ID(),
-		SessionID: sess.ID(),
-	}
-
-	if cached, hit := a.cache.Get(key); hit {
+	if cached, hit := a.cache.Get(sess.ID()); hit {
 		return agent.NewSystemMessage(cached), nil
 	}
 
 	parts := []SystemMessageParticipant{
-		&AgentPart{agt: agt},
-		&MemoryPart{agentID: agt.ID(), repo: a.memoryRepo},
-		&SkillPart{agentID: agt.ID(), repo: a.skillRepo, logger: a.logger},
-		&ToolAwarePart{agt: agt, toolServers: toolServers},
+		&ProflilePart{p: p},
+		&MemoryPart{repo: a.memoryRepo},
+		&SkillPart{repo: a.skillRepo, logger: a.logger},
+		&ToolAwarePart{toolServers: toolServers},
 		&SessionPart{sess: sess},
 	}
 
@@ -114,7 +112,7 @@ func (a *ContextAssembler) BuildSystemMessage(
 		return nil, err
 	}
 
-	a.cache.Put(key, text)
+	a.cache.Put(sess.ID(), text)
 	return agent.NewSystemMessage(text), nil
 }
 
@@ -131,14 +129,14 @@ func AssembleParts(ctx context.Context, parts []SystemMessageParticipant) (strin
 }
 
 // agent system Prompt.
-var _ SystemMessageParticipant = (*AgentPart)(nil)
+var _ SystemMessageParticipant = (*ProflilePart)(nil)
 
-type AgentPart struct {
-	agt agent.Agent
+type ProflilePart struct {
+	p profile.Profile
 }
 
-func (i *AgentPart) Part(_ context.Context) (string, error) {
-	if systemPrompt := i.agt.SystemPrompt(); systemPrompt != "" {
+func (p *ProflilePart) Part(_ context.Context) (string, error) {
+	if systemPrompt := p.p.SystemPrompt(); systemPrompt != "" {
 		return systemPrompt, nil
 	}
 	return prompt.DefaultAgent(), nil
@@ -153,15 +151,14 @@ type ConsolidatorRepo interface {
 }
 
 type MemoryPart struct {
-	agentID agent.ID
-	repo    ConsolidatorRepo
+	repo ConsolidatorRepo
 }
 
 func (i *MemoryPart) Part(_ context.Context) (string, error) {
 	// load persistent memory prompt
 	idx, err := i.repo.MemoryIndex()
 	if err != nil {
-		return "", fmt.Errorf("agent %s memory index is not reached: %w", i.agentID, err)
+		return "", fmt.Errorf("memory index is not reached: %w", err)
 	}
 
 	// has no memories, no need to guide it
@@ -174,7 +171,7 @@ func (i *MemoryPart) Part(_ context.Context) (string, error) {
 		fmt.Fprintf(&sb, "- (%s) %s\n", k, v)
 	}
 
-	return prompt.PersistentMemory(i.agentID, sb.String(), ""), nil
+	return prompt.PersistentMemory(sb.String()), nil
 }
 
 // skill index.
@@ -182,17 +179,16 @@ var _ SystemMessageParticipant = (*SkillPart)(nil)
 
 type SkillsRepo interface {
 	// expected: map[/path/to/skill]skill_description
-	Skills(agent.ID) (map[string]string, error)
+	Skills() (map[string]string, error)
 }
 
 type SkillPart struct {
-	agentID agent.ID
-	repo    SkillsRepo
-	logger  *slog.Logger
+	repo   SkillsRepo
+	logger *slog.Logger
 }
 
 func (p *SkillPart) Part(ctx context.Context) (string, error) {
-	skills, err := p.repo.Skills(p.agentID)
+	skills, err := p.repo.Skills()
 	if err != nil {
 		p.logger.ErrorContext(ctx, "skill load", "error", err)
 	}
@@ -218,12 +214,11 @@ type ToolInstructer interface {
 	Instruction() string
 }
 
-type PerAgentToolInstructer interface {
-	AgentInstruction(agent.Agent) string
-}
+// type PerAgentToolInstructer interface {
+// 	AgentInstruction(agent.Agent) string
+// }
 
 type ToolAwarePart struct {
-	agt         agent.Agent
 	toolServers []agent.ToolServer
 }
 
@@ -243,9 +238,9 @@ func (i *ToolAwarePart) Part(_ context.Context) (string, error) {
 		if instructedTool, ok := t.(ToolInstructer); ok {
 			instructions = append(instructions, instructedTool.Instruction())
 		}
-		if agentInstructedTool, ok := t.(PerAgentToolInstructer); ok {
-			instructions = append(instructions, agentInstructedTool.AgentInstruction(i.agt))
-		}
+		// if agentInstructedTool, ok := t.(PerAgentToolInstructer); ok {
+		// 	instructions = append(instructions, agentInstructedTool.AgentInstruction(i.agt))
+		// }
 	}
 
 	return strings.Join(instructions, "\n\n"), nil

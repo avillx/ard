@@ -7,18 +7,18 @@ import (
 )
 
 type Repo interface {
-	All() ([]agent.Agent, error)
-	Get(agent.ID) (agent.Agent, error)
-	Save(agent.Agent) error
+	All() ([]Profile, error)
+	Get(ID) (Profile, error)
+	Save(Profile) error
 
 	// TODO: tasks is not updating automaticly
-	Delete(agent.ID) error
+	Delete(ID) error
 }
 
 var _ Repo = (*Service)(nil)
 
 type Sync interface {
-	DeleteProfile(agent.ID) error
+	DeleteProfile(ID) error
 }
 
 type Service struct {
@@ -55,48 +55,48 @@ func NewService(
 	return svc, nil
 }
 
-func (s *Service) All() ([]agent.Agent, error) {
+func (s *Service) All() ([]Profile, error) {
 	return s.storage.All()
 }
 
-func (s *Service) Get(agentID agent.ID) (agent.Agent, error) {
-	return s.storage.Get(agentID)
+func (s *Service) Get(id ID) (Profile, error) {
+	return s.storage.Get(id)
 }
 
-func (s *Service) Save(agt agent.Agent) error {
+func (s *Service) Save(p Profile) error {
 	// validate model existence
-	if _, err := s.modelRepo.Get(agt.Model()); err != nil {
+	if _, err := s.modelRepo.Get(p.Model()); err != nil {
 		return err
 	}
 
 	// validate tool servers existence
-	if _, err := s.toolReg.ToolServers(agt.ToolServers()...); err != nil {
+	if _, err := s.toolReg.ToolServers(p.ToolServers()...); err != nil {
 		return err
 	}
 
-	return s.storage.Save(agt)
+	return s.storage.Save(p)
 }
 
-func (s *Service) Delete(agentID agent.ID) error {
+func (s *Service) Delete(id ID) error {
 	// validate agent existence
-	if _, err := s.storage.Get(agentID); err != nil {
+	if _, err := s.storage.Get(id); err != nil {
 		return err
 	}
 
-	if err := s.storage.Delete(agentID); err != nil {
+	if err := s.storage.Delete(id); err != nil {
 		return err
 	}
 
 	var errs []error
 	for _, syncr := range s.syncs {
-		err := syncr.DeleteProfile(agentID)
+		err := syncr.DeleteProfile(id)
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
 }
 
-func buildDefaultAgent() agent.Agent {
-	return agent.NewAgent(
+func buildDefaultAgent() Profile {
+	return NewProfile(
 		"default",
 		"agent placeholder",
 		"",

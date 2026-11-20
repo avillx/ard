@@ -2,6 +2,7 @@ package chat
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/prompt"
 	"ard/internal/runtime"
 	"ard/internal/session"
@@ -25,7 +26,7 @@ type SessionSaveSink interface {
 }
 
 type ChatEventHandler struct { //nolint: revive // EventHandler is interface, so this is chat impl of EventHandler
-	agentID        agent.ID
+	profileID      profile.ID
 	sess           session.Session
 	sessSink       SessionSaveSink
 	logger         *slog.Logger
@@ -34,7 +35,7 @@ type ChatEventHandler struct { //nolint: revive // EventHandler is interface, so
 }
 
 func NewChatEventHandler(
-	agentID agent.ID,
+	profileID profile.ID,
 	sess session.Session,
 	sessSink SessionSaveSink,
 	activityLogger ActivityLogger,
@@ -42,7 +43,7 @@ func NewChatEventHandler(
 	logger *slog.Logger,
 ) *ChatEventHandler {
 	return &ChatEventHandler{
-		agentID:        agentID,
+		profileID:      profileID,
 		sess:           sess,
 		sessSink:       sessSink,
 		observe:        observe,
@@ -114,7 +115,7 @@ func (h *ChatEventHandler) HandleCompleteEvent(ctx context.Context, ev *runtime.
 	if h.observe {
 		completion := ev.Complete()
 		msg := agent.NewAgentMessage(completion.Content, completion.ToolCalls)
-		h.activityLogger.Commit(h.agentID, h.sess.ID(), []agent.Message{msg})
+		h.activityLogger.Commit(h.sess.ID(), []agent.Message{msg})
 	}
 	return nil
 }

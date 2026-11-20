@@ -13,16 +13,12 @@ import (
 var _ types.Validator = RequestDTO{}
 
 type RequestDTO struct {
-	Agent agent.ID  `json:"agent"`
-	From  time.Time `json:"from"`
-	To    time.Time `json:"to"`
+	From time.Time `json:"from"`
+	To   time.Time `json:"to"`
 }
 
 func (r RequestDTO) Validate(_ context.Context) error {
 	problems := map[string]string{}
-	if r.Agent == "" {
-		problems["agent"] = "agent must specified"
-	}
 
 	if r.From.IsZero() {
 		problems["from"] = "from is required"

@@ -69,17 +69,8 @@ func InterruptionExplanation() string { return interruptionExplanationRaw }
 //go:embed templates/consolidation_fs_instruction.md
 var consolidationFSinstructionRaw string
 
-var consolidationFSinstructionTempl = template.Must(
-	template.New("consolidate_fs_inst").Parse(consolidationFSinstructionRaw),
-)
-
-func ConsolidationFSInstruction(cwd string, agentID agent.ID) string {
-	vars := map[string]any{
-		"Agent": agentID,
-		"Cwd":   cwd,
-	}
-
-	return mustExecute(consolidationFSinstructionTempl, vars)
+func ConsolidationFSInstruction() string {
+	return consolidationFSinstructionRaw
 }
 
 //go:embed templates/consolidator.md
@@ -112,11 +103,9 @@ var persistentMemoryTmpl = template.Must(
 	template.New("persistent_memory").Parse(persistentMemoryRaw),
 )
 
-func PersistentMemory(agentID agent.ID, memoryIndex, activity string) string {
+func PersistentMemory(memoryIndex string) string {
 	vars := map[string]any{
-		"Index":    memoryIndex,
-		"Agent":    agentID,
-		"Activity": activity,
+		"Index": memoryIndex,
 	}
 
 	return mustExecute(persistentMemoryTmpl, vars)
@@ -170,39 +159,15 @@ func ExcludedUnsupportedModality(modality agent.Modality) string {
 //go:embed templates/memory_file_system_instruction.md
 var memoryFilesystemInstructionRaw string
 
-var memoryFilesystemInstructionTmpl = template.Must(
-	template.New("mem_fs_inst").Parse(memoryFilesystemInstructionRaw),
-)
-
-func memoryFileSystemInstruction(agentID agent.ID) string {
-	vars := map[string]any{
-		"Agent": agentID,
-	}
-
-	return mustExecute(memoryFilesystemInstructionTmpl, vars)
+func memoryFileSystemInstruction() string {
+	return memoryFilesystemInstructionRaw
 }
 
 //go:embed templates/file_system_instruction.md
 var filesystemInstructionRaw string
 
-var filesystemInstructionTmpl = template.Must(
-	template.New("file_system_instruction").Parse(filesystemInstructionRaw),
-)
-
-func FileSystemInstruction(cwd string, agentID agent.ID, addMemory bool) string {
-	additional := ""
-
-	if addMemory {
-		additional = memoryFileSystemInstruction(agentID)
-	}
-
-	components := map[string]any{
-		"Cwd":        cwd,
-		"Agent":      agentID,
-		"Additional": additional,
-	}
-
-	return mustExecute(filesystemInstructionTmpl, components)
+func FileSystemInstruction() string {
+	return filesystemInstructionRaw
 }
 
 //go:embed templates/undone_todos_caution.md

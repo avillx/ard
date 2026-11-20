@@ -51,7 +51,7 @@ type Server struct {
 	Sentinels              []*sentinel.Sentinel
 	MemoryFiles            *files.MemoryFiles
 	ActivityFiles          *files.ActivityFiles
-	AgentFiles             *files.AgentFiles
+	ProfileFiles           *files.ProfileFiles
 }
 
 //nolint:funlen // Is a long DI
@@ -117,11 +117,11 @@ func New(
 		return nil, err
 	}
 
-	agentRepo := files.NewAgentFiles(fileStorage)
+	profilesRepo := files.NewProfileFiles(fileStorage)
 	toolSvc := tools.NewService()
 
 	// TODO: expose syncers
-	profileSvc, err := profile.NewService(toolSvc, modelsSvc, agentRepo, []profile.Sync{})
+	profileSvc, err := profile.NewService(toolSvc, modelsSvc, profilesRepo, []profile.Sync{})
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func New(
 	memoryFiles := files.NewMemoryFiles(fileStorage, logger)
 
 	chatSvc := chat.NewService(
-		agentRepo,
+		profilesRepo,
 		sessSvc,
 		modelsSvc,
 		toolSvc,
@@ -198,7 +198,7 @@ func New(
 	)
 
 	// task service
-	taskSvc, err := buildTaskService(fileStorage, sessSvc, chatSvc, agentRepo, logger)
+	taskSvc, err := buildTaskService(fileStorage, sessSvc, chatSvc, profilesRepo, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func New(
 
 	if err = attachBuildinToolServers(
 		datapath, agentShell, agentShellAttributes, toolSvc, secretSvc, fileStorage,
-		skipPatterns, todoStorage, chatSvc, sessSvc, logger, agentRepo,
+		skipPatterns, todoStorage, chatSvc, sessSvc, logger, profilesRepo,
 	); err != nil {
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func New(
 		Sentinels:              sentinels,
 		MemoryFiles:            memoryFiles,
 		ActivityFiles:          activityRepo,
-		AgentFiles:             agentRepo,
+		ProfileFiles:           profilesRepo,
 	}, nil
 }
 

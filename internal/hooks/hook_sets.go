@@ -21,7 +21,7 @@ func NewAgentHooks(
 	accessRules := []Rule{
 		{Pattern: logging.AgentLogFile, Access: Read},
 		{Pattern: files.SecretsConfigFile, Access: Read},
-		{Pattern: filepath.Join("*", files.AgentFile), Access: No},
+		{Pattern: files.ProfileFilePath, Access: No},
 		{Pattern: filepath.Join(files.SessionsFolder, "**"), Access: No},
 		{Pattern: filepath.Join(files.ActivityFolder, "**"), Access: Read},
 		{Pattern: "**", Access: Write},

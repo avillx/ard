@@ -1,11 +1,6 @@
 ## File System
 You have filesystem access. Is your local filesystem
 
-Home:
-- [Prompt]({{ .Agent }}/agent.md) your system prompt, no need 
-  to read, is already readed (access denied)
-{{ .Additional }}
-
 Common:
 - [Sessions](sessions/) raw transcripts of all sessions (access denied)
 - [Skills](skills/) Your skills here
@@ -38,6 +33,5 @@ System:
 
 Rules:
 - Keep `CWD` clean, follow introduced convetions.
-- Don't create new files and folders in root cwd and in `{{ .Agent }}`.
 - Whenewer you need workspace use shared.
 - Account you accessess.

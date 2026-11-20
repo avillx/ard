@@ -1,7 +1,6 @@
 package api
 
 import (
-	"ard/internal/agent"
 	"ard/internal/profile"
 	"ard/internal/types"
 	"context"
@@ -47,7 +46,7 @@ func (h *agentHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 
 // POST /agent/{id} DTO.
 func (h *agentHandler) Create(_ http.ResponseWriter, r *http.Request) Response {
-	id := agent.ID(r.PathValue("id"))
+	id := profile.ID(r.PathValue("id"))
 
 	_, err := h.repo.Get(id)
 	if err == nil {
@@ -62,7 +61,7 @@ func (h *agentHandler) Create(_ http.ResponseWriter, r *http.Request) Response {
 
 // PUT /agent/{id}.
 func (h *agentHandler) Update(_ http.ResponseWriter, r *http.Request) Response {
-	id := agent.ID(r.PathValue("id"))
+	id := profile.ID(r.PathValue("id"))
 
 	// To ensure existence
 	_, err := h.repo.Get(id)
@@ -76,7 +75,7 @@ func (h *agentHandler) Update(_ http.ResponseWriter, r *http.Request) Response {
 	return h.saveAgt(id, r)
 }
 
-func (h *agentHandler) saveAgt(agentID agent.ID, r *http.Request) Response {
+func (h *agentHandler) saveAgt(agentID profile.ID, r *http.Request) Response {
 	agentDTO, err := decode[AgentDTO](r)
 	if err != nil {
 		return NewInvalidRequest(err)
@@ -96,7 +95,7 @@ func (h *agentHandler) saveAgt(agentID agent.ID, r *http.Request) Response {
 
 // GET /agent/{id} // DTO.
 func (h *agentHandler) Read(_ http.ResponseWriter, r *http.Request) Response {
-	id := agent.ID(r.PathValue("id"))
+	id := profile.ID(r.PathValue("id"))
 	agt, err := h.repo.Get(id)
 	if err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
@@ -110,7 +109,7 @@ func (h *agentHandler) Read(_ http.ResponseWriter, r *http.Request) Response {
 
 // DELETE /agent/{id}.
 func (h *agentHandler) Delete(_ http.ResponseWriter, r *http.Request) Response {
-	id := agent.ID(r.PathValue("id"))
+	id := profile.ID(r.PathValue("id"))
 
 	if err := h.repo.Delete(id); err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
@@ -122,18 +121,18 @@ func (h *agentHandler) Delete(_ http.ResponseWriter, r *http.Request) Response {
 	return NewResponse(http.StatusOK)
 }
 
-func agentToDTO(agt agent.Agent) AgentDTO {
+func agentToDTO(p profile.Profile) AgentDTO {
 	return AgentDTO{
-		Model:        agt.Model(),
-		Memory:       agt.HasMemory(),
-		Description:  agt.Description(),
-		ToolServers:  agt.ToolServers(),
-		SystemPrompt: agt.SystemPrompt(),
+		Model:        p.Model(),
+		Memory:       p.HasMemory(),
+		Description:  p.Description(),
+		ToolServers:  p.ToolServers(),
+		SystemPrompt: p.SystemPrompt(),
 	}
 }
 
-func dtoToAgent(id agent.ID, dto AgentDTO) agent.Agent {
-	return agent.NewAgent(
+func dtoToAgent(id profile.ID, dto AgentDTO) profile.Profile {
+	return profile.NewProfile(
 		id,
 		dto.Description,
 		dto.SystemPrompt,

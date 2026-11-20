@@ -3,6 +3,7 @@ package tools
 import (
 	"ard/internal/agent"
 	"ard/internal/chat"
+	"ard/internal/profile"
 	"ard/internal/session"
 	"ard/internal/types"
 	"context"
@@ -57,9 +58,9 @@ func UnwrapValidArgs[T types.Validator](ctx context.Context, raw agent.ToolArgum
 	return args, nil
 }
 
-func MustAgentID(ctx context.Context) agent.ID {
-	agentID, _ := chat.AgentIDFromContext(ctx)
-	return agentID
+func MustProfileID(ctx context.Context) profile.ID {
+	id, _ := chat.ProfileIDFromContext(ctx)
+	return id
 }
 
 func MustSessionID(ctx context.Context) session.ID {

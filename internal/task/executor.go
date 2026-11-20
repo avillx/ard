@@ -3,6 +3,7 @@ package task
 import (
 	"ard/internal/agent"
 	"ard/internal/chat"
+	"ard/internal/profile"
 	"ard/internal/prompt"
 	"ard/internal/runtime"
 	"ard/internal/session"
@@ -43,7 +44,7 @@ func (s *executor) Execute(ctx context.Context, t Config) {
 	}
 }
 
-func (s *executor) processRecipientTask(ctx context.Context, agentID agent.ID, request string) error {
+func (s *executor) processRecipientTask(ctx context.Context, profileID profile.ID, request string) error {
 	// TODO: just a user message over session instruction
 	sessID, err := s.sessionSvc.Create(prompt.GetAutonomusGuidance())
 	if err != nil {
@@ -62,7 +63,7 @@ func (s *executor) processRecipientTask(ctx context.Context, agentID agent.ID, r
 	return s.chatExecutor.Chat(
 		ctx,
 		chat.Request{
-			AgentID:             agentID,
+			ProfileID:           profileID,
 			SessionID:           sessID,
 			UserMessage:         agent.NewUserMessage(request),
 			Logging:             true,
