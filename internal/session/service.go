@@ -2,10 +2,14 @@ package session
 
 import (
 	"ard/internal/profile"
+	"errors"
 	"log/slog"
 )
 
-var _ SessionsRepo = (*Service)(nil)
+var (
+	_ SessionsRepo = (*Service)(nil)
+	_ profile.Sync = (*Service)(nil)
+)
 
 type SessionsRepo interface {
 	Session(SessionID ID) (Session, error)
@@ -72,4 +76,23 @@ func (s *Service) Delete(id ID) error {
 
 func (s *Service) Headers() ([]Header, error) {
 	return s.repo.Headers()
+}
+
+func (s *Service) DeleteProfile(profileID profile.ID) error {
+	headers, err := s.repo.Headers()
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+	for _, h := range headers {
+		if h.ProfileID() != profileID {
+			continue
+		}
+		if err := s.repo.Delete(h.ID()); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
 }

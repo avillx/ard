@@ -132,6 +132,7 @@ func New(
 		idGen,
 		logger,
 	)
+	profileSvc.AttachSyncer(sessSvc)
 
 	cleanupSvc, err := cleanup.NewService(
 		cleanup.Config{
