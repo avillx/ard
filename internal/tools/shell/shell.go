@@ -77,7 +77,7 @@ func renderInstruction(os, shell string) string {
 - Use "cwd" parameter instead of cd within commands
 - Combine operations with pipes, redirections, and heredocs
 - Non-zero exit codes return error info with output; timed-out commands are terminated
-- NEVER try to read env directly, just ask user env name if you need one.`
+- For file operations use specialized tools (read,write,edit,find,move), not a shell`
 }
 
 var _ agent.Tool = (*Tool)(nil)

@@ -13,6 +13,11 @@ func NewAgentHooks(
 	todoStorage todoStorage,
 	r Replcaer,
 ) ([]any, error) {
+	shellHook, err := NewShellHook()
+	if err != nil {
+		return nil, err
+	}
+
 	accessRules := []Rule{
 		{Pattern: logging.AgentLogFile, Access: Read},
 		{Pattern: files.SecretsConfigFile, Access: Read},
@@ -29,6 +34,7 @@ func NewAgentHooks(
 
 	return []any{
 		accessHook,
+		shellHook,
 		// &EmptyAnswerHook{},
 		NewUndoneTodoHook(todoStorage),
 		&ContentSizeLimitHook{limitBytes: _24kb},
