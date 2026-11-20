@@ -3,22 +3,20 @@ package files
 import (
 	"ard/internal/agent"
 	"ard/internal/types"
-	"bytes"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"sync"
 
-	"gopkg.in/yaml.v3"
+	toml "github.com/pelletier/go-toml/v2"
 )
 
 var _ agent.Repo = (*AgentFiles)(nil)
 
-const AgentFile = "agent.md"
+const AgentFile = "agent.toml"
 
 type AgentFiles struct {
 	storage FileStorage
@@ -130,7 +128,7 @@ func (s *AgentFiles) readConfig(id agent.ID) (AgentDTO, error) {
 		return AgentDTO{}, err
 	}
 
-	return parseAgentFile(data)
+	return parseTomlAgentFile(data)
 }
 
 func (s *AgentFiles) fromDTO(dtos ...AgentDTO) []agent.Agent {
@@ -151,56 +149,32 @@ func (s *AgentFiles) fromDTO(dtos ...AgentDTO) []agent.Agent {
 }
 
 type AgentDTO struct {
-	ID           agent.ID `yaml:"id"`
-	Description  string   `yaml:"description,omitempty"`
-	Model        string   `yaml:"model"`
-	SystemPrompt string   `yaml:"-"`
-	ToolServers  []string `yaml:"tool_servers,omitempty"`
-	HasMemory    bool     `yaml:"memory,omitempty"`
+	ID          agent.ID `yaml:"id"                     toml:"id"`
+	Description string   `yaml:"description,omitempty"  toml:"description,omitempty"`
+	Model       string   `yaml:"model,omitempty"        toml:"model,omitempty"`
+	HasMemory   bool     `yaml:"memory,omitempty"       toml:"memory,omitempty"`
+	ToolServers []string `yaml:"tool_servers,omitempty" toml:"tool_servers,omitempty"`
+
+	SystemPrompt string `yaml:"-" toml:"prompt" multiline:"true"`
 }
 
-func parseAgentFile(data []byte) (AgentDTO, error) {
-	const delim = "---"
-	s := strings.ReplaceAll(string(data), "\r\n", "\n")
-
-	after, ok := strings.CutPrefix(s, delim+"\n")
-	if !ok {
-		return AgentDTO{}, fmt.Errorf("agent file must start with ---")
-	}
-
-	before, after0, ok := strings.Cut(after, "\n"+delim)
-	if !ok {
-		return AgentDTO{}, fmt.Errorf("unclosed frontmatter")
-	}
-
+func parseTomlAgentFile(data []byte) (AgentDTO, error) {
 	var dto AgentDTO
-	if err := yaml.Unmarshal([]byte(before), &dto); err != nil {
+	if err := toml.Unmarshal([]byte(data), &dto); err != nil {
 		return AgentDTO{}, err
 	}
-
-	dto.SystemPrompt = strings.TrimPrefix(after0, "\n")
 	return dto, nil
 }
 
 func marshalAgentFile(agt agent.Agent) ([]byte, error) {
-	fm, err := yaml.Marshal(AgentDTO{
+	return toml.Marshal(AgentDTO{
 		ID:           agt.ID(),
 		Description:  agt.Description(),
 		Model:        agt.Model(),
 		HasMemory:    agt.HasMemory(),
-		SystemPrompt: "", // no need to save it here
+		SystemPrompt: agt.SystemPrompt(),
 		ToolServers:  agt.ToolServers(),
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	var buf bytes.Buffer
-	buf.WriteString("---\n")
-	buf.Write(fm)
-	buf.WriteString("---\n")
-	buf.WriteString(agt.SystemPrompt())
-	return buf.Bytes(), nil
 }
 
 func resolveAgentFilePath(agentID agent.ID) string {

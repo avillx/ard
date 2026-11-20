@@ -1,11 +1,15 @@
 package server
 
 import (
+	"ard/internal/agent"
 	"ard/internal/files"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"path"
+	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Generated shit
@@ -22,6 +26,7 @@ func safeApplyMigrations(root files.FileStorage) {
 	moveConfigsInDir(root)
 	activityToRoot(root)
 	memoryToRoot(root)
+	agentsMarkdownToToml(root)
 	cleanAgentFolder(root)
 	cleanRootFolder(root)
 }
@@ -159,10 +164,11 @@ func moveAgentSkills(root files.FileStorage, agent string) {
 
 func moveAgentLeftovers(root files.FileStorage, agent string) {
 	keep := map[string]bool{
-		"activity": true,
-		"memory":   true,
-		"sessions": true,
-		"agent.md": true,
+		"activity":      true,
+		"memory":        true,
+		"sessions":      true,
+		legacyAgentFile: true,
+		files.AgentFile: true,
 	}
 
 	entries, err := fs.ReadDir(root.FS(), agent)
@@ -179,13 +185,20 @@ func moveAgentLeftovers(root files.FileStorage, agent string) {
 }
 
 func isAgentDir(root files.FileStorage, e fs.DirEntry) bool {
-	const agentFile = "agent.md"
-
 	if !e.IsDir() {
 		return false
 	}
-	stat, err := root.Stat(path.Join(e.Name(), agentFile))
-	return err == nil && !stat.IsDir()
+
+	configs := []string{legacyAgentFile, files.AgentFile}
+
+	for _, config := range configs {
+		stat, err := root.Stat(path.Join(e.Name(), config))
+		if err == nil && !stat.IsDir() {
+			return true
+		}
+	}
+
+	return false
 }
 
 // moveToRepos: dir -> repos/<name>-moved, file -> repos/<name>-moved/<file>.
@@ -391,4 +404,80 @@ func mergeFiles(root files.FileStorage, src, dst string) error {
 	}
 
 	return root.Remove(src)
+}
+
+const legacyAgentFile = "agent.md"
+
+func agentsMarkdownToToml(root files.FileStorage) {
+	agents := files.NewAgentFiles(root)
+
+	entries, err := fs.ReadDir(root.FS(), ".")
+	if err != nil {
+		return
+	}
+
+	for _, e := range entries {
+		if !isAgentDir(root, e) {
+			continue
+		}
+		if exists(root, path.Join(e.Name(), files.AgentFile)) {
+			continue
+		}
+
+		src := path.Join(e.Name(), legacyAgentFile)
+		data, err := root.ReadFile(src)
+		if err != nil {
+			slog.Error("read legacy agent file failed", "agent", e.Name(), "error", err)
+			continue
+		}
+
+		dto, err := parseMarkdownAgentFile(data)
+		if err != nil {
+			slog.Error("parse legacy agent file failed", "agent", e.Name(), "error", err)
+			continue
+		}
+
+		// the folder name is the agent id in the storage layout
+		dto.ID = agent.ID(e.Name())
+
+		err = agents.Save(agent.NewAgent(
+			dto.ID,
+			dto.Description,
+			dto.SystemPrompt,
+			dto.Model,
+			dto.ToolServers,
+			dto.HasMemory,
+		))
+		if err != nil {
+			slog.Error("save migrated agent failed", "agent", e.Name(), "error", err)
+			continue
+		}
+
+		if err := root.Remove(src); err != nil {
+			slog.Error("remove migrated agent file failed", "agent", e.Name(), "error", err)
+		}
+	}
+}
+
+func parseMarkdownAgentFile(data []byte) (files.AgentDTO, error) {
+	const delim = "---"
+	s := strings.ReplaceAll(string(data), "\r\n", "\n")
+
+	after, ok := strings.CutPrefix(s, delim+"\n")
+	if !ok {
+		return files.AgentDTO{}, fmt.Errorf("agent file must start with ---")
+	}
+
+	before, after0, ok := strings.Cut(after, "\n"+delim)
+	if !ok {
+		return files.AgentDTO{}, fmt.Errorf("unclosed frontmatter")
+	}
+
+	var dto files.AgentDTO
+	if err := yaml.Unmarshal([]byte(before), &dto); err != nil {
+		return files.AgentDTO{}, err
+	}
+
+	dto.SystemPrompt = strings.TrimPrefix(after0, "\n")
+	return dto, nil
 }
