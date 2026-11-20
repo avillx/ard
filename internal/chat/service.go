@@ -151,12 +151,9 @@ func (s *Service) buildChat(
 		return nil, err
 	}
 
-	c := &Chat{
-		SystemMessage: systemMessage,
-		Sess:          sess,
-		Profile:       p,
-		Tools:         extractTools(toolServers),
-		Model:         model,
+	c, err := NewChat(systemMessage, sess, p, extractTools(toolServers), model)
+	if err != nil {
+		return nil, err
 	}
 
 	// put cache
@@ -175,19 +172,19 @@ func (s *Service) Chat(
 	}
 
 	if r.Logging {
-		s.activityLogger.Commit(c.Sess.ID(), []agent.Message{r.UserMessage})
+		s.activityLogger.Commit(c.Session().ID(), []agent.Message{r.UserMessage})
 	}
 
 	// inject id's
-	ctx = withProfileID(ctx, c.Profile.ID())
+	ctx = withProfileID(ctx, c.Profile().ID())
 	ctx = withSessionID(ctx, r.SessionID)
 
 	logger := s.logger.With(
-		"profile", c.Profile.ID(),
-		"session", c.Sess.ID(),
+		"profile", c.Profile().ID(),
+		"session", c.Session().ID(),
 	)
 
-	h := NewChatEventHandler(c.Profile.ID(), c.Sess, s.sessionRepo, s.activityLogger, r.Logging, logger)
+	h := NewChatEventHandler(c.Profile().ID(), c.Session(), s.sessionRepo, s.activityLogger, r.Logging, logger)
 
 	c.Run(
 		ctx,

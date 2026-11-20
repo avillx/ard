@@ -12,20 +12,49 @@ import (
 	"sync"
 )
 
+var ErrEmptyValue = errors.New("for chat all values required")
+
 type Chat struct {
-	SystemMessage agent.Message
-	Sess          session.Session
-	Profile       profile.Profile
-	Tools         []agent.Tool
-	Model         agent.Model
+	systemMessage agent.Message
+	sess          session.Session
+	profile       profile.Profile
+	tools         []agent.Tool
+	model         agent.Model
 }
 
+func NewChat(
+	systemMessage agent.Message,
+	sess session.Session,
+	profile profile.Profile,
+	tools []agent.Tool,
+	model agent.Model,
+) (*Chat, error) {
+	if systemMessage == nil ||
+		sess == nil ||
+		profile == nil ||
+		tools == nil ||
+		model == nil {
+		return nil, ErrEmptyValue
+	}
+
+	return &Chat{
+		systemMessage: systemMessage,
+		sess:          sess,
+		profile:       profile,
+		tools:         tools,
+		model:         model,
+	}, nil
+}
+
+func (c *Chat) Session() session.Session { return c.sess }
+func (c *Chat) Profile() profile.Profile { return c.profile }
+
 func (c *Chat) buildContext(um *agent.UserMessage) []agent.Message {
-	c.Sess.AddMessages(um)
+	c.sess.AddMessages(um)
 
 	agentContext := []agent.Message{}
-	agentContext = append(agentContext, c.SystemMessage)
-	agentContext = append(agentContext, c.Sess.Messages()...)
+	agentContext = append(agentContext, c.systemMessage)
+	agentContext = append(agentContext, c.sess.Messages()...)
 
 	return agentContext
 }
@@ -45,9 +74,9 @@ func (c *Chat) Run(
 		defer close(evCh)
 		runtime.RunAgentLoop(
 			ctx,
-			c.Model,
+			c.model,
 			c.buildContext(um),
-			c.Tools,
+			c.tools,
 			evCh,
 			hooks,
 		)
