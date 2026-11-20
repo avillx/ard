@@ -116,7 +116,7 @@ func (s *AgentFiles) loadConfig() (map[agent.ID]ProfileDTO, error) {
 func (s *AgentFiles) saveConfig(cfg map[agent.ID]ProfileDTO) error {
 	data, err := toml.Marshal(cfg)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return s.storage.WriteFile(AgentFilePath, data, AgentFileMode)
