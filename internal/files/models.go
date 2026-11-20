@@ -1,20 +1,20 @@
 package files
 
 import (
-	"ard/internal/model"
-	"ard/internal/sentinel"
-	"ard/internal/types"
 	"bytes"
 	"context"
 	"path/filepath"
 	"sync"
 
+	"ard/internal/model"
+	"ard/internal/sentinel"
+	"ard/internal/types"
 	"github.com/fsnotify/fsnotify"
 	toml "github.com/pelletier/go-toml/v2"
 )
 
 const (
-	ModelsConfigFileMode FileMode = 0755
+	ModelsConfigFileMode FileMode = 0o755
 	ModelsConfigFile              = "models.toml"
 	modelsConfigDoc               = `# Models config file
 	# LLM models available for agents
@@ -198,9 +198,8 @@ func (f *ProviderFiles) saveConfig(dto modelsConfigDTO) error {
 	return f.storage.WriteFile(ModelsConfigFilePath, dataWithDoc, ModeFilePerm)
 }
 
-// modelsSent.
 func NewModelsReloader(modelsSvc *model.ProviderService) sentinel.Action {
-	return func(ctx context.Context, ev fsnotify.Event) error {
+	return func(ctx context.Context, _ fsnotify.Event) error {
 		return modelsSvc.Reload()
 	}
 }

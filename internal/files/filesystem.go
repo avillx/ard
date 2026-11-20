@@ -1,7 +1,6 @@
 package files
 
 import (
-	"ard/internal/types"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -10,22 +9,25 @@ import (
 	"syscall"
 	"time"
 
+	"ard/internal/types"
 	toml "github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
 )
 
-type FileMode = fs.FileMode
-type FileInfo = os.FileInfo
+type (
+	FileMode = fs.FileMode
+	FileInfo = os.FileInfo
+)
 
 const (
 	ReposDir     = "repos"
-	ReposDirMode = 0777
+	ReposDirMode = 0o777
 
 	ConfigDir     = "conf"
-	ConfigDirMode = 0755
+	ConfigDirMode = 0o755
 
-	ModeFilePerm = 0644
-	ModeDirPerm  = 0755
+	ModeFilePerm = 0o644
+	ModeDirPerm  = 0o755
 
 	ModePerm       = os.ModePerm
 	ModeAppend     = os.ModeAppend
@@ -41,14 +43,14 @@ const (
 	ModeSticky     = os.ModeSticky
 	ModeIrregular  = os.ModeIrregular
 
-	O_RDONLY = os.O_RDONLY
-	O_WRONLY = os.O_WRONLY
-	O_RDWR   = os.O_RDWR
-	O_APPEND = os.O_APPEND
-	O_CREATE = os.O_CREATE
-	O_EXCL   = os.O_EXCL
-	O_SYNC   = os.O_SYNC
-	O_TRUNC  = os.O_TRUNC
+	O_RDONLY = os.O_RDONLY // nolint: revive
+	O_WRONLY = os.O_WRONLY // nolint: revive
+	O_RDWR   = os.O_RDWR   // nolint: revive
+	O_APPEND = os.O_APPEND // nolint: revive
+	O_CREATE = os.O_CREATE // nolint: revive
+	O_EXCL   = os.O_EXCL   // nolint: revive
+	O_SYNC   = os.O_SYNC   // nolint: revive
+	O_TRUNC  = os.O_TRUNC  // nolint: revive
 )
 
 type File struct {

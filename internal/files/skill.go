@@ -1,18 +1,19 @@
 package files
 
 import (
-	"ard/internal/agent"
-	"ard/internal/chat"
-	"ard/internal/types"
 	"errors"
 	"io/fs"
 	"log/slog"
 	"maps"
 	"sync"
+
+	"ard/internal/agent"
+	"ard/internal/chat"
+	"ard/internal/types"
 )
 
 const (
-	SkillsDirMode FileMode = 0777
+	SkillsDirMode FileMode = 0o777
 	SkillsDir              = "skills"
 	SkillFile              = "SKILL.md"
 )
@@ -42,7 +43,7 @@ func NewSkillFiles(
 	return sf, nil
 }
 
-func (f *SkillFiles) Skills(agentID agent.ID) (map[string]string, error) {
+func (f *SkillFiles) Skills(_ agent.ID) (map[string]string, error) {
 	skillsIndex := map[string]string{}
 
 	skills, err := f.loadSkills(SkillsDir)

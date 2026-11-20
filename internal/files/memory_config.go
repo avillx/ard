@@ -75,7 +75,7 @@ func NewMemoryConfigFile(storage FileStorage) (*MemoryFile, error) {
 	}, nil
 }
 
-func (r *MemoryFile) Save(new MemoryConfigDTO) error {
+func (r *MemoryFile) Save(patch MemoryConfigDTO) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -89,12 +89,12 @@ func (r *MemoryFile) Save(new MemoryConfigDTO) error {
 		return err
 	}
 
-	if new.Consolidator != nil {
-		dto.Consolidator = new.Consolidator
+	if patch.Consolidator != nil {
+		dto.Consolidator = patch.Consolidator
 	}
 
-	if new.Activity != nil {
-		dto.Activity = new.Activity
+	if patch.Activity != nil {
+		dto.Activity = patch.Activity
 	}
 
 	data, err = toml.Marshal(dto)
@@ -201,12 +201,11 @@ type MemoryConfigDTO struct {
 	Activity     *memory.ActivityConfig     `toml:"activity,omitempty"`
 }
 
-// memoSent.
 func NewMemoReloader(
 	consolidationSvc *memory.ConsolidationService,
 	activitySvc *memory.ActivityService,
 ) sentinel.Action {
-	return func(ctx context.Context, ev fsnotify.Event) error {
+	return func(_ context.Context, _ fsnotify.Event) error {
 		if err := activitySvc.Reload(); err != nil {
 			return err
 		}

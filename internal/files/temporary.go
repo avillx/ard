@@ -1,8 +1,6 @@
 package files
 
 import (
-	"ard/internal/sentinel"
-	"ard/internal/types"
 	"context"
 	"errors"
 	"io/fs"
@@ -12,13 +10,15 @@ import (
 	"sync"
 	"time"
 
+	"ard/internal/sentinel"
+	"ard/internal/types"
 	"github.com/fsnotify/fsnotify"
 )
 
 const (
 	TMPEntryTTL          = 10 * time.Minute
 	TMPDir               = "tmp"
-	TMPDirMode  FileMode = 0777
+	TMPDirMode  FileMode = 0o777
 )
 
 type TemporaryFiles struct {
@@ -129,9 +129,8 @@ func resolveTmpEntryPath(e string) string {
 	return filepath.Join(TMPDir, e)
 }
 
-// tmpSent.
 func NewTMPDetector(tmpFiles *TemporaryFiles) sentinel.Action {
-	return func(ctx context.Context, ev fsnotify.Event) error {
+	return func(ctx context.Context, _ fsnotify.Event) error {
 		return tmpFiles.Reload(ctx)
 	}
 }

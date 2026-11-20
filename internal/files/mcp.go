@@ -1,21 +1,21 @@
 package files
 
 import (
-	"ard/internal/mcp"
-	"ard/internal/sentinel"
-	"ard/internal/types"
 	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
 	"sync"
 
+	"ard/internal/mcp"
+	"ard/internal/sentinel"
+	"ard/internal/types"
 	"github.com/fsnotify/fsnotify"
 	toml "github.com/pelletier/go-toml/v2"
 )
 
 const (
-	MCPConfigFileMode FileMode = 0755
+	MCPConfigFileMode FileMode = 0o755
 	MCPConfigFile              = "mcp.toml"
 	mcpConfigDoc               = `# MCP servers connections config
 	# All MCP servers described here will be connected
@@ -243,9 +243,8 @@ func UnmarshalMCPConfig(data []byte) (map[mcp.MCPServerID]mcp.ServerGatewayConfi
 	return config, nil
 }
 
-// mcpSent.
 func NewMCPReloader(mcpSvc *mcp.Service) sentinel.Action {
-	return func(ctx context.Context, ev fsnotify.Event) error {
+	return func(ctx context.Context, _ fsnotify.Event) error {
 		return mcpSvc.Reload(ctx)
 	}
 }

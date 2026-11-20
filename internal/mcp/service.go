@@ -163,7 +163,6 @@ func (s *Service) DeleteServer(id MCPServerID) error {
 	return s.configRepo.Delete(id)
 }
 
-// Override behaviour.
 func (s *Service) SetServer(ctx context.Context, id MCPServerID, cfg ServerGatewayConfig) error {
 	var depricatedSrv MCPServer
 	func() {

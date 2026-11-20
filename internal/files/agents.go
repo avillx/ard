@@ -20,7 +20,6 @@ var _ agent.Repo = (*AgentFiles)(nil)
 
 const AgentFile = "agent.md"
 
-// Files.
 type AgentFiles struct {
 	storage FileStorage
 	mu      sync.RWMutex
@@ -151,7 +150,6 @@ func (s *AgentFiles) fromDTO(dtos ...AgentDTO) []agent.Agent {
 	return agents
 }
 
-// DTO.
 type AgentDTO struct {
 	ID           agent.ID `yaml:"id"`
 	Description  string   `yaml:"description,omitempty"`

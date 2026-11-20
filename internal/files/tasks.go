@@ -214,9 +214,8 @@ func MarshalTasks(tasks map[string]task.Config) ([]byte, error) {
 	), nil
 }
 
-// tasksSent.
 func NewTasksReloader(tasksSvc *task.Service) sentinel.Action {
-	return func(ctx context.Context, ev fsnotify.Event) error {
+	return func(ctx context.Context, _ fsnotify.Event) error {
 		return tasksSvc.Reload(ctx)
 	}
 }

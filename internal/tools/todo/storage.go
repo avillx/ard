@@ -1,28 +1,29 @@
 package todo
 
 import (
-	"ard/internal/session"
 	"fmt"
 	"sync"
 	"time"
+
+	"ard/internal/session"
 )
 
 const todoTTL = 1 * time.Hour
 
 // Store manages todos per session+agent scope.
 type Store interface {
-	Add(session.ID, []TodoItem)
+	Add(session.ID, []Item)
 	Update(session.ID, int, Status) error
-	List(session.ID) []TodoItem
+	List(session.ID) []Item
 }
 
-type TodoItem struct {
+type Item struct {
 	ID     int
 	Title  string
 	Status Status
 }
 
-func (i *TodoItem) String() string {
+func (i *Item) String() string {
 	badge := statusBadge[i.Status]
 	return fmt.Sprintf("- %s #%d %s", badge, i.ID, i.Title)
 }
@@ -31,7 +32,7 @@ var _ Store = (*InMemoryStore)(nil)
 
 // InMemoryStore is a simple thread-safe in-memory Store.
 type InMemoryStore struct {
-	todos       map[session.ID][]TodoItem
+	todos       map[session.ID][]Item
 	cleanTimers map[session.ID]*time.Timer
 
 	mu sync.Mutex
@@ -39,11 +40,11 @@ type InMemoryStore struct {
 
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
-		todos: map[session.ID][]TodoItem{},
+		todos: map[session.ID][]Item{},
 	}
 }
 
-func (s *InMemoryStore) Add(sessID session.ID, items []TodoItem) {
+func (s *InMemoryStore) Add(sessID session.ID, items []Item) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -74,13 +75,13 @@ func (s *InMemoryStore) Update(sessID session.ID, todoID int, status Status) err
 	return nil
 }
 
-func (s *InMemoryStore) List(sessID session.ID) []TodoItem {
+func (s *InMemoryStore) List(sessID session.ID) []Item {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.touchTimer(sessID)
 
-	items := make([]TodoItem, len(s.todos[sessID]))
+	items := make([]Item, len(s.todos[sessID]))
 	copy(items, s.todos[sessID])
 
 	return items

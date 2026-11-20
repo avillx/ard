@@ -1,9 +1,10 @@
 package hooks
 
 import (
+	"context"
+
 	"ard/internal/agent"
 	"ard/internal/runtime"
-	"context"
 )
 
 type Replcaer interface {
@@ -12,13 +13,12 @@ type Replcaer interface {
 
 var _ runtime.CompletionHook = (*NeverTypeSecretsHook)(nil)
 
-// *agent.Completion - secrets -> placeholders (agent type secret by itself).
 type NeverTypeSecretsHook struct {
 	r Replcaer
 }
 
 func (h *NeverTypeSecretsHook) Apply(
-	ctx context.Context,
+	_ context.Context,
 	c *agent.Completion,
 ) (*agent.Completion, error) {
 	c.Content = h.r.Replace(c.Content)
@@ -27,13 +27,12 @@ func (h *NeverTypeSecretsHook) Apply(
 
 var _ runtime.ToolCallHook = (*NeverToolCallSecretsHook)(nil)
 
-// *agent.ToolCall   - secrets -> placeholders (agent type secret in tool).
 type NeverToolCallSecretsHook struct {
 	r Replcaer
 }
 
 func (h *NeverToolCallSecretsHook) Apply(
-	ctx context.Context,
+	_ context.Context,
 	c *agent.ToolCall,
 ) (*agent.ToolCall, error) {
 	stringArgs := string(c.Arguments)
@@ -45,13 +44,12 @@ func (h *NeverToolCallSecretsHook) Apply(
 
 var _ runtime.ToolResultHook = (*NeverReadSecretsHook)(nil)
 
-// *AfterToolCall    - secrets -> placeholder (agent read the secrets).
 type NeverReadSecretsHook struct {
 	r Replcaer
 }
 
 func (h *NeverReadSecretsHook) Apply(
-	ctx context.Context,
+	_ context.Context,
 	c *runtime.AfterToolCall,
 ) (*runtime.AfterToolCall, error) {
 	safeCps := []agent.ContentPart{}

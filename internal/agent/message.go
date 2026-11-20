@@ -212,10 +212,6 @@ var (
 	ErrCantMergeToolResult = errors.New("tool result messages cant be merged")
 )
 
-// merge two messages with the same type.
-// ErrDiffirentTypes - on a and b is not matched
-// ErrCantMergeToolResult - a and b is a tool message
-// is is unknown type of messages.
 func MergeMatchedPair(a, b Message) (Message, error) {
 	if reflect.TypeOf(a) != reflect.TypeOf(b) {
 		return nil, ErrDiffirentTypes

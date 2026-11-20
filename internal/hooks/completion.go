@@ -24,7 +24,7 @@ type OnlyValidMemoryFrontmatterHook struct {
 }
 
 func (h *OnlyValidMemoryFrontmatterHook) Apply(
-	ctx context.Context,
+	_ context.Context,
 	c *agent.Completion,
 ) (*agent.Completion, error) {
 	if !c.Done {
@@ -51,7 +51,7 @@ var _ runtime.CompletionHook = (*EmptyAnswerHook)(nil)
 type EmptyAnswerHook struct{}
 
 func (h *EmptyAnswerHook) Apply(
-	ctx context.Context,
+	_ context.Context,
 	c *agent.Completion,
 ) (*agent.Completion, error) {
 	if c.Content == "" && c.Done {

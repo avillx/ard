@@ -1,25 +1,27 @@
 package hooks
 
 import (
-	"ard/internal/agent"
-	"ard/internal/runtime"
-	"ard/internal/tools"
-	fstools "ard/internal/tools/fs"
-	"ard/internal/types"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"ard/internal/agent"
+	"ard/internal/runtime"
+	"ard/internal/tools"
+	fstools "ard/internal/tools/fs"
+	"ard/internal/types"
 	doublestar "github.com/bmatcuk/doublestar/v4"
 )
 
-var readToolName = (&fstools.ReadTool{}).Name()
-var editToolName = (&fstools.EditTool{}).Name()
-var moveToolName = (&fstools.MoveTool{}).Name()
-var writeToolName = (&fstools.WriteTool{}).Name()
-var errIsNotFileTool = errors.New("is not file tools")
+var (
+	readToolName     = (&fstools.ReadTool{}).Name()
+	editToolName     = (&fstools.EditTool{}).Name()
+	moveToolName     = (&fstools.MoveTool{}).Name()
+	writeToolName    = (&fstools.WriteTool{}).Name()
+	errIsNotFileTool = errors.New("is not file tools")
+)
 
 type Access int
 
@@ -40,7 +42,6 @@ type FileAccessHook struct {
 	rules []Rule
 }
 
-// First rule match wins, so be accuracy with order.
 func NewFileAccessHook(rules ...Rule) (*FileAccessHook, error) {
 	// validate patterns
 	for _, r := range rules {
@@ -54,7 +55,7 @@ func NewFileAccessHook(rules ...Rule) (*FileAccessHook, error) {
 	}, nil
 }
 
-func (h *FileAccessHook) Apply(ctx context.Context, tc *agent.ToolCall) (*agent.ToolCall, error) {
+func (h *FileAccessHook) Apply(_ context.Context, tc *agent.ToolCall) (*agent.ToolCall, error) {
 	paths, err := resolvePaths(tc)
 	if err != nil {
 		// if not file tool then just ignore

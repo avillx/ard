@@ -79,9 +79,8 @@ func (sf *SecretsFiles) Save(secrets map[string]string) error {
 	return sf.storage.WriteFile(SecretsConfigFilePath, dataWithDoc, ModeFilePerm)
 }
 
-// secretsSent.
 func NewSecretsReloader(secretSvc *secrets.Service) sentinel.Action {
-	return func(ctx context.Context, ev fsnotify.Event) error {
+	return func(ctx context.Context, _ fsnotify.Event) error {
 		return secretSvc.Reload(ctx)
 	}
 }

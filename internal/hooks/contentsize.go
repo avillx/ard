@@ -1,10 +1,11 @@
 package hooks
 
 import (
+	"context"
+
 	"ard/internal/agent"
 	"ard/internal/runtime"
 	"ard/internal/types"
-	"context"
 )
 
 var _ runtime.ToolResultHook = (*ContentSizeLimitHook)(nil)
@@ -14,7 +15,7 @@ type ContentSizeLimitHook struct {
 }
 
 func (h *ContentSizeLimitHook) Apply(
-	ctx context.Context,
+	_ context.Context,
 	tc *runtime.AfterToolCall,
 ) (*runtime.AfterToolCall, error) {
 	// validation
