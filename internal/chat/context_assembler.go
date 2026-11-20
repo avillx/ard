@@ -136,10 +136,7 @@ type ProflilePart struct {
 }
 
 func (p *ProflilePart) Part(_ context.Context) (string, error) {
-	if systemPrompt := p.p.SystemPrompt(); systemPrompt != "" {
-		return systemPrompt, nil
-	}
-	return prompt.DefaultAgent(), nil
+	return p.p.SystemPrompt(), nil
 }
 
 // memory index.

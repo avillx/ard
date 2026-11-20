@@ -3,6 +3,7 @@ package profile_test
 import (
 	"ard/internal/agent"
 	"ard/internal/profile"
+	"ard/internal/prompt"
 	"ard/internal/types"
 	"context"
 	"errors"
@@ -75,6 +76,7 @@ type mockRepo struct {
 	deletes  []profile.ID
 
 	allErr    error
+	getErr    error
 	saveErr   error
 	deleteErr error
 }
@@ -91,12 +93,12 @@ func (r *mockRepo) seed(p profile.Profile) {
 }
 
 func (r *mockRepo) All() ([]profile.Profile, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	if r.allErr != nil {
 		return nil, r.allErr
 	}
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	profiles := make([]profile.Profile, 0, len(r.profiles))
 	for _, p := range r.profiles {
@@ -108,6 +110,10 @@ func (r *mockRepo) All() ([]profile.Profile, error) {
 func (r *mockRepo) Get(id profile.ID) (profile.Profile, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if r.getErr != nil {
+		return nil, r.getErr
+	}
 
 	p, ok := r.profiles[id]
 	if !ok {
@@ -200,100 +206,249 @@ func newTestService(
 	return svc
 }
 
+func newTestStorage(t *testing.T, profiles ...profile.Profile) *mockRepo {
+	t.Helper()
+
+	storage := newMockRepo()
+	for _, p := range profiles {
+		storage.seed(p)
+	}
+	return storage
+}
+
 func newProfile(id profile.ID) profile.Profile {
 	return profile.NewProfile(id, "description", "system prompt", "model-a", []string{"filesystem"}, true)
 }
 
-func TestNewService_CreatesDefaultProfileWhenEmpty(t *testing.T) {
-	storage := newMockRepo()
-	svc, err := profile.NewService(
-		newMockToolRegistry("filesystem"),
-		newMockModelRegistry("model-a"),
-		storage,
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
-	}
+func assertProfile(t *testing.T, got, want profile.Profile) {
+	t.Helper()
 
-	saved := storage.savedProfiles()
-	if len(saved) != 1 {
-		t.Fatalf("expected 1 saved profile, got %d", len(saved))
+	if got.ID() != want.ID() {
+		t.Fatalf("expected id %q, got %q", want.ID(), got.ID())
 	}
-	if saved[0].ID() != profile.ID("default") {
-		t.Fatalf("expected default profile, got %s", saved[0].ID())
+	if got.Description() != want.Description() {
+		t.Fatalf("expected description %q, got %q", want.Description(), got.Description())
 	}
-
-	profiles, err := svc.All()
-	if err != nil {
-		t.Fatalf("All() error = %v", err)
+	if got.SystemPrompt() != want.SystemPrompt() {
+		t.Fatalf("expected system prompt %q, got %q", want.SystemPrompt(), got.SystemPrompt())
 	}
-	if len(profiles) != 1 || profiles[0].ID() != profile.ID("default") {
-		t.Fatalf("expected only default profile, got %v", profiles)
+	if got.Model() != want.Model() {
+		t.Fatalf("expected model %q, got %q", want.Model(), got.Model())
+	}
+	if !slices.Equal(got.ToolServers(), want.ToolServers()) {
+		t.Fatalf("expected tool servers %v, got %v", want.ToolServers(), got.ToolServers())
+	}
+	if got.HasMemory() != want.HasMemory() {
+		t.Fatalf("expected memory %v, got %v", want.HasMemory(), got.HasMemory())
 	}
 }
 
-func TestNewService_KeepsExistingProfiles(t *testing.T) {
+func TestNewService_DoesNotPersistDefaultProfile(t *testing.T) {
 	storage := newMockRepo()
-	storage.seed(newProfile("existing"))
-
-	svc, err := profile.NewService(
-		newMockToolRegistry("filesystem"),
-		newMockModelRegistry("model-a"),
-		storage,
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
-	}
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	if got := storage.savedCount(); got != 0 {
-		t.Fatalf("expected no default profile saved, got %d saves", got)
+		t.Fatalf("expected no profile saves, got %d", got)
 	}
 
 	profiles, err := svc.All()
 	if err != nil {
 		t.Fatalf("All() error = %v", err)
 	}
-	if len(profiles) != 1 || profiles[0].ID() != profile.ID("existing") {
-		t.Fatalf("expected only existing profile, got %v", profiles)
+	if len(profiles) != 0 {
+		t.Fatalf("expected no stored profiles, got %v", profiles)
 	}
 }
 
-func TestNewService_FailsWhenListingProfilesFails(t *testing.T) {
+func TestNewService_DoesNotTouchStorage(t *testing.T) {
+	storage := newMockRepo()
+	storage.allErr = errors.New("list failed")
+	storage.saveErr = errors.New("save failed")
+
+	svc, err := profile.NewService(
+		newMockToolRegistry("filesystem"),
+		newMockModelRegistry("model-a"),
+		storage,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewService() error = %v, want nil", err)
+	}
+	if svc == nil {
+		t.Fatal("expected service, got nil")
+	}
+}
+
+func TestAll_ReturnsStoredProfiles(t *testing.T) {
+	storage := newTestStorage(t, newProfile("writer"))
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+
+	profiles, err := svc.All()
+	if err != nil {
+		t.Fatalf("All() error = %v", err)
+	}
+	if len(profiles) != 1 || profiles[0].ID() != profile.ID("writer") {
+		t.Fatalf("expected only stored writer profile, got %v", profiles)
+	}
+}
+
+func TestAll_PropagatesStorageError(t *testing.T) {
 	wantErr := errors.New("list failed")
 	storage := newMockRepo()
 	storage.allErr = wantErr
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
-	_, err := profile.NewService(
-		newMockToolRegistry("filesystem"),
-		newMockModelRegistry("model-a"),
-		storage,
-		nil,
-	)
-	if !errors.Is(err, wantErr) {
-		t.Fatalf("NewService() error = %v, want %v", err, wantErr)
+	if _, err := svc.All(); !errors.Is(err, wantErr) {
+		t.Fatalf("All() error = %v, want %v", err, wantErr)
 	}
 }
 
-func TestNewService_FailsWhenDefaultProfileSaveFails(t *testing.T) {
-	wantErr := errors.New("save failed")
-	storage := newMockRepo()
-	storage.saveErr = wantErr
+func TestGet_ReturnsDefaultProfile(t *testing.T) {
+	storage := newTestStorage(t)
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
-	_, err := profile.NewService(
-		newMockToolRegistry("filesystem"),
-		newMockModelRegistry("model-a"),
-		storage,
-		nil,
+	want := profile.NewProfile(
+		profile.DefaultProfileID,
+		profile.DefaultProfileDescription,
+		prompt.DefaultAgentProfile(),
+		profile.AnyModel,
+		[]string{profile.FileSystem},
+		profile.DefaultMemoryState,
 	)
-	if !errors.Is(err, wantErr) {
-		t.Fatalf("NewService() error = %v, want %v", err, wantErr)
+
+	for _, id := range []profile.ID{"", profile.DefaultProfileID} {
+		got, err := svc.Get(id)
+		if err != nil {
+			t.Fatalf("Get(%q) error = %v", id, err)
+		}
+		assertProfile(t, got, want)
+	}
+}
+
+func TestGet_PatchesStoredProfileOverDefault(t *testing.T) {
+	storage := newTestStorage(t, profile.NewProfile(
+		"writer",
+		"writer description",
+		"writer prompt",
+		"model-b",
+		[]string{"filesystem", "shell"},
+		true,
+	))
+	svc := newTestService(
+		t,
+		storage,
+		newMockModelRegistry("model-a", "model-b"),
+		newMockToolRegistry("filesystem", "shell"),
+	)
+
+	got, err := svc.Get("writer")
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+
+	assertProfile(t, got, profile.NewProfile(
+		"writer",
+		"writer description",
+		"writer prompt",
+		"model-b",
+		[]string{"filesystem", "shell"},
+		true,
+	))
+}
+
+func TestGet_KeepsDefaultsForOmittedFields(t *testing.T) {
+	storage := newTestStorage(t, profile.NewProfile("writer", "writer description", "", "", nil, false))
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+
+	got, err := svc.Get("writer")
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+
+	assertProfile(t, got, profile.NewProfile(
+		"writer",
+		"writer description",
+		prompt.DefaultAgentProfile(),
+		profile.AnyModel,
+		[]string{profile.FileSystem},
+		profile.DefaultMemoryState,
+	))
+}
+
+func TestGet_ReturnsErrorForUnknownProfile(t *testing.T) {
+	storage := newTestStorage(t)
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+
+	if _, err := svc.Get("missing"); !errors.Is(err, types.ErrIsNotExist) {
+		t.Fatalf("Get() error = %v, want %v", err, types.ErrIsNotExist)
+	}
+}
+
+func TestGet_PropagatesSelectedProfileError(t *testing.T) {
+	wantErr := errors.New("storage failed")
+	storage := newMockRepo()
+	storage.getErr = wantErr
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+
+	if _, err := svc.Get("writer"); !errors.Is(err, wantErr) {
+		t.Fatalf("Get() error = %v, want %v", err, wantErr)
+	}
+}
+
+func TestGet_MergesGlobalPromptIntoDefaultProfile(t *testing.T) {
+	storage := newTestStorage(t, profile.NewProfile(profile.GlobalProfileID, "", "global prompt", "", nil, false))
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+
+	got, err := svc.Get(profile.DefaultProfileID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+
+	assertProfile(t, got, profile.NewProfile(
+		profile.DefaultProfileID,
+		profile.DefaultProfileDescription,
+		prompt.DefaultAgentProfile()+"\n\nglobal prompt",
+		profile.AnyModel,
+		[]string{profile.FileSystem},
+		profile.DefaultMemoryState,
+	))
+}
+
+func TestGet_MergesGlobalPromptIntoSelectedProfile(t *testing.T) {
+	storage := newTestStorage(t,
+		newProfile("writer"),
+		profile.NewProfile(profile.GlobalProfileID, "", "global prompt", "", nil, false),
+	)
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+
+	got, err := svc.Get("writer")
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+
+	assertProfile(t, got, profile.NewProfile(
+		"writer",
+		"description",
+		"system prompt\n\nglobal prompt",
+		"model-a",
+		[]string{"filesystem"},
+		true,
+	))
+}
+
+func TestGet_PropagatesGlobalProfileError(t *testing.T) {
+	wantErr := errors.New("storage failed")
+	storage := newMockRepo()
+	storage.getErr = wantErr
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+
+	if _, err := svc.Get(profile.DefaultProfileID); !errors.Is(err, wantErr) {
+		t.Fatalf("Get() error = %v, want %v", err, wantErr)
 	}
 }
 
 func TestSave_PersistsValidProfile(t *testing.T) {
-	storage := newMockRepo()
+	storage := newTestStorage(t)
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	p := newProfile("writer")
@@ -311,13 +466,12 @@ func TestSave_PersistsValidProfile(t *testing.T) {
 }
 
 func TestSave_RejectsUnknownModel(t *testing.T) {
-	storage := newMockRepo()
-	storage.seed(newProfile("existing"))
+	storage := newTestStorage(t)
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	p := profile.NewProfile("writer", "description", "system prompt", "ghost-model", []string{"filesystem"}, false)
-	if err := svc.Save(p); err == nil {
-		t.Fatal("expected error for unknown model")
+	if err := svc.Save(p); !errors.Is(err, types.ErrIsNotExist) {
+		t.Fatalf("Save() error = %v, want %v", err, types.ErrIsNotExist)
 	}
 	if got := storage.savedCount(); got != 0 {
 		t.Fatalf("expected no save, got %d", got)
@@ -325,13 +479,12 @@ func TestSave_RejectsUnknownModel(t *testing.T) {
 }
 
 func TestSave_RejectsUnknownToolServer(t *testing.T) {
-	storage := newMockRepo()
-	storage.seed(newProfile("existing"))
+	storage := newTestStorage(t)
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	p := profile.NewProfile("writer", "description", "system prompt", "model-a", []string{"filesystem", "ghost"}, false)
-	if err := svc.Save(p); err == nil {
-		t.Fatal("expected error for unknown tool server")
+	if err := svc.Save(p); !errors.Is(err, types.ErrIsNotExist) {
+		t.Fatalf("Save() error = %v, want %v", err, types.ErrIsNotExist)
 	}
 	if got := storage.savedCount(); got != 0 {
 		t.Fatalf("expected no save, got %d", got)
@@ -339,8 +492,7 @@ func TestSave_RejectsUnknownToolServer(t *testing.T) {
 }
 
 func TestSave_SameIDOverwritesExistingProfile(t *testing.T) {
-	storage := newMockRepo()
-	storage.seed(newProfile("writer"))
+	storage := newTestStorage(t, newProfile("writer"))
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	updated := profile.NewProfile(
@@ -372,9 +524,19 @@ func TestSave_SameIDOverwritesExistingProfile(t *testing.T) {
 	}
 }
 
-func TestDelete_DeletesFromStorageAndSyncs(t *testing.T) {
+func TestSave_PropagatesStorageError(t *testing.T) {
+	wantErr := errors.New("save failed")
 	storage := newMockRepo()
-	storage.seed(newProfile("writer"))
+	storage.saveErr = wantErr
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
+
+	if err := svc.Save(newProfile("writer")); !errors.Is(err, wantErr) {
+		t.Fatalf("Save() error = %v, want %v", err, wantErr)
+	}
+}
+
+func TestDelete_DeletesFromStorageAndSyncs(t *testing.T) {
+	storage := newTestStorage(t, newProfile("writer"))
 	sync1 := &mockSync{}
 	sync2 := &mockSync{}
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync1, sync2)
@@ -395,12 +557,12 @@ func TestDelete_DeletesFromStorageAndSyncs(t *testing.T) {
 }
 
 func TestDelete_RejectsUnknownProfile(t *testing.T) {
-	storage := newMockRepo()
+	storage := newTestStorage(t)
 	sync := &mockSync{}
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync)
 
-	if err := svc.Delete("missing"); err == nil {
-		t.Fatal("expected error for unknown profile")
+	if err := svc.Delete("missing"); !errors.Is(err, types.ErrIsNotExist) {
+		t.Fatalf("Delete() error = %v, want %v", err, types.ErrIsNotExist)
 	}
 	if got := storage.deletedIDs(); len(got) != 0 {
 		t.Fatalf("expected no storage delete, got %v", got)
@@ -412,8 +574,7 @@ func TestDelete_RejectsUnknownProfile(t *testing.T) {
 
 func TestDelete_StorageErrorSkipsSyncs(t *testing.T) {
 	wantErr := errors.New("delete failed")
-	storage := newMockRepo()
-	storage.seed(newProfile("writer"))
+	storage := newTestStorage(t, newProfile("writer"))
 	storage.deleteErr = wantErr
 	sync := &mockSync{}
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync)
@@ -429,8 +590,7 @@ func TestDelete_StorageErrorSkipsSyncs(t *testing.T) {
 
 func TestDelete_ContinuesSyncsAfterError(t *testing.T) {
 	syncErr := errors.New("sync failed")
-	storage := newMockRepo()
-	storage.seed(newProfile("writer"))
+	storage := newTestStorage(t, newProfile("writer"))
 	sync1 := &mockSync{err: syncErr}
 	sync2 := &mockSync{}
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync1, sync2)
@@ -450,8 +610,7 @@ func TestDelete_ContinuesSyncsAfterError(t *testing.T) {
 func TestDelete_JoinsSyncErrors(t *testing.T) {
 	err1 := errors.New("sync 1 failed")
 	err2 := errors.New("sync 2 failed")
-	storage := newMockRepo()
-	storage.seed(newProfile("writer"))
+	storage := newTestStorage(t, newProfile("writer"))
 	svc := newTestService(
 		t,
 		storage,
@@ -468,8 +627,7 @@ func TestDelete_JoinsSyncErrors(t *testing.T) {
 }
 
 func TestDelete_WithoutSyncs(t *testing.T) {
-	storage := newMockRepo()
-	storage.seed(newProfile("writer"))
+	storage := newTestStorage(t, newProfile("writer"))
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	if err := svc.Delete("writer"); err != nil {

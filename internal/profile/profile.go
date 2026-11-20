@@ -1,5 +1,10 @@
 package profile
 
+import (
+	"fmt"
+	"slices"
+)
+
 type ID string
 
 var _ Profile = (*profile)(nil)
@@ -11,6 +16,8 @@ type Profile interface {
 	Model() string
 	ToolServers() []string
 	HasMemory() bool
+	Patch(Profile)
+	Merge(Profile)
 }
 
 type profile struct {
@@ -44,9 +51,50 @@ func NewProfile(
 	}
 }
 
-func (a *profile) ID() ID                { return a.id }
-func (a *profile) Description() string   { return a.description }
-func (a *profile) SystemPrompt() string  { return a.systemPrompt }
-func (a *profile) Model() string         { return a.model }
-func (a *profile) ToolServers() []string { return a.toolServers }
-func (a *profile) HasMemory() bool       { return a.hasMemory }
+func (p *profile) ID() ID                { return p.id }
+func (p *profile) Description() string   { return p.description }
+func (p *profile) SystemPrompt() string  { return p.systemPrompt }
+func (p *profile) Model() string         { return p.model }
+func (p *profile) ToolServers() []string { return p.toolServers }
+func (p *profile) HasMemory() bool       { return p.hasMemory }
+
+func (p *profile) Patch(patch Profile) {
+	if patch.ID() != "" {
+		p.id = patch.ID()
+	}
+
+	if patch.Description() != "" {
+		p.description = patch.Description()
+	}
+
+	if patch.Model() != "" {
+		p.model = patch.Model()
+	}
+
+	if patch.SystemPrompt() != "" {
+		p.systemPrompt = patch.SystemPrompt()
+	}
+
+	if patch.ToolServers() != nil && len(patch.ToolServers()) > 0 {
+		p.toolServers = patch.ToolServers()
+	}
+
+	p.hasMemory = patch.HasMemory()
+}
+
+func (p *profile) Merge(secondary Profile) {
+	// merge system prompts
+	if secondary.SystemPrompt() != "" {
+		p.systemPrompt = fmt.Sprintf("%s\n\n%s", p.systemPrompt, secondary.SystemPrompt())
+	}
+
+	// merge tool servers
+	if secondary.ToolServers() != nil && len(secondary.ToolServers()) > 0 {
+		for _, ts := range secondary.ToolServers() {
+			if !slices.Contains(p.toolServers, ts) {
+				continue
+			}
+			p.toolServers = append(p.toolServers, ts)
+		}
+	}
+}

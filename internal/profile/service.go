@@ -2,8 +2,22 @@ package profile
 
 import (
 	"ard/internal/agent"
+	"ard/internal/prompt"
+	"ard/internal/types"
 	"errors"
-	"fmt"
+)
+
+const (
+	GlobalProfileID           ID     = "global"
+	DefaultProfileID          ID     = "default"
+	DefaultProfileDescription string = "Agent"
+	DefaultMemoryState        bool   = false
+	AnyModel                  string = ""
+
+	// FileSystem is it is in profile domain to grant existance this toolnames
+	// cause fs for agent is a most important part of buisness logic
+	// so it here.
+	FileSystem string = "filesystem"
 )
 
 type Repo interface {
@@ -22,10 +36,11 @@ type Sync interface {
 }
 
 type Service struct {
-	toolReg   agent.ToolRegistry
-	modelRepo agent.ModelRegistry
-	storage   Repo
-	syncs     []Sync
+	toolReg        agent.ToolRegistry
+	modelRepo      agent.ModelRegistry
+	storage        Repo
+	defaultProfile *profile
+	syncs          []Sync
 }
 
 func NewService(
@@ -34,22 +49,21 @@ func NewService(
 	storage Repo,
 	syncs []Sync,
 ) (*Service, error) {
+	defaultProfile := NewProfile(
+		DefaultProfileID,
+		DefaultProfileDescription,
+		prompt.DefaultAgentProfile(),
+		AnyModel,
+		[]string{FileSystem},
+		DefaultMemoryState,
+	)
+
 	svc := &Service{
-		toolReg:   toolReg,
-		modelRepo: modelRepo,
-		storage:   storage,
-		syncs:     syncs,
-	}
-
-	agts, err := svc.All()
-	if err != nil {
-		return nil, err
-	}
-
-	if len(agts) == 0 {
-		if err := storage.Save(buildDefaultAgent()); err != nil {
-			return nil, fmt.Errorf("failed to create default agent, %w", err)
-		}
+		defaultProfile: defaultProfile,
+		toolReg:        toolReg,
+		modelRepo:      modelRepo,
+		storage:        storage,
+		syncs:          syncs,
 	}
 
 	return svc, nil
@@ -60,7 +74,30 @@ func (s *Service) All() ([]Profile, error) {
 }
 
 func (s *Service) Get(id ID) (Profile, error) {
-	return s.storage.Get(id)
+	defaultCopy := *s.defaultProfile
+	p := &defaultCopy
+
+	// default patch with profile
+	if id != "" && id != s.defaultProfile.ID() {
+		selectedProfile, err := s.storage.Get(id)
+		if err != nil {
+			return nil, err
+		}
+		p.Patch(selectedProfile)
+	}
+
+	// merge with global
+	globalProfile, err := s.storage.Get(GlobalProfileID)
+	if err != nil {
+		if !errors.Is(err, types.ErrIsNotExist) {
+			return nil, err
+		}
+		globalProfile = NewProfile("", "", "", "", []string{}, false)
+	}
+
+	p.Merge(globalProfile)
+
+	return p, nil
 }
 
 func (s *Service) Save(p Profile) error {
@@ -93,15 +130,4 @@ func (s *Service) Delete(id ID) error {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
-}
-
-func buildDefaultAgent() Profile {
-	return NewProfile(
-		"default",
-		"agent placeholder",
-		"",
-		"",
-		[]string{"filesystem"},
-		false,
-	)
 }
