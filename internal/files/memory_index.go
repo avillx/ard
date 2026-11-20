@@ -10,7 +10,10 @@ import (
 	"strings"
 )
 
-const MemoryFolder = "memory"
+const (
+	MemoryFolder           = "memory"
+	MemoryDirMode FileMode = 0o755
+)
 
 var _ agent.MemoryIndexer = (*MemoryFiles)(nil)
 

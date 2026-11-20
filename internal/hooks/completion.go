@@ -17,7 +17,6 @@ import (
 var _ runtime.CompletionHook = (*OnlyValidMemoryFrontmatterHook)(nil)
 
 type OnlyValidMemoryFrontmatterHook struct {
-	agentID agent.ID
 	indexer agent.MemoryIndexer
 }
 

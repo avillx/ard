@@ -33,7 +33,7 @@ func NewMemoryHandler(
 }
 
 // GET /memory/{agent}.
-func (h *memoryHandler) List(_ http.ResponseWriter, r *http.Request) Response {
+func (h *memoryHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 	type MemoryRecordDTO map[string]string
 
 	idx, err := h.memoryIndexer.MemoryIndex()

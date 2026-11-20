@@ -127,10 +127,12 @@ func NewFileStorage(dir string) (*fileStorage, error) {
 
 func (r *fileStorage) CreateBasicFolders() error {
 	dirs := map[string]FileMode{
-		ReposDir:  ReposDirMode,
-		ConfigDir: ConfigDirMode,
-		SkillsDir: SkillsDirMode,
-		TMPDir:    TMPDirMode,
+		MemoryFolder:   MemoryDirMode,
+		ActivityFolder: ActivityDirMode,
+		ReposDir:       ReposDirMode,
+		ConfigDir:      ConfigDirMode,
+		SkillsDir:      SkillsDirMode,
+		TMPDir:         TMPDirMode,
 	}
 
 	for name, mode := range dirs {

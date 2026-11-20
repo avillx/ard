@@ -12,9 +12,11 @@ import (
 
 var _ agent.ActivityRepo = (*ActivityFiles)(nil)
 
-const ActivityFolder = "activity"
-
-const dayDuration = 24 * time.Hour
+const (
+	ActivityFolder           = "activity"
+	ActivityDirMode FileMode = 0o755
+	dayDuration              = 24 * time.Hour
+)
 
 type ActivityFiles struct {
 	storage FileStorage
