@@ -10,6 +10,7 @@ import (
 // migration10 moves everything unknown out of the data root into the "repos" folder.
 func migration10(root Storage, logger *slog.Logger) error {
 	const (
+		docsDir      = "docs"
 		reposDir     = "repos"
 		reposDirMode = 0o777
 		dirPerm      = 0o755
@@ -19,6 +20,7 @@ func migration10(root Storage, logger *slog.Logger) error {
 	)
 
 	keepInRoot := map[string]bool{
+		docsDir:    true,
 		"activity": true,
 		"memory":   true,
 		"sessions": true,
