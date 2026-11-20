@@ -73,7 +73,7 @@ func (m *mockSessionsRepo) headersCalls() int {
 }
 
 func oldHeader(id session.ID, updatedAt time.Time) session.Header {
-	return session.NewHeader(id, 0, 0, updatedAt, updatedAt, nil)
+	return session.NewHeader(id, 0, 0, updatedAt, updatedAt, "test-profile", nil)
 }
 
 type mockLogTrimmer struct {

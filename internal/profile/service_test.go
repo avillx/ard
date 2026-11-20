@@ -72,13 +72,10 @@ func (r *mockToolRegistry) ToolServers(names ...string) ([]agent.ToolServer, err
 type mockRepo struct {
 	mu       sync.Mutex
 	profiles map[profile.ID]profile.Profile
-	saves    []profile.Profile
-	deletes  []profile.ID
+	saves    []map[profile.ID]profile.Profile
 
-	allErr    error
-	getErr    error
-	saveErr   error
-	deleteErr error
+	loadErr error
+	saveErr error
 }
 
 func newMockRepo() *mockRepo {
@@ -92,59 +89,31 @@ func (r *mockRepo) seed(p profile.Profile) {
 	r.profiles[p.ID()] = p
 }
 
-func (r *mockRepo) All() ([]profile.Profile, error) {
+func (r *mockRepo) Load() (map[profile.ID]profile.Profile, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.allErr != nil {
-		return nil, r.allErr
+	if r.loadErr != nil {
+		return nil, r.loadErr
 	}
 
-	profiles := make([]profile.Profile, 0, len(r.profiles))
-	for _, p := range r.profiles {
-		profiles = append(profiles, p)
+	profiles := make(map[profile.ID]profile.Profile, len(r.profiles))
+	for id, p := range r.profiles {
+		profiles[id] = p
 	}
 	return profiles, nil
 }
 
-func (r *mockRepo) Get(id profile.ID) (profile.Profile, error) {
+func (r *mockRepo) Save(profiles map[profile.ID]profile.Profile) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.getErr != nil {
-		return nil, r.getErr
-	}
-
-	p, ok := r.profiles[id]
-	if !ok {
-		return nil, types.ErrIsNotExist
-	}
-	return p, nil
-}
-
-func (r *mockRepo) Save(p profile.Profile) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	r.saves = append(r.saves, p)
+	r.saves = append(r.saves, profiles)
 	if r.saveErr != nil {
 		return r.saveErr
 	}
 
-	r.profiles[p.ID()] = p
-	return nil
-}
-
-func (r *mockRepo) Delete(id profile.ID) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	r.deletes = append(r.deletes, id)
-	if r.deleteErr != nil {
-		return r.deleteErr
-	}
-
-	delete(r.profiles, id)
+	r.profiles = profiles
 	return nil
 }
 
@@ -155,18 +124,15 @@ func (r *mockRepo) savedCount() int {
 	return len(r.saves)
 }
 
-func (r *mockRepo) savedProfiles() []profile.Profile {
+func (r *mockRepo) storedIDs() []profile.ID {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return append([]profile.Profile(nil), r.saves...)
-}
-
-func (r *mockRepo) deletedIDs() []profile.ID {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	return append([]profile.ID(nil), r.deletes...)
+	ids := make([]profile.ID, 0, len(r.profiles))
+	for id := range r.profiles {
+		ids = append(ids, id)
+	}
+	return ids
 }
 
 type mockSync struct {
@@ -262,7 +228,7 @@ func TestNewService_DoesNotPersistDefaultProfile(t *testing.T) {
 
 func TestNewService_DoesNotTouchStorage(t *testing.T) {
 	storage := newMockRepo()
-	storage.allErr = errors.New("list failed")
+	storage.loadErr = errors.New("load failed")
 	storage.saveErr = errors.New("save failed")
 
 	svc, err := profile.NewService(
@@ -293,9 +259,9 @@ func TestAll_ReturnsStoredProfiles(t *testing.T) {
 }
 
 func TestAll_PropagatesStorageError(t *testing.T) {
-	wantErr := errors.New("list failed")
+	wantErr := errors.New("load failed")
 	storage := newMockRepo()
-	storage.allErr = wantErr
+	storage.loadErr = wantErr
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	if _, err := svc.All(); !errors.Is(err, wantErr) {
@@ -385,9 +351,9 @@ func TestGet_ReturnsErrorForUnknownProfile(t *testing.T) {
 }
 
 func TestGet_PropagatesSelectedProfileError(t *testing.T) {
-	wantErr := errors.New("storage failed")
+	wantErr := errors.New("load failed")
 	storage := newMockRepo()
-	storage.getErr = wantErr
+	storage.loadErr = wantErr
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	if _, err := svc.Get("writer"); !errors.Is(err, wantErr) {
@@ -407,7 +373,7 @@ func TestGet_MergesGlobalPromptIntoDefaultProfile(t *testing.T) {
 	assertProfile(t, got, profile.NewProfile(
 		profile.DefaultProfileID,
 		profile.DefaultProfileDescription,
-		prompt.DefaultAgentProfile()+"\n\nglobal prompt",
+		"global prompt\n\n"+prompt.DefaultAgentProfile(),
 		profile.AnyModel,
 		[]string{profile.FileSystem},
 		profile.DefaultMemoryState,
@@ -429,7 +395,7 @@ func TestGet_MergesGlobalPromptIntoSelectedProfile(t *testing.T) {
 	assertProfile(t, got, profile.NewProfile(
 		"writer",
 		"description",
-		"system prompt\n\nglobal prompt",
+		"global prompt\n\nsystem prompt",
 		"model-a",
 		[]string{"filesystem"},
 		true,
@@ -437,9 +403,9 @@ func TestGet_MergesGlobalPromptIntoSelectedProfile(t *testing.T) {
 }
 
 func TestGet_PropagatesGlobalProfileError(t *testing.T) {
-	wantErr := errors.New("storage failed")
+	wantErr := errors.New("load failed")
 	storage := newMockRepo()
-	storage.getErr = wantErr
+	storage.loadErr = wantErr
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	if _, err := svc.Get(profile.DefaultProfileID); !errors.Is(err, wantErr) {
@@ -545,8 +511,8 @@ func TestDelete_DeletesFromStorageAndSyncs(t *testing.T) {
 		t.Fatalf("Delete() error = %v", err)
 	}
 
-	if got := storage.deletedIDs(); !slices.Equal(got, []profile.ID{"writer"}) {
-		t.Fatalf("expected storage delete of writer, got %v", got)
+	if got := storage.storedIDs(); len(got) != 0 {
+		t.Fatalf("expected writer to be removed from storage, got %v", got)
 	}
 	if got := sync1.calledWith(); !slices.Equal(got, []profile.ID{"writer"}) {
 		t.Fatalf("expected sync1 delete of writer, got %v", got)
@@ -556,26 +522,23 @@ func TestDelete_DeletesFromStorageAndSyncs(t *testing.T) {
 	}
 }
 
-func TestDelete_RejectsUnknownProfile(t *testing.T) {
-	storage := newTestStorage(t)
-	sync := &mockSync{}
-	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync)
+func TestDelete_UnknownProfileKeepsStorageIntact(t *testing.T) {
+	storage := newTestStorage(t, newProfile("writer"))
+	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
-	if err := svc.Delete("missing"); !errors.Is(err, types.ErrIsNotExist) {
-		t.Fatalf("Delete() error = %v, want %v", err, types.ErrIsNotExist)
+	if err := svc.Delete("missing"); err != nil {
+		t.Fatalf("Delete() error = %v", err)
 	}
-	if got := storage.deletedIDs(); len(got) != 0 {
-		t.Fatalf("expected no storage delete, got %v", got)
-	}
-	if got := sync.calledWith(); len(got) != 0 {
-		t.Fatalf("expected no sync calls, got %v", got)
+
+	if got := storage.storedIDs(); !slices.Equal(got, []profile.ID{"writer"}) {
+		t.Fatalf("expected storage to keep writer, got %v", got)
 	}
 }
 
 func TestDelete_StorageErrorSkipsSyncs(t *testing.T) {
-	wantErr := errors.New("delete failed")
+	wantErr := errors.New("save failed")
 	storage := newTestStorage(t, newProfile("writer"))
-	storage.deleteErr = wantErr
+	storage.saveErr = wantErr
 	sync := &mockSync{}
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync)
 
@@ -633,7 +596,7 @@ func TestDelete_WithoutSyncs(t *testing.T) {
 	if err := svc.Delete("writer"); err != nil {
 		t.Fatalf("Delete() error = %v", err)
 	}
-	if got := storage.deletedIDs(); !slices.Equal(got, []profile.ID{"writer"}) {
-		t.Fatalf("expected storage delete of writer, got %v", got)
+	if got := storage.storedIDs(); len(got) != 0 {
+		t.Fatalf("expected writer to be removed from storage, got %v", got)
 	}
 }

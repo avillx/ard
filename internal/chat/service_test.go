@@ -6,6 +6,7 @@ import (
 	"ard/internal/profile"
 	"ard/internal/runtime"
 	"ard/internal/session"
+	"ard/internal/types"
 	"context"
 	"errors"
 	"fmt"
@@ -19,18 +20,35 @@ import (
 
 // mockProfileRepo implements profile.Repo.
 type mockProfileRepo struct {
-	getFn func(profile.ID) (profile.Profile, error)
+	profiles map[profile.ID]profile.Profile
+	loadErr  error
+	saveErr  error
 }
 
-func (m *mockProfileRepo) All() ([]profile.Profile, error) { return nil, nil }
-func (m *mockProfileRepo) Get(id profile.ID) (profile.Profile, error) {
-	if m == nil || m.getFn == nil {
-		return nil, fmt.Errorf("profile %s is not exist", id)
+func newMockProfileRepo(profiles ...profile.Profile) *mockProfileRepo {
+	repo := &mockProfileRepo{profiles: map[profile.ID]profile.Profile{}}
+	for _, p := range profiles {
+		repo.profiles[p.ID()] = p
 	}
-	return m.getFn(id)
+	return repo
 }
-func (m *mockProfileRepo) Save(profile.Profile) error { return nil }
-func (m *mockProfileRepo) Delete(profile.ID) error    { return nil }
+
+func (m *mockProfileRepo) Load() (map[profile.ID]profile.Profile, error) {
+	if m == nil {
+		return nil, types.ErrIsNotExist
+	}
+	if m.loadErr != nil {
+		return nil, m.loadErr
+	}
+	return m.profiles, nil
+}
+
+func (m *mockProfileRepo) Save(map[profile.ID]profile.Profile) error {
+	if m == nil {
+		return nil
+	}
+	return m.saveErr
+}
 
 // mockSessionsRepo implements session.SessionsRepo.
 type mockSessionsRepo struct {
@@ -204,9 +222,9 @@ func (m *mockToolServer) Tools() []agent.Tool {
 	return m.tools
 }
 
-func newTestSession(id session.ID) session.Session {
+func newTestSession(id session.ID, profileID profile.ID) session.Session {
 	return session.NewRestoredSession(
-		session.NewHeader(id, 0, 0, time.Now(), time.Now(), map[string]any{}),
+		session.NewHeader(id, 0, 0, time.Now(), time.Now(), profileID, map[string]any{}),
 		[]agent.Message{agent.NewSystemMessage("system")},
 	)
 }
@@ -217,7 +235,7 @@ func newMockProfile(id profile.ID, toolServers ...string) profile.Profile {
 
 func newTestService(
 	t *testing.T,
-	profileRepo profile.Repo,
+	storage profile.Repo,
 	sessionRepo session.SessionsRepo,
 	modelRepo agent.ModelRegistry,
 	toolRegistry agent.ToolRegistry,
@@ -227,7 +245,7 @@ func newTestService(
 	t.Helper()
 
 	if sessionRepo == nil {
-		sessionRepo = &mockSessionsRepo{sess: newTestSession("sess-1")}
+		sessionRepo = &mockSessionsRepo{sess: newTestSession("sess-1", "agent-1")}
 	}
 	if builder == nil {
 		builder = &mockSystemMessageBuilder{msg: agent.NewSystemMessage("system")}
@@ -236,13 +254,17 @@ func newTestService(
 		activity = &mockActivityLogger{}
 	}
 
+	profileSvc, err := profile.NewService(toolRegistry, modelRepo, storage, nil)
+	if err != nil {
+		t.Fatalf("unexpected profile service error: %v", err)
+	}
+
 	logger := slog.New(slog.DiscardHandler)
-	return chat.NewService(profileRepo, sessionRepo, modelRepo, toolRegistry, builder, activity, nil, logger)
+	return chat.NewService(profileSvc, sessionRepo, modelRepo, toolRegistry, builder, activity, nil, logger)
 }
 
 func newChatRequest() chat.Request {
 	return chat.Request{
-		ProfileID:   "agent-1",
 		SessionID:   "sess-1",
 		UserMessage: agent.NewUserMessage("hello"),
 		Sink:        make(chan runtime.Event, 16),
@@ -318,8 +340,8 @@ func captureContextIDs(t *testing.T, profileID profile.ID, sessionID session.ID)
 
 	svc := newTestService(
 		t,
-		&mockProfileRepo{getFn: func(profile.ID) (profile.Profile, error) { return newMockProfile(profileID), nil }},
-		&mockSessionsRepo{sess: newTestSession(sessionID)},
+		newMockProfileRepo(newMockProfile(profileID)),
+		&mockSessionsRepo{sess: newTestSession(sessionID, profileID)},
 		&mockModelRegistry{model: model},
 		&mockToolRegistry{},
 		&mockSystemMessageBuilder{msg: agent.NewSystemMessage("system")},
@@ -327,7 +349,6 @@ func captureContextIDs(t *testing.T, profileID profile.ID, sessionID session.ID)
 	)
 
 	req := newChatRequest()
-	req.ProfileID = profileID
 	req.SessionID = sessionID
 
 	err, _ := runChat(t, svc, context.Background(), req)
@@ -377,10 +398,8 @@ func TestChat_IgnoresMissingToolServers(t *testing.T) {
 
 	svc := newTestService(
 		t,
-		&mockProfileRepo{getFn: func(profile.ID) (profile.Profile, error) {
-			return newMockProfile("agent-1", "missing"), nil
-		}},
-		&mockSessionsRepo{sess: newTestSession("sess-1")},
+		newMockProfileRepo(newMockProfile("agent-1", "missing")),
+		&mockSessionsRepo{sess: newTestSession("sess-1", "agent-1")},
 		&mockModelRegistry{model: model},
 		registry,
 		&mockSystemMessageBuilder{msg: agent.NewSystemMessage("system")},
@@ -425,13 +444,11 @@ func TestChat_SavesSessionMessages(t *testing.T) {
 		},
 	}
 
-	sessionsRepo := &mockSessionsRepo{sess: newTestSession("sess-1")}
+	sessionsRepo := &mockSessionsRepo{sess: newTestSession("sess-1", "agent-1")}
 
 	svc := newTestService(
 		t,
-		&mockProfileRepo{getFn: func(profile.ID) (profile.Profile, error) {
-			return newMockProfile("agent-1", "echoserver"), nil
-		}},
+		newMockProfileRepo(newMockProfile("agent-1", "echoserver")),
 		sessionsRepo,
 		&mockModelRegistry{model: model},
 		registry,
@@ -505,11 +522,6 @@ func TestRequest_ValidationErrors(t *testing.T) {
 		want   string
 	}{
 		{
-			name:   "missing profile id",
-			mutate: func(r *chat.Request) { r.ProfileID = "" },
-			want:   "agentID",
-		},
-		{
 			name:   "missing session id",
 			mutate: func(r *chat.Request) { r.SessionID = "" },
 			want:   "sessionID",
@@ -553,23 +565,16 @@ func TestRequest_ValidationErrors(t *testing.T) {
 }
 
 func TestRequest_ValidationHappyPath(t *testing.T) {
-	sentinel := errors.New("profile repo broken")
+	sentinel := errors.New("profile storage broken")
 
-	svc := newTestService(
-		t,
-		&mockProfileRepo{getFn: func(profile.ID) (profile.Profile, error) {
-			return nil, sentinel
-		}},
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-	)
+	storage := newMockProfileRepo()
+	storage.loadErr = sentinel
+
+	svc := newTestService(t, storage, nil, nil, nil, nil, nil)
 
 	err := svc.Chat(context.Background(), newChatRequest())
 	if !errors.Is(err, sentinel) {
-		t.Fatalf("expected profile repo error to propagate, got %v", err)
+		t.Fatalf("expected profile storage error to propagate, got %v", err)
 	}
 }
 
@@ -586,10 +591,8 @@ func TestChat_LogsUserAndAgentMessages(t *testing.T) {
 
 	svc := newTestService(
 		t,
-		&mockProfileRepo{getFn: func(profile.ID) (profile.Profile, error) {
-			return newMockProfile("agent-1"), nil
-		}},
-		&mockSessionsRepo{sess: newTestSession("sess-1")},
+		newMockProfileRepo(newMockProfile("agent-1")),
+		&mockSessionsRepo{sess: newTestSession("sess-1", "agent-1")},
 		&mockModelRegistry{model: model},
 		&mockToolRegistry{},
 		&mockSystemMessageBuilder{msg: agent.NewSystemMessage("system")},
@@ -642,13 +645,11 @@ func TestChat_HappyPath(t *testing.T) {
 		},
 	}
 
-	sessionsRepo := &mockSessionsRepo{sess: newTestSession("sess-1")}
+	sessionsRepo := &mockSessionsRepo{sess: newTestSession("sess-1", "agent-1")}
 
 	svc := newTestService(
 		t,
-		&mockProfileRepo{getFn: func(profile.ID) (profile.Profile, error) {
-			return newMockProfile("agent-1"), nil
-		}},
+		newMockProfileRepo(newMockProfile("agent-1")),
 		sessionsRepo,
 		&mockModelRegistry{model: model},
 		&mockToolRegistry{},
@@ -712,10 +713,8 @@ func TestChat_ForwardsAllEvents(t *testing.T) {
 
 	svc := newTestService(
 		t,
-		&mockProfileRepo{getFn: func(profile.ID) (profile.Profile, error) {
-			return newMockProfile("agent-1", "echoserver"), nil
-		}},
-		&mockSessionsRepo{sess: newTestSession("sess-1")},
+		newMockProfileRepo(newMockProfile("agent-1", "echoserver")),
+		&mockSessionsRepo{sess: newTestSession("sess-1", "agent-1")},
 		&mockModelRegistry{model: model},
 		registry,
 		&mockSystemMessageBuilder{msg: agent.NewSystemMessage("system")},
@@ -755,13 +754,11 @@ func TestChat_CanceledLoopEventNotForwarded(t *testing.T) {
 		ctxLimit: 100_000,
 	}
 
-	sessionsRepo := &mockSessionsRepo{sess: newTestSession("sess-1")}
+	sessionsRepo := &mockSessionsRepo{sess: newTestSession("sess-1", "agent-1")}
 
 	svc := newTestService(
 		t,
-		&mockProfileRepo{getFn: func(profile.ID) (profile.Profile, error) {
-			return newMockProfile("agent-1"), nil
-		}},
+		newMockProfileRepo(newMockProfile("agent-1")),
 		sessionsRepo,
 		&mockModelRegistry{model: model},
 		&mockToolRegistry{},
@@ -809,10 +806,8 @@ func TestDispatcher_NewRequestCancelsPrevious(t *testing.T) {
 
 	svc := newTestService(
 		t,
-		&mockProfileRepo{getFn: func(profile.ID) (profile.Profile, error) {
-			return newMockProfile("agent-1"), nil
-		}},
-		&mockSessionsRepo{sess: newTestSession("sess-1")},
+		newMockProfileRepo(newMockProfile("agent-1")),
+		&mockSessionsRepo{sess: newTestSession("sess-1", "agent-1")},
 		&mockModelRegistry{model: model},
 		&mockToolRegistry{},
 		&mockSystemMessageBuilder{msg: agent.NewSystemMessage("system")},

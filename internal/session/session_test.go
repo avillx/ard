@@ -1,19 +1,21 @@
 package session_test
 
 import (
+	"ard/internal/agent"
+	"ard/internal/profile"
+	"ard/internal/session"
 	"reflect"
 	"testing"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/session"
 )
+
+const testProfileID profile.ID = "test-profile"
 
 func newSession(t *testing.T, msgs ...agent.Message) session.Session {
 	t.Helper()
 
 	now := time.Now()
-	header := session.NewHeader("test-session", 0, 0, now, now, map[string]any{})
+	header := session.NewHeader("test-session", 0, 0, now, now, testProfileID, map[string]any{})
 	return session.NewRestoredSession(header, msgs)
 }
 
@@ -107,7 +109,7 @@ func TestAddMessages_NoopWhenEmpty(t *testing.T) {
 }
 
 func TestAddMessages_ColdStartEmptySession(t *testing.T) {
-	s := session.NewSession("test-session")
+	s := session.NewSession("test-session", testProfileID)
 
 	s.AddMessages(agent.NewUserMessage("hello"))
 

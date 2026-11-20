@@ -54,7 +54,7 @@ func newAssemblerSession(extras map[string]any) session.Session {
 		extras = map[string]any{}
 	}
 	return session.NewRestoredSession(
-		session.NewHeader("sess-1", 0, 0, time.Now(), time.Now(), extras),
+		session.NewHeader("sess-1", 0, 0, time.Now(), time.Now(), "agent-1", extras),
 		nil,
 	)
 }

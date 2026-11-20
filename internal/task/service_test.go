@@ -152,30 +152,16 @@ func newProfileRepoStub(ids ...profile.ID) *profileRepoStub {
 	return repo
 }
 
-func (r *profileRepoStub) All() ([]profile.Profile, error) {
+func (r *profileRepoStub) Load() (map[profile.ID]profile.Profile, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	out := make([]profile.Profile, 0, len(r.profiles))
-	for _, p := range r.profiles {
-		out = append(out, p)
-	}
+	out := make(map[profile.ID]profile.Profile, len(r.profiles))
+	maps.Copy(out, r.profiles)
 	return out, nil
 }
 
-func (r *profileRepoStub) Get(id profile.ID) (profile.Profile, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	p, ok := r.profiles[id]
-	if !ok {
-		return nil, types.ErrIsNotExist
-	}
-	return p, nil
-}
-
-func (r *profileRepoStub) Save(profile.Profile) error { return nil }
-func (r *profileRepoStub) Delete(profile.ID) error    { return nil }
+func (r *profileRepoStub) Save(map[profile.ID]profile.Profile) error { return nil }
 
 type executorStub struct {
 	mu      sync.Mutex
@@ -229,13 +215,18 @@ func waitExecution(t *testing.T, exec *executorStub) task.Config {
 func newService(
 	t *testing.T,
 	repo task.Repo,
-	profileRepo profile.Repo,
+	profiles profile.Repo,
 	exec task.Executor,
 	cronFactory func(string) (task.Cron, error),
 ) *task.Service {
 	t.Helper()
 
-	svc, err := task.NewService(repo, exec, cronFactory, profileRepo, slog.New(slog.DiscardHandler))
+	profileSvc, err := profile.NewService(nil, nil, profiles, nil)
+	if err != nil {
+		t.Fatalf("unexpected profile service error: %v", err)
+	}
+
+	svc, err := task.NewService(repo, exec, cronFactory, profileSvc, slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatalf("NewService() error = %v", err)
 	}

@@ -5,7 +5,6 @@ import (
 	"ard/internal/types"
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"maps"
 	"slices"
@@ -266,14 +265,13 @@ func (s *Service) Delete(name string) error {
 func (s *Service) validateRecipients(recipients []profile.ID) error {
 	problems := map[string]string{}
 	for _, r := range recipients {
-
 		exist, err := s.profilesSvc.IsExist(r)
 		if err != nil {
 			return err
 		}
 
 		if !exist {
-			return fmt.Errorf("Recipient %s is not exist", r)
+			problems[string(r)] = "is not exist"
 		}
 	}
 
