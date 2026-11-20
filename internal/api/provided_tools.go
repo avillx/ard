@@ -180,7 +180,7 @@ func (t *ProvidedTool) Call(ctx context.Context, args agent.ToolArguments) ([]ag
 
 		// link for await result
 		ResultID  string `json:"result_id,omitempty"`
-		AgentID   string `json:"agent_id"`
+		ProfileID string `json:"agent_id"`
 		SessionID string `json:"session_id"`
 	}
 
@@ -193,7 +193,7 @@ func (t *ProvidedTool) Call(ctx context.Context, args agent.ToolArguments) ([]ag
 	}
 
 	// agentID and sessID guaranteed, so no need to check it
-	agentID, _ := chat.AgentIDFromContext(ctx)
+	profileID, _ := chat.ProfileIDFromContext(ctx)
 	sessionID, _ := chat.SessionIDFromContext(ctx)
 
 	ctx, cancel := context.WithTimeout(ctx, providedToolResponseTimeout)
@@ -208,7 +208,7 @@ func (t *ProvidedTool) Call(ctx context.Context, args agent.ToolArguments) ([]ag
 		Name:      t.name,
 		Args:      parsedArgs,
 		ResultID:  t.id,
-		AgentID:   string(agentID),
+		ProfileID: string(profileID),
 		SessionID: string(sessionID),
 	})
 

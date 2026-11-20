@@ -3,6 +3,7 @@ package api
 import (
 	"ard/internal/agent"
 	"ard/internal/memory"
+	"ard/internal/profile"
 	"ard/internal/runtime"
 	"ard/internal/types"
 	"errors"
@@ -50,12 +51,12 @@ func (h *memoryHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 // GET /memory/{agent}/{memory_name}.
 func (h *memoryHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 	type MemoryDTO struct {
-		Agent   agent.ID `json:"agent"`
-		Name    string   `json:"memory_name"`
-		Content string   `json:"content"`
+		ProfileID profile.ID `json:"agent"`
+		Name      string     `json:"memory_name"`
+		Content   string     `json:"content"`
 	}
 
-	agentID := agent.ID(r.PathValue("agent"))
+	profileID := profile.ID(r.PathValue("agent"))
 	memoryName := r.PathValue("memory_name")
 
 	content, err := h.memoryRepo.GetMemory(memoryName)
@@ -67,9 +68,9 @@ func (h *memoryHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 	}
 
 	dto := MemoryDTO{
-		Agent:   agentID,
-		Name:    memoryName,
-		Content: content,
+		ProfileID: profileID,
+		Name:      memoryName,
+		Content:   content,
 	}
 
 	return NewJSONResponse(http.StatusOK, dto)

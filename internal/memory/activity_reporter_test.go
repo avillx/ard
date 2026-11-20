@@ -15,7 +15,6 @@ import (
 )
 
 var (
-	testAgentID               agent.ID   = "agent-1"
 	testSessionID             session.ID = "session-1"
 	testSummary                          = "activity summary"
 	testActivityRepoModelName            = "activity-model"
@@ -192,7 +191,7 @@ func TestActivityService_FlushesOnInterval(t *testing.T) {
 		}
 		svc := newTestActivityService(t, cfgRepo, activityRepo)
 
-		svc.Commit(testAgentID, testSessionID, []agent.Message{
+		svc.Commit(testSessionID, []agent.Message{
 			agent.NewUserMessage("hello"),
 		})
 

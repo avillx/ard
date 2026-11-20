@@ -30,7 +30,7 @@ type HTTPHandler struct {
 	memoryRepo       agent.ConsolidatorRepo
 	memoryIndexer    agent.MemoryIndexer
 	activityStore    agent.ActivityRepo
-	agentRepo        profile.Repo
+	profileRepo      profile.Repo
 	idGen            IDGenerator
 }
 
@@ -49,7 +49,7 @@ func NewHTTPHandler(
 		memoryRepo:       srv.MemoryFiles,
 		memoryIndexer:    srv.MemoryFiles,
 		activityStore:    srv.ActivityFiles,
-		agentRepo:        srv.AgentFiles,
+		profileRepo:      srv.ProfileFiles,
 		providerSvc:      srv.ProviderSvc,
 		activitySvc:      srv.ActivitySvc,
 		idGen:            uuid.NewGenerator(),
@@ -100,7 +100,7 @@ func (s *HTTPHandler) registerRoutes() {
 	s.HandleFunc("GET /activity/config", activityHandler.Config)
 	s.HandleFunc("POST /activity/config", activityHandler.SetConfig)
 
-	agentHandler := &agentHandler{repo: s.agentRepo}
+	agentHandler := &profileHandler{repo: s.profileRepo}
 	s.HandleFunc("GET /agent", agentHandler.List)
 	s.HandleFunc("GET /agent/{id}", agentHandler.Read)
 	s.HandleFunc("POST /agent/{id}", agentHandler.Create)

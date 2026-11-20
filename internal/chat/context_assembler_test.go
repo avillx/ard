@@ -3,6 +3,7 @@ package chat_test
 import (
 	"ard/internal/agent"
 	"ard/internal/chat"
+	"ard/internal/profile"
 	"ard/internal/session"
 	"context"
 	"errors"
@@ -27,7 +28,7 @@ type mockSkillsRepo struct {
 	skills map[string]string
 }
 
-func (m *mockSkillsRepo) Skills(agent.ID) (map[string]string, error) {
+func (m *mockSkillsRepo) Skills() (map[string]string, error) {
 	return m.skills, nil
 }
 
@@ -44,30 +45,8 @@ type instructedToolServer struct {
 func (s *instructedToolServer) Tools() []agent.Tool { return nil }
 func (s *instructedToolServer) Instruction() string { return s.instruction }
 
-// agentInstructedToolServer implements chat.PerAgentToolInstructer.
-type agentInstructedToolServer struct {
-	instruction string
-}
-
-func (s *agentInstructedToolServer) Tools() []agent.Tool { return nil }
-func (s *agentInstructedToolServer) AgentInstruction(agent.Agent) string {
-	return s.instruction
-}
-
-// bothInstructedToolServer implements chat.ToolInstructer and chat.PerAgentToolInstructer.
-type bothInstructedToolServer struct {
-	instruction      string
-	agentInstruction string
-}
-
-func (s *bothInstructedToolServer) Tools() []agent.Tool { return nil }
-func (s *bothInstructedToolServer) Instruction() string { return s.instruction }
-func (s *bothInstructedToolServer) AgentInstruction(agent.Agent) string {
-	return s.agentInstruction
-}
-
-func newAssemblerAgent(prompt string) agent.Agent {
-	return agent.NewAgent("agent-1", "test agent", prompt, "model-1", nil, false)
+func newAssemblerProfile(prompt string) profile.Profile {
+	return profile.NewProfile("agent-1", "test profile", prompt, "model-1", nil, false)
 }
 
 func newAssemblerSession(extras map[string]any) session.Session {
@@ -84,14 +63,14 @@ func buildSystemMessage(
 	t *testing.T,
 	memoryRepo chat.ConsolidatorRepo,
 	skillRepo chat.SkillsRepo,
-	agt agent.Agent,
+	p profile.Profile,
 	toolServers []agent.ToolServer,
 	sess session.Session,
 ) (string, error) {
 	t.Helper()
 
 	assembler := chat.NewContextAssembler(skillRepo, memoryRepo, slog.New(slog.DiscardHandler))
-	msg, err := assembler.BuildSystemMessage(context.Background(), agt, toolServers, sess)
+	msg, err := assembler.BuildSystemMessage(context.Background(), p, toolServers, sess)
 	if err != nil {
 		return "", err
 	}
@@ -134,13 +113,12 @@ func requireInOrder(t *testing.T, text string, markers ...string) {
 }
 
 func TestBuildSystemMessage_HappyPath(t *testing.T) {
-	const agentPrompt = "you are a test agent"
+	const profilePrompt = "you are a test profile"
 	const memoryOnePath = "/memory/tasks.md"
 	const memoryTwoPath = "/memory/notes.md"
 	const skillOnePath = "/skills/py/SKILL.md"
 	const skillTwoPath = "/skills/sh/SKILL.md"
 	const toolInstruction = "use shell carefully"
-	const agentInstruction = "call other agents when needed"
 	const sessionInstruction = "answer in russian"
 
 	memoryRepo := &mockConsolidatorRepo{idx: map[string]string{
@@ -155,14 +133,13 @@ func TestBuildSystemMessage_HappyPath(t *testing.T) {
 	toolServers := []agent.ToolServer{
 		&plainToolServer{},
 		&instructedToolServer{instruction: toolInstruction},
-		&agentInstructedToolServer{instruction: agentInstruction},
 	}
 
 	text, err := buildSystemMessage(
 		t,
 		memoryRepo,
 		skillRepo,
-		newAssemblerAgent(agentPrompt),
+		newAssemblerProfile(profilePrompt),
 		toolServers,
 		newAssemblerSession(map[string]any{"instruction": sessionInstruction}),
 	)
@@ -172,13 +149,12 @@ func TestBuildSystemMessage_HappyPath(t *testing.T) {
 
 	// every part contributes its content
 	for _, want := range []string{
-		agentPrompt,
+		profilePrompt,
 		memoryOnePath,
 		memoryTwoPath,
 		skillOnePath,
 		skillTwoPath,
 		toolInstruction,
-		agentInstruction,
 		sessionInstruction,
 	} {
 		requireContains(t, text, want)
@@ -188,20 +164,19 @@ func TestBuildSystemMessage_HappyPath(t *testing.T) {
 	requireInOrder(
 		t,
 		text,
-		agentPrompt,
+		profilePrompt,
 		memoryOnePath,
 		skillOnePath,
 		toolInstruction,
-		agentInstruction,
 		sessionInstruction,
 	)
 }
 
-func TestAgentPart_IncludesCustomSystemPrompt(t *testing.T) {
+func TestProfilePart_IncludesCustomSystemPrompt(t *testing.T) {
 	const prompt = "custom system prompt"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerAgent(prompt), nil,
+		newAssemblerProfile(prompt), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -210,11 +185,11 @@ func TestAgentPart_IncludesCustomSystemPrompt(t *testing.T) {
 	requireContains(t, text, prompt)
 }
 
-func TestAgentPart_FallsBackToDefaultPrompt(t *testing.T) {
+func TestProfilePart_FallsBackToDefaultPrompt(t *testing.T) {
 	const prompt = "custom system prompt"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -233,7 +208,7 @@ func TestMemoryPart_IncludesMemoryIndex(t *testing.T) {
 	repo := &mockConsolidatorRepo{idx: map[string]string{path: desc}}
 
 	text, err := buildSystemMessage(t, repo, &mockSkillsRepo{},
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -248,7 +223,7 @@ func TestMemoryPart_SkipsEmptyIndex(t *testing.T) {
 	repo := &mockConsolidatorRepo{idx: map[string]string{}}
 
 	text, err := buildSystemMessage(t, repo, &mockSkillsRepo{},
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -261,7 +236,7 @@ func TestMemoryPart_ErrorWhenIndexNotReached(t *testing.T) {
 	repo := &mockConsolidatorRepo{err: errors.New("memory repo is down")}
 
 	_, err := buildSystemMessage(t, repo, &mockSkillsRepo{},
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(nil))
 	if err == nil {
 		t.Fatal("expected error when memory index is not reached")
@@ -275,7 +250,7 @@ func TestSkillPart_IncludesSkillIndex(t *testing.T) {
 	repo := &mockSkillsRepo{skills: map[string]string{path: desc}}
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, repo,
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -290,7 +265,7 @@ func TestSkillPart_SkipsEmptyIndex(t *testing.T) {
 	repo := &mockSkillsRepo{skills: map[string]string{}}
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, repo,
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -301,41 +276,19 @@ func TestSkillPart_SkipsEmptyIndex(t *testing.T) {
 
 func TestToolAwarePart_IncludesToolInstructions(t *testing.T) {
 	const toolInstruction = "shell tool instruction"
-	const agentInstruction = "call agent instruction"
 
 	toolServers := []agent.ToolServer{
 		&instructedToolServer{instruction: toolInstruction},
-		&agentInstructedToolServer{instruction: agentInstruction},
 	}
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerAgent(""), toolServers,
+		newAssemblerProfile(""), toolServers,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	requireContains(t, text, toolInstruction)
-	requireContains(t, text, agentInstruction)
-}
-
-func TestToolAwarePart_IncludesBothInstructionsFromOneServer(t *testing.T) {
-	const toolInstruction = "fs instruction"
-	const agentInstruction = "fs agent instruction"
-
-	toolServers := []agent.ToolServer{
-		&bothInstructedToolServer{instruction: toolInstruction, agentInstruction: agentInstruction},
-	}
-
-	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerAgent(""), toolServers,
-		newAssemblerSession(nil))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	requireContains(t, text, toolInstruction)
-	requireContains(t, text, agentInstruction)
 }
 
 func TestToolAwarePart_IgnoresServersWithoutInstructions(t *testing.T) {
@@ -347,7 +300,7 @@ func TestToolAwarePart_IgnoresServersWithoutInstructions(t *testing.T) {
 	}
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerAgent(""), toolServers,
+		newAssemblerProfile(""), toolServers,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -358,24 +311,22 @@ func TestToolAwarePart_IgnoresServersWithoutInstructions(t *testing.T) {
 
 func TestToolAwarePart_SkipsWhenNoTools(t *testing.T) {
 	const toolInstruction = "shell tool instruction"
-	const agentInstruction = "call agent instruction"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	requireNotContains(t, text, toolInstruction)
-	requireNotContains(t, text, agentInstruction)
 }
 
 func TestSessionPart_IncludesInstruction(t *testing.T) {
 	const instruction = "always answer in english"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(map[string]any{"instruction": instruction}))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -388,7 +339,7 @@ func TestSessionPart_SkipsWithoutInstruction(t *testing.T) {
 	const instruction = "always answer in english"
 
 	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(map[string]any{"other": "no instruction here"}))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -399,7 +350,7 @@ func TestSessionPart_SkipsWithoutInstruction(t *testing.T) {
 
 func TestSessionPart_ErrorOnBadInstructionType(t *testing.T) {
 	_, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
-		newAssemblerAgent(""), nil,
+		newAssemblerProfile(""), nil,
 		newAssemblerSession(map[string]any{"instruction": 42}))
 	if err == nil {
 		t.Fatal("expected error when session instruction is not a string")

@@ -117,19 +117,19 @@ func (s *Service) Chat(
 	}
 
 	// agent
-	agt, err := s.profileRepo.Get(r.ProfileID)
+	p, err := s.profileRepo.Get(r.ProfileID)
 	if err != nil {
 		return err
 	}
 
 	// model
-	model, err := s.modelRepo.Get(agt.Model())
+	model, err := s.modelRepo.Get(p.Model())
 	if err != nil {
 		return err
 	}
 
 	// tools
-	toolServers, err := resolveToolServers(s.toolRegistry, agt, r.ProvidedToolServers, s.logger)
+	toolServers, err := resolveToolServers(s.toolRegistry, p, r.ProvidedToolServers, s.logger)
 	if err != nil {
 		return err
 	}
@@ -145,6 +145,7 @@ func (s *Service) Chat(
 	// build context
 	systemMessage, err := s.systemMessageBuilder.BuildSystemMessage(
 		ctx,
+		p,
 		toolServers,
 		sess,
 	)

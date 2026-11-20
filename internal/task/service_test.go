@@ -1,7 +1,6 @@
 package task_test
 
 import (
-	"ard/internal/agent"
 	"ard/internal/profile"
 	"ard/internal/task"
 	"ard/internal/types"
@@ -22,7 +21,7 @@ func validTask(name string) task.Config {
 	return task.Config{
 		Name:        name,
 		Description: "description",
-		Recipients:  []agent.ID{"agent-a"},
+		Recipients:  []profile.ID{"agent-a"},
 		Reglament:   "* * * * *",
 		Request:     "do something",
 	}
@@ -140,43 +139,43 @@ func (r *taskRepoStub) deleted() []string {
 	return slices.Clone(r.deletes)
 }
 
-type agentRepoStub struct {
-	mu     sync.Mutex
-	agents map[agent.ID]agent.Agent
+type profileRepoStub struct {
+	mu       sync.Mutex
+	profiles map[profile.ID]profile.Profile
 }
 
-func newAgentRepoStub(ids ...agent.ID) *agentRepoStub {
-	repo := &agentRepoStub{agents: map[agent.ID]agent.Agent{}}
+func newProfileRepoStub(ids ...profile.ID) *profileRepoStub {
+	repo := &profileRepoStub{profiles: map[profile.ID]profile.Profile{}}
 	for _, id := range ids {
-		repo.agents[id] = agent.NewAgent(id, "description", "system prompt", "model", nil, false)
+		repo.profiles[id] = profile.NewProfile(id, "description", "system prompt", "model", nil, false)
 	}
 	return repo
 }
 
-func (r *agentRepoStub) All() ([]agent.Agent, error) {
+func (r *profileRepoStub) All() ([]profile.Profile, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	out := make([]agent.Agent, 0, len(r.agents))
-	for _, agt := range r.agents {
-		out = append(out, agt)
+	out := make([]profile.Profile, 0, len(r.profiles))
+	for _, p := range r.profiles {
+		out = append(out, p)
 	}
 	return out, nil
 }
 
-func (r *agentRepoStub) Get(id agent.ID) (agent.Agent, error) {
+func (r *profileRepoStub) Get(id profile.ID) (profile.Profile, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	agt, ok := r.agents[id]
+	p, ok := r.profiles[id]
 	if !ok {
 		return nil, types.ErrIsNotExist
 	}
-	return agt, nil
+	return p, nil
 }
 
-func (r *agentRepoStub) Save(agent.Agent) error { return nil }
-func (r *agentRepoStub) Delete(agent.ID) error  { return nil }
+func (r *profileRepoStub) Save(profile.Profile) error { return nil }
+func (r *profileRepoStub) Delete(profile.ID) error    { return nil }
 
 type executorStub struct {
 	mu      sync.Mutex
@@ -230,13 +229,13 @@ func waitExecution(t *testing.T, exec *executorStub) task.Config {
 func newService(
 	t *testing.T,
 	repo task.Repo,
-	agentRepo profile.Repo,
+	profileRepo profile.Repo,
 	exec task.Executor,
 	cronFactory func(string) (task.Cron, error),
 ) *task.Service {
 	t.Helper()
 
-	svc, err := task.NewService(repo, exec, cronFactory, agentRepo, slog.New(slog.DiscardHandler))
+	svc, err := task.NewService(repo, exec, cronFactory, profileRepo, slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatalf("NewService() error = %v", err)
 	}
@@ -260,7 +259,7 @@ func validationProblem(t *testing.T, err error, key string) string {
 
 func TestValidate_NilRecipients(t *testing.T) {
 	repo := newRepoStub()
-	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
+	svc := newService(t, repo, newProfileRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	cfg := validTask("task")
 	cfg.Recipients = nil
@@ -276,10 +275,10 @@ func TestValidate_NilRecipients(t *testing.T) {
 
 func TestValidate_UnknownRecipient(t *testing.T) {
 	repo := newRepoStub()
-	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
+	svc := newService(t, repo, newProfileRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	cfg := validTask("task")
-	cfg.Recipients = []agent.ID{"missing"}
+	cfg.Recipients = []profile.ID{"missing"}
 
 	err := svc.Add(cfg)
 	if got := validationProblem(t, err, "missing"); got != "is not exist" {
@@ -293,7 +292,7 @@ func TestValidate_UnknownRecipient(t *testing.T) {
 func TestValidate_BadCronOnAdd(t *testing.T) {
 	repo := newRepoStub()
 	badCronFactory := func(string) (task.Cron, error) { return nil, task.ErrCron }
-	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), badCronFactory)
+	svc := newService(t, repo, newProfileRepoStub("agent-a"), newExecutorStub(), badCronFactory)
 
 	err := svc.Add(validTask("task"))
 	if got := validationProblem(t, err, "schedule"); got != "invalid cron" {
@@ -308,7 +307,7 @@ func TestValidate_BadCronOnPatch(t *testing.T) {
 	repo := newRepoStub()
 	repo.seed(validTask("task"))
 	badCronFactory := func(string) (task.Cron, error) { return nil, task.ErrCron }
-	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), badCronFactory)
+	svc := newService(t, repo, newProfileRepoStub("agent-a"), newExecutorStub(), badCronFactory)
 
 	err := svc.Patch("task", task.Patch{Reglament: new("bad")})
 	if got := validationProblem(t, err, "schedule"); got != "invalid cron" {
@@ -324,7 +323,7 @@ func TestValidate_BadCronOnPatch(t *testing.T) {
 
 func TestValidate_EmptyRequest(t *testing.T) {
 	repo := newRepoStub()
-	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
+	svc := newService(t, repo, newProfileRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	cfg := validTask("task")
 	cfg.Request = ""
@@ -340,7 +339,7 @@ func TestValidate_EmptyRequest(t *testing.T) {
 
 func TestAdd_AllowsOnlyUniqueNames(t *testing.T) {
 	repo := newRepoStub()
-	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
+	svc := newService(t, repo, newProfileRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	if err := svc.Add(validTask("dup")); err != nil {
 		t.Fatalf("Add() error = %v", err)
@@ -357,7 +356,7 @@ func TestAdd_AllowsOnlyUniqueNames(t *testing.T) {
 
 func TestPatch_NewNameDeletesPreviousName(t *testing.T) {
 	repo := newRepoStub()
-	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
+	svc := newService(t, repo, newProfileRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	if err := svc.Add(validTask("old")); err != nil {
 		t.Fatalf("Add() error = %v", err)
@@ -386,7 +385,7 @@ func TestOnceTask_DisabledAfterExecution(t *testing.T) {
 	repo.seed(cfg)
 
 	exec := newExecutorStub()
-	newService(t, repo, newAgentRepoStub("agent-a"), exec, okCronFactory(5*time.Millisecond))
+	newService(t, repo, newProfileRepoStub("agent-a"), exec, okCronFactory(5*time.Millisecond))
 
 	waitExecution(t, exec)
 
@@ -427,7 +426,7 @@ func TestPlannedTask_RunsAndStaysActive(t *testing.T) {
 			expr: expr,
 		}, nil
 	}
-	svc := newService(t, repo, newAgentRepoStub("agent-a"), exec, factory)
+	svc := newService(t, repo, newProfileRepoStub("agent-a"), exec, factory)
 
 	got := waitExecution(t, exec)
 	if !got.Equals(cfg) {
@@ -453,7 +452,7 @@ func TestDelete_RemovesTaskFromRepoAndReloadStopsRuntime(t *testing.T) {
 	repo.seed(cfg)
 
 	exec := newExecutorStub()
-	svc := newService(t, repo, newAgentRepoStub("agent-a"), exec, okCronFactory(5*time.Millisecond))
+	svc := newService(t, repo, newProfileRepoStub("agent-a"), exec, okCronFactory(5*time.Millisecond))
 
 	waitExecution(t, exec)
 	ctx := exec.context()

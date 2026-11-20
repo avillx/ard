@@ -3,6 +3,7 @@ package subagent
 import (
 	"ard/internal/agent"
 	"ard/internal/chat"
+	"ard/internal/profile"
 	"ard/internal/runtime"
 	"ard/internal/session"
 	"context"
@@ -75,7 +76,7 @@ func TestCall_HappyPath(t *testing.T) {
 
 	svc := newTestService(t, chatExec, repo)
 
-	got, err := svc.Call(context.Background(), agent.ID("sub-agent"), "please do")
+	got, err := svc.Call(context.Background(), profile.ID("sub-agent"), "please do")
 	if err != nil {
 		t.Fatalf("Call() error = %v", err)
 	}
@@ -90,10 +91,10 @@ func TestCall_CallStackOverflow(t *testing.T) {
 
 	ctx := context.Background()
 	for range maxSubAgentDepth {
-		ctx, _ = subAgentCallStack(ctx, subAgentCall{subagent: agent.ID("nested")})
+		ctx, _ = subAgentCallStack(ctx, subAgentCall{subagentProfile: profile.ID("nested")})
 	}
 
-	got, err := svc.Call(ctx, agent.ID("sub-agent"), "please do")
+	got, err := svc.Call(ctx, profile.ID("sub-agent"), "please do")
 	if !errors.Is(err, ErrCallStackOverflow) {
 		t.Fatalf("Call() error = %v, want ErrCallStackOverflow", err)
 	}

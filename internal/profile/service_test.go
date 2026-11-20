@@ -69,10 +69,10 @@ func (r *mockToolRegistry) ToolServers(names ...string) ([]agent.ToolServer, err
 }
 
 type mockRepo struct {
-	mu      sync.Mutex
-	agents  map[agent.ID]agent.Agent
-	saves   []agent.Agent
-	deletes []agent.ID
+	mu       sync.Mutex
+	profiles map[profile.ID]profile.Profile
+	saves    []profile.Profile
+	deletes  []profile.ID
 
 	allErr    error
 	saveErr   error
@@ -80,17 +80,17 @@ type mockRepo struct {
 }
 
 func newMockRepo() *mockRepo {
-	return &mockRepo{agents: map[agent.ID]agent.Agent{}}
+	return &mockRepo{profiles: map[profile.ID]profile.Profile{}}
 }
 
-func (r *mockRepo) seed(agt agent.Agent) {
+func (r *mockRepo) seed(p profile.Profile) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.agents[agt.ID()] = agt
+	r.profiles[p.ID()] = p
 }
 
-func (r *mockRepo) All() ([]agent.Agent, error) {
+func (r *mockRepo) All() ([]profile.Profile, error) {
 	if r.allErr != nil {
 		return nil, r.allErr
 	}
@@ -98,38 +98,38 @@ func (r *mockRepo) All() ([]agent.Agent, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	agts := make([]agent.Agent, 0, len(r.agents))
-	for _, agt := range r.agents {
-		agts = append(agts, agt)
+	profiles := make([]profile.Profile, 0, len(r.profiles))
+	for _, p := range r.profiles {
+		profiles = append(profiles, p)
 	}
-	return agts, nil
+	return profiles, nil
 }
 
-func (r *mockRepo) Get(id agent.ID) (agent.Agent, error) {
+func (r *mockRepo) Get(id profile.ID) (profile.Profile, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	agt, ok := r.agents[id]
+	p, ok := r.profiles[id]
 	if !ok {
 		return nil, types.ErrIsNotExist
 	}
-	return agt, nil
+	return p, nil
 }
 
-func (r *mockRepo) Save(agt agent.Agent) error {
+func (r *mockRepo) Save(p profile.Profile) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.saves = append(r.saves, agt)
+	r.saves = append(r.saves, p)
 	if r.saveErr != nil {
 		return r.saveErr
 	}
 
-	r.agents[agt.ID()] = agt
+	r.profiles[p.ID()] = p
 	return nil
 }
 
-func (r *mockRepo) Delete(id agent.ID) error {
+func (r *mockRepo) Delete(id profile.ID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -138,7 +138,7 @@ func (r *mockRepo) Delete(id agent.ID) error {
 		return r.deleteErr
 	}
 
-	delete(r.agents, id)
+	delete(r.profiles, id)
 	return nil
 }
 
@@ -149,27 +149,27 @@ func (r *mockRepo) savedCount() int {
 	return len(r.saves)
 }
 
-func (r *mockRepo) savedAgents() []agent.Agent {
+func (r *mockRepo) savedProfiles() []profile.Profile {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return append([]agent.Agent(nil), r.saves...)
+	return append([]profile.Profile(nil), r.saves...)
 }
 
-func (r *mockRepo) deletedIDs() []agent.ID {
+func (r *mockRepo) deletedIDs() []profile.ID {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return append([]agent.ID(nil), r.deletes...)
+	return append([]profile.ID(nil), r.deletes...)
 }
 
 type mockSync struct {
 	mu    sync.Mutex
 	err   error
-	calls []agent.ID
+	calls []profile.ID
 }
 
-func (s *mockSync) DeleteProfile(id agent.ID) error {
+func (s *mockSync) DeleteProfile(id profile.ID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -177,11 +177,11 @@ func (s *mockSync) DeleteProfile(id agent.ID) error {
 	return s.err
 }
 
-func (s *mockSync) calledWith() []agent.ID {
+func (s *mockSync) calledWith() []profile.ID {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return append([]agent.ID(nil), s.calls...)
+	return append([]profile.ID(nil), s.calls...)
 }
 
 func newTestService(
@@ -200,11 +200,11 @@ func newTestService(
 	return svc
 }
 
-func newAgent(id agent.ID) agent.Agent {
-	return agent.NewAgent(id, "description", "system prompt", "model-a", []string{"filesystem"}, true)
+func newProfile(id profile.ID) profile.Profile {
+	return profile.NewProfile(id, "description", "system prompt", "model-a", []string{"filesystem"}, true)
 }
 
-func TestNewService_CreatesDefaultAgentWhenEmpty(t *testing.T) {
+func TestNewService_CreatesDefaultProfileWhenEmpty(t *testing.T) {
 	storage := newMockRepo()
 	svc, err := profile.NewService(
 		newMockToolRegistry("filesystem"),
@@ -216,26 +216,26 @@ func TestNewService_CreatesDefaultAgentWhenEmpty(t *testing.T) {
 		t.Fatalf("NewService() error = %v", err)
 	}
 
-	saved := storage.savedAgents()
+	saved := storage.savedProfiles()
 	if len(saved) != 1 {
-		t.Fatalf("expected 1 saved agent, got %d", len(saved))
+		t.Fatalf("expected 1 saved profile, got %d", len(saved))
 	}
-	if saved[0].ID() != agent.ID("default") {
-		t.Fatalf("expected default agent, got %s", saved[0].ID())
+	if saved[0].ID() != profile.ID("default") {
+		t.Fatalf("expected default profile, got %s", saved[0].ID())
 	}
 
-	agts, err := svc.All()
+	profiles, err := svc.All()
 	if err != nil {
 		t.Fatalf("All() error = %v", err)
 	}
-	if len(agts) != 1 || agts[0].ID() != agent.ID("default") {
-		t.Fatalf("expected only default agent, got %v", agts)
+	if len(profiles) != 1 || profiles[0].ID() != profile.ID("default") {
+		t.Fatalf("expected only default profile, got %v", profiles)
 	}
 }
 
-func TestNewService_KeepsExistingAgents(t *testing.T) {
+func TestNewService_KeepsExistingProfiles(t *testing.T) {
 	storage := newMockRepo()
-	storage.seed(newAgent("existing"))
+	storage.seed(newProfile("existing"))
 
 	svc, err := profile.NewService(
 		newMockToolRegistry("filesystem"),
@@ -248,19 +248,19 @@ func TestNewService_KeepsExistingAgents(t *testing.T) {
 	}
 
 	if got := storage.savedCount(); got != 0 {
-		t.Fatalf("expected no default agent saved, got %d saves", got)
+		t.Fatalf("expected no default profile saved, got %d saves", got)
 	}
 
-	agts, err := svc.All()
+	profiles, err := svc.All()
 	if err != nil {
 		t.Fatalf("All() error = %v", err)
 	}
-	if len(agts) != 1 || agts[0].ID() != agent.ID("existing") {
-		t.Fatalf("expected only existing agent, got %v", agts)
+	if len(profiles) != 1 || profiles[0].ID() != profile.ID("existing") {
+		t.Fatalf("expected only existing profile, got %v", profiles)
 	}
 }
 
-func TestNewService_FailsWhenListingAgentsFails(t *testing.T) {
+func TestNewService_FailsWhenListingProfilesFails(t *testing.T) {
 	wantErr := errors.New("list failed")
 	storage := newMockRepo()
 	storage.allErr = wantErr
@@ -276,7 +276,7 @@ func TestNewService_FailsWhenListingAgentsFails(t *testing.T) {
 	}
 }
 
-func TestNewService_FailsWhenDefaultAgentSaveFails(t *testing.T) {
+func TestNewService_FailsWhenDefaultProfileSaveFails(t *testing.T) {
 	wantErr := errors.New("save failed")
 	storage := newMockRepo()
 	storage.saveErr = wantErr
@@ -292,12 +292,12 @@ func TestNewService_FailsWhenDefaultAgentSaveFails(t *testing.T) {
 	}
 }
 
-func TestSave_PersistsValidAgent(t *testing.T) {
+func TestSave_PersistsValidProfile(t *testing.T) {
 	storage := newMockRepo()
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
-	agt := newAgent("writer")
-	if err := svc.Save(agt); err != nil {
+	p := newProfile("writer")
+	if err := svc.Save(p); err != nil {
 		t.Fatalf("Save() error = %v", err)
 	}
 
@@ -305,18 +305,18 @@ func TestSave_PersistsValidAgent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get() error = %v", err)
 	}
-	if got.ID() != agt.ID() {
-		t.Fatalf("expected agent %s, got %s", agt.ID(), got.ID())
+	if got.ID() != p.ID() {
+		t.Fatalf("expected profile %s, got %s", p.ID(), got.ID())
 	}
 }
 
 func TestSave_RejectsUnknownModel(t *testing.T) {
 	storage := newMockRepo()
-	storage.seed(newAgent("existing"))
+	storage.seed(newProfile("existing"))
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
-	agt := agent.NewAgent("writer", "description", "system prompt", "ghost-model", []string{"filesystem"}, false)
-	if err := svc.Save(agt); err == nil {
+	p := profile.NewProfile("writer", "description", "system prompt", "ghost-model", []string{"filesystem"}, false)
+	if err := svc.Save(p); err == nil {
 		t.Fatal("expected error for unknown model")
 	}
 	if got := storage.savedCount(); got != 0 {
@@ -326,11 +326,11 @@ func TestSave_RejectsUnknownModel(t *testing.T) {
 
 func TestSave_RejectsUnknownToolServer(t *testing.T) {
 	storage := newMockRepo()
-	storage.seed(newAgent("existing"))
+	storage.seed(newProfile("existing"))
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
-	agt := agent.NewAgent("writer", "description", "system prompt", "model-a", []string{"filesystem", "ghost"}, false)
-	if err := svc.Save(agt); err == nil {
+	p := profile.NewProfile("writer", "description", "system prompt", "model-a", []string{"filesystem", "ghost"}, false)
+	if err := svc.Save(p); err == nil {
 		t.Fatal("expected error for unknown tool server")
 	}
 	if got := storage.savedCount(); got != 0 {
@@ -338,12 +338,19 @@ func TestSave_RejectsUnknownToolServer(t *testing.T) {
 	}
 }
 
-func TestSave_SameIDOverwritesExistingAgent(t *testing.T) {
+func TestSave_SameIDOverwritesExistingProfile(t *testing.T) {
 	storage := newMockRepo()
-	storage.seed(newAgent("writer"))
+	storage.seed(newProfile("writer"))
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
-	updated := agent.NewAgent("writer", "updated description", "new prompt", "model-a", []string{"filesystem"}, false)
+	updated := profile.NewProfile(
+		"writer",
+		"updated description",
+		"new prompt",
+		"model-a",
+		[]string{"filesystem"},
+		false,
+	)
 	if err := svc.Save(updated); err != nil {
 		t.Fatalf("Save() error = %v", err)
 	}
@@ -353,21 +360,21 @@ func TestSave_SameIDOverwritesExistingAgent(t *testing.T) {
 		t.Fatalf("Get() error = %v", err)
 	}
 	if got.Description() != "updated description" {
-		t.Fatalf("expected updated agent, got %q", got.Description())
+		t.Fatalf("expected updated profile, got %q", got.Description())
 	}
 
-	agts, err := svc.All()
+	profiles, err := svc.All()
 	if err != nil {
 		t.Fatalf("All() error = %v", err)
 	}
-	if len(agts) != 1 {
-		t.Fatalf("expected a single agent per id, got %d", len(agts))
+	if len(profiles) != 1 {
+		t.Fatalf("expected a single profile per id, got %d", len(profiles))
 	}
 }
 
 func TestDelete_DeletesFromStorageAndSyncs(t *testing.T) {
 	storage := newMockRepo()
-	storage.seed(newAgent("writer"))
+	storage.seed(newProfile("writer"))
 	sync1 := &mockSync{}
 	sync2 := &mockSync{}
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync1, sync2)
@@ -376,24 +383,24 @@ func TestDelete_DeletesFromStorageAndSyncs(t *testing.T) {
 		t.Fatalf("Delete() error = %v", err)
 	}
 
-	if got := storage.deletedIDs(); !slices.Equal(got, []agent.ID{"writer"}) {
+	if got := storage.deletedIDs(); !slices.Equal(got, []profile.ID{"writer"}) {
 		t.Fatalf("expected storage delete of writer, got %v", got)
 	}
-	if got := sync1.calledWith(); !slices.Equal(got, []agent.ID{"writer"}) {
+	if got := sync1.calledWith(); !slices.Equal(got, []profile.ID{"writer"}) {
 		t.Fatalf("expected sync1 delete of writer, got %v", got)
 	}
-	if got := sync2.calledWith(); !slices.Equal(got, []agent.ID{"writer"}) {
+	if got := sync2.calledWith(); !slices.Equal(got, []profile.ID{"writer"}) {
 		t.Fatalf("expected sync2 delete of writer, got %v", got)
 	}
 }
 
-func TestDelete_RejectsUnknownAgent(t *testing.T) {
+func TestDelete_RejectsUnknownProfile(t *testing.T) {
 	storage := newMockRepo()
 	sync := &mockSync{}
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync)
 
 	if err := svc.Delete("missing"); err == nil {
-		t.Fatal("expected error for unknown agent")
+		t.Fatal("expected error for unknown profile")
 	}
 	if got := storage.deletedIDs(); len(got) != 0 {
 		t.Fatalf("expected no storage delete, got %v", got)
@@ -406,7 +413,7 @@ func TestDelete_RejectsUnknownAgent(t *testing.T) {
 func TestDelete_StorageErrorSkipsSyncs(t *testing.T) {
 	wantErr := errors.New("delete failed")
 	storage := newMockRepo()
-	storage.seed(newAgent("writer"))
+	storage.seed(newProfile("writer"))
 	storage.deleteErr = wantErr
 	sync := &mockSync{}
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync)
@@ -423,7 +430,7 @@ func TestDelete_StorageErrorSkipsSyncs(t *testing.T) {
 func TestDelete_ContinuesSyncsAfterError(t *testing.T) {
 	syncErr := errors.New("sync failed")
 	storage := newMockRepo()
-	storage.seed(newAgent("writer"))
+	storage.seed(newProfile("writer"))
 	sync1 := &mockSync{err: syncErr}
 	sync2 := &mockSync{}
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"), sync1, sync2)
@@ -435,7 +442,7 @@ func TestDelete_ContinuesSyncsAfterError(t *testing.T) {
 	if got := sync1.calledWith(); len(got) != 1 {
 		t.Fatalf("expected sync1 to be called once, got %v", got)
 	}
-	if got := sync2.calledWith(); !slices.Equal(got, []agent.ID{"writer"}) {
+	if got := sync2.calledWith(); !slices.Equal(got, []profile.ID{"writer"}) {
 		t.Fatalf("expected sync2 to be called despite sync1 error, got %v", got)
 	}
 }
@@ -444,7 +451,7 @@ func TestDelete_JoinsSyncErrors(t *testing.T) {
 	err1 := errors.New("sync 1 failed")
 	err2 := errors.New("sync 2 failed")
 	storage := newMockRepo()
-	storage.seed(newAgent("writer"))
+	storage.seed(newProfile("writer"))
 	svc := newTestService(
 		t,
 		storage,
@@ -462,13 +469,13 @@ func TestDelete_JoinsSyncErrors(t *testing.T) {
 
 func TestDelete_WithoutSyncs(t *testing.T) {
 	storage := newMockRepo()
-	storage.seed(newAgent("writer"))
+	storage.seed(newProfile("writer"))
 	svc := newTestService(t, storage, newMockModelRegistry("model-a"), newMockToolRegistry("filesystem"))
 
 	if err := svc.Delete("writer"); err != nil {
 		t.Fatalf("Delete() error = %v", err)
 	}
-	if got := storage.deletedIDs(); !slices.Equal(got, []agent.ID{"writer"}) {
+	if got := storage.deletedIDs(); !slices.Equal(got, []profile.ID{"writer"}) {
 		t.Fatalf("expected storage delete of writer, got %v", got)
 	}
 }

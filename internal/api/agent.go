@@ -25,12 +25,12 @@ func (d AgentDTO) Validate(_ context.Context) error {
 	return nil
 }
 
-type agentHandler struct {
+type profileHandler struct {
 	repo profile.Repo
 }
 
 // GET /agent.
-func (h *agentHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
+func (h *profileHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 	agents, err := h.repo.All()
 	if err != nil {
 		return NewInternalError(err)
@@ -45,7 +45,7 @@ func (h *agentHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 }
 
 // POST /agent/{id} DTO.
-func (h *agentHandler) Create(_ http.ResponseWriter, r *http.Request) Response {
+func (h *profileHandler) Create(_ http.ResponseWriter, r *http.Request) Response {
 	id := profile.ID(r.PathValue("id"))
 
 	_, err := h.repo.Get(id)
@@ -60,7 +60,7 @@ func (h *agentHandler) Create(_ http.ResponseWriter, r *http.Request) Response {
 }
 
 // PUT /agent/{id}.
-func (h *agentHandler) Update(_ http.ResponseWriter, r *http.Request) Response {
+func (h *profileHandler) Update(_ http.ResponseWriter, r *http.Request) Response {
 	id := profile.ID(r.PathValue("id"))
 
 	// To ensure existence
@@ -75,7 +75,7 @@ func (h *agentHandler) Update(_ http.ResponseWriter, r *http.Request) Response {
 	return h.saveAgt(id, r)
 }
 
-func (h *agentHandler) saveAgt(agentID profile.ID, r *http.Request) Response {
+func (h *profileHandler) saveAgt(agentID profile.ID, r *http.Request) Response {
 	agentDTO, err := decode[AgentDTO](r)
 	if err != nil {
 		return NewInvalidRequest(err)
@@ -94,7 +94,7 @@ func (h *agentHandler) saveAgt(agentID profile.ID, r *http.Request) Response {
 }
 
 // GET /agent/{id} // DTO.
-func (h *agentHandler) Read(_ http.ResponseWriter, r *http.Request) Response {
+func (h *profileHandler) Read(_ http.ResponseWriter, r *http.Request) Response {
 	id := profile.ID(r.PathValue("id"))
 	agt, err := h.repo.Get(id)
 	if err != nil {
@@ -108,7 +108,7 @@ func (h *agentHandler) Read(_ http.ResponseWriter, r *http.Request) Response {
 }
 
 // DELETE /agent/{id}.
-func (h *agentHandler) Delete(_ http.ResponseWriter, r *http.Request) Response {
+func (h *profileHandler) Delete(_ http.ResponseWriter, r *http.Request) Response {
 	id := profile.ID(r.PathValue("id"))
 
 	if err := h.repo.Delete(id); err != nil {
