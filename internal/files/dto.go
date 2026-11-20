@@ -1,9 +1,10 @@
 package files
 
 import (
-	"ard/internal/agent"
 	"encoding/json"
 	"fmt"
+
+	"ard/internal/agent"
 )
 
 type ContentPartDTO struct {

@@ -20,6 +20,7 @@ const stringsPerPair = 2
 func NewReplacer(s *Service) *Replacer {
 	r := &Replacer{
 		secretsSvc: s,
+		replacer:   strings.NewReplacer(),
 	}
 
 	r.Reload()

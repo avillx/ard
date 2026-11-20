@@ -24,8 +24,7 @@ type Item struct {
 }
 
 func (i *Item) String() string {
-	badge := statusBadge[i.Status]
-	return fmt.Sprintf("- %s #%d %s", badge, i.ID, i.Title)
+	return fmt.Sprintf("%d. - %s %s", i.ID, statusBadge[i.Status], i.Title)
 }
 
 var _ Store = (*InMemoryStore)(nil)
@@ -40,7 +39,8 @@ type InMemoryStore struct {
 
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
-		todos: map[session.ID][]Item{},
+		todos:       map[session.ID][]Item{},
+		cleanTimers: map[session.ID]*time.Timer{},
 	}
 }
 

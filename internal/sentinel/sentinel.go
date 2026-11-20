@@ -61,16 +61,6 @@ type Sentinel struct {
 func New(cwd string, logger *slog.Logger, opts ...Option) (*Sentinel, error) {
 	cwd = filepath.Clean(cwd)
 
-	s := &Sentinel{
-		cwd:     cwd,
-		actions: map[string]*debouncedAction{},
-		logger:  logger.WithGroup("file_sentinel"),
-	}
-
-	for _, opt := range opts {
-		opt(s)
-	}
-
 	watcher, err := fsnotify.NewBufferedWatcher(1)
 	if err != nil {
 		return nil, err
@@ -80,7 +70,16 @@ func New(cwd string, logger *slog.Logger, opts ...Option) (*Sentinel, error) {
 		return nil, err
 	}
 
-	s.watcher = watcher
+	s := &Sentinel{
+		cwd:     cwd,
+		actions: map[string]*debouncedAction{},
+		logger:  logger.WithGroup("file_sentinel"),
+		watcher: watcher,
+	}
+
+	for _, opt := range opts {
+		opt(s)
+	}
 
 	return s, nil
 }

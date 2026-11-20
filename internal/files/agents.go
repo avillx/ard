@@ -184,10 +184,12 @@ func parseAgentFile(data []byte) (AgentDTO, error) {
 
 func marshalAgentFile(agt agent.Agent) ([]byte, error) {
 	fm, err := yaml.Marshal(AgentDTO{
-		ID:          agt.ID(),
-		Description: agt.Description(),
-		Model:       agt.Model(),
-		HasMemory:   agt.HasMemory(),
+		ID:           agt.ID(),
+		Description:  agt.Description(),
+		Model:        agt.Model(),
+		HasMemory:    agt.HasMemory(),
+		SystemPrompt: "", // no need to save it here
+		ToolServers:  agt.ToolServers(),
 	})
 	if err != nil {
 		return nil, err

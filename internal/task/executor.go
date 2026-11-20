@@ -62,11 +62,12 @@ func (s *executor) processRecipientTask(ctx context.Context, agentID agent.ID, r
 	return s.chatExecutor.Chat(
 		ctx,
 		chat.Request{
-			AgentID:     agentID,
-			SessionID:   sessID,
-			UserMessage: agent.NewUserMessage(request),
-			Logging:     true,
-			Sink:        sink,
+			AgentID:             agentID,
+			SessionID:           sessID,
+			UserMessage:         agent.NewUserMessage(request),
+			Logging:             true,
+			Sink:                sink,
+			ProvidedToolServers: []agent.ToolServer{},
 		},
 	)
 }
