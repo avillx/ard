@@ -212,7 +212,7 @@ Hierarchy:
   `chat` (with `runtime`), `agent.Service`, `session.Service`, `task.Service`, `model`,
   `tools.Service`, `memory`, `mcp`, `subagent`, `secrets`, `cleanup`.
 - **Infra** — port implementations and plumbing:
-  `files`, `openai`, `cron`, `logging`, `sentinel`, `hooks`, `api`, `types`, `uuid`.
+  `files`, `openai`, `cron`, `logging`, `sentinel`, `hooks`, `api`, `types`, `uuid`, `migrations`.
 
 > [data](./data/) — contains the application's data (a database). Never read it unless you're directly working with data.
 > Never read `.env` or `.secrets`.
@@ -331,6 +331,17 @@ Repositories and config files:
 - [skill](./internal/files/skill.go) — discovers agent skills (`skills` folder, `SKILL.md`).
 - [tasks](./internal/files/tasks.go) — `tasks.toml`; cron tasks, hot-reloaded.
 - [temporary](./internal/files/temporary.go) — the `tmp` folder with automatic cleanup.
+
+## [migrations](./internal/migrations)
+Applies step-by-step migrations to the data folder. The only entry point is `Apply`, called once from the server wiring.
+
+Rules — they are a contract, not style preferences:
+- Migrations apply strictly sequentially, one after another, in the order listed in `Apply`.
+- Old migrations are never rewritten, edited or deleted. A wrong migration is fixed by appending a new one on top of it.
+- Migrations must not depend on the living application code. Every migration declares its own `Storage` port, constants, DTOs, file names and folder names as frozen boilerplate copies of the layout at that moment. Never import an app type or helper into a migration, even if it looks identical today.
+- Files are named by their position in the sequence (`1_migration.go`, `2_migration.go`, …), never by content.
+- All migrations run from a single place — `Apply`. Never call a migration directly.
+- Migrations are idempotent and are excluded from linters: they are frozen history, not living code.
 
 ## [open ai](./internal/openai)
 Implementation of `agent.Model` using the OpenAI API, built on the `openai-go` SDK. Works with any OpenAI-compatible endpoint.

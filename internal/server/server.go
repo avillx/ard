@@ -10,6 +10,7 @@ import (
 	"ard/internal/logging"
 	"ard/internal/mcp"
 	"ard/internal/memory"
+	"ard/internal/migrations"
 	"ard/internal/model"
 	"ard/internal/openai"
 	"ard/internal/secrets"
@@ -68,7 +69,9 @@ func New(
 		return nil, err
 	}
 
-	safeApplyMigrations(fileStorage)
+	if err := migrations.Apply(fileStorage, logger); err != nil {
+		logger.ErrorContext(ctx, "apply migrations failed", "error", err)
+	}
 
 	if err := fileStorage.CreateBasicFolders(); err != nil {
 		return nil, err

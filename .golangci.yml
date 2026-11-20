@@ -19,6 +19,10 @@ formatters:
       # Default: 100
       max-len: 120
 
+  # Migrations are frozen history, not living code: format them once and never again.
+  exclusions:
+    paths: ['^internal/migrations/']
+
 linters:
   enable:
     - asasalint # checks for pass []any as any in variadic func(...any)
@@ -350,8 +354,8 @@ linters:
       - std-error-handling
       - common-false-positives
 
-    # Exclude test checks
-    paths: ['_test\.go$','^internal/server/migrations\.go$']
+    # Exclude test checks and frozen migrations (they must not be touched by linters)
+    paths: ['_test\.go$','^internal/migrations/']
     # Excluding configuration per-path, per-linter, per-text and per-source.
     rules:
       - source: 'TODO'
