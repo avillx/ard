@@ -1,9 +1,6 @@
 package files
 
 import (
-	"ard/internal/agent"
-	"ard/internal/session"
-	"ard/internal/types"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -15,6 +12,10 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/session"
+	"ard/internal/types"
 )
 
 const SessionsFolder = "sessions"
@@ -54,7 +55,7 @@ func (r *SessionFiles) Save(agentID agent.ID, s session.Session) error {
 	}
 
 	sessionFilePath := resolveSessionPath(agentID, s.ID())
-	return r.storage.WriteFile(sessionFilePath, data, 0644)
+	return r.storage.WriteFile(sessionFilePath, data, 0o644)
 }
 
 func (r *SessionFiles) Delete(agentID agent.ID, sessionID session.ID) error {
@@ -75,7 +76,7 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.SessionHeader, error
 		return nil, err
 	}
 
-	var brokenHeaders []*session.ErrBrokenHeader
+	var brokenHeaders []*session.BrokenHeaderError
 	headers := []session.SessionHeader{}
 	for _, file := range files {
 		fileName := file.Name()
@@ -85,7 +86,7 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.SessionHeader, error
 		pathToFile := filepath.Join(sessionDir, fileName)
 		f, err := r.storage.OpenFile(pathToFile, os.O_RDONLY, 0)
 		if err != nil {
-			brokenHeader := session.NewErrBrokenHeader(sessID, agentID, err)
+			brokenHeader := session.NewBrokenHeaderError(sessID, agentID, err)
 			brokenHeaders = append(brokenHeaders, brokenHeader)
 			continue
 		}
@@ -99,7 +100,7 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.SessionHeader, error
 		var header SessionHeaderDTO
 		dec := json.NewDecoder(bytes.NewReader(data))
 		if err := dec.Decode(&header); err != nil {
-			brokenHeader := session.NewErrBrokenHeader(sessID, agentID, err)
+			brokenHeader := session.NewBrokenHeaderError(sessID, agentID, err)
 			brokenHeaders = append(brokenHeaders, brokenHeader)
 			continue
 		}
@@ -115,7 +116,7 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.SessionHeader, error
 	}
 
 	if len(brokenHeaders) > 0 {
-		err = session.NewErrBrokenHeaders(brokenHeaders...)
+		err = session.NewBrokenHeadersError(brokenHeaders...)
 	}
 
 	return headers, err
@@ -198,6 +199,7 @@ func dtoToSession(sessionID session.ID, headerDTO SessionHeaderDTO, messagesDTO 
 func resolveSessionPath(agentID agent.ID, sessionID session.ID) string {
 	return filepath.Join(resolveSessionFolderPath(agentID), fmt.Sprintf("%s.jsonl", sessionID))
 }
+
 func resolveSessionFolderPath(agentID agent.ID) string {
 	return filepath.Join(string(agentID), SessionsFolder)
 }

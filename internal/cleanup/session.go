@@ -1,12 +1,13 @@
 package cleanup
 
 import (
-	"ard/internal/agent"
-	"ard/internal/session"
 	"errors"
 	"log/slog"
 	"sync"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/session"
 )
 
 type SessionsCleaner struct {
@@ -42,7 +43,7 @@ func (c *SessionsCleaner) Clean(retention time.Duration) error {
 	for _, agt := range agents {
 		headers, err := c.sessRepo.Headers(agt.ID())
 		if err != nil {
-			var brokenHeadersErr *session.ErrBrokenHeaders
+			var brokenHeadersErr *session.BrokenHeadersError
 			if !errors.As(err, &brokenHeadersErr) {
 				c.logger.Error("read session headers", "agent", agt.ID(), "error", err)
 				continue
@@ -57,7 +58,7 @@ func (c *SessionsCleaner) Clean(retention time.Duration) error {
 	return nil
 }
 
-func (c *SessionsCleaner) handleBrokenSessions(brokenHeadersErr *session.ErrBrokenHeaders) {
+func (c *SessionsCleaner) handleBrokenSessions(brokenHeadersErr *session.BrokenHeadersError) {
 	for _, brokenHeaderErr := range brokenHeadersErr.Errors {
 		logger := c.logger.With(
 			"agent", brokenHeaderErr.AgentID,

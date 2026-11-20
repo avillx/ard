@@ -234,7 +234,7 @@ Widely used protection pattern: a public interface and constructor, with a priva
 
 ## [session domain](./internal/session)
 The "tier 2" domain for sessions.
-Includes the `Session` interface and its implementation, `SessionHeader`/`ErrBrokenHeaders`, and `session.Service` (with the `SessionsRepo` port) for operating on sessions.
+Includes the `Session` interface and its implementation, `SessionHeader`/`BrokenHeadersError`, and `session.Service` (with the `SessionsRepo` port) for operating on sessions.
 
 ## [tasks](./internal/task)
 Tasks for autonomous calls that happen without a direct user request.

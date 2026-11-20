@@ -1,12 +1,13 @@
 package api
 
 import (
-	"ard/internal/agent"
-	"ard/internal/session"
-	"ard/internal/types"
 	"errors"
 	"net/http"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/session"
+	"ard/internal/types"
 )
 
 type SessionHeaderDTO struct {
@@ -82,14 +83,14 @@ func (h *sessionHandler) Sessions(w http.ResponseWriter, r *http.Request) Respon
 			return NewBadRequest("agent is not exist")
 		}
 
-		var errBrokenHeaders *session.ErrBrokenHeaders
+		var BrokenHeadersError *session.BrokenHeadersError
 		// if is not a broken headers then is some the real internal problem
-		if !errors.As(err, &errBrokenHeaders) {
+		if !errors.As(err, &BrokenHeadersError) {
 			return NewInternalError(err)
 		}
 
 		// packing broken headers
-		for _, e := range errBrokenHeaders.Errors {
+		for _, e := range BrokenHeadersError.Errors {
 			dtos = append(dtos, SessionHeaderDTO{
 				ID:    e.SessID,
 				Cause: e.Error(),

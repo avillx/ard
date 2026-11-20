@@ -1,56 +1,57 @@
 package session
 
 import (
-	"ard/internal/agent"
 	"fmt"
 	"slices"
 	"sync"
 	"time"
+
+	"ard/internal/agent"
 )
 
 const TokenLimit = 20000
 
-var _ error = (*ErrBrokenHeaders)(nil)
+var _ error = (*BrokenHeadersError)(nil)
 
-type ErrBrokenHeaders struct {
-	Errors []*ErrBrokenHeader
+type BrokenHeadersError struct {
+	Errors []*BrokenHeaderError
 }
 
-func NewErrBrokenHeaders(errs ...*ErrBrokenHeader) *ErrBrokenHeaders {
-	return &ErrBrokenHeaders{
+func NewBrokenHeadersError(errs ...*BrokenHeaderError) *BrokenHeadersError {
+	return &BrokenHeadersError{
 		Errors: errs,
 	}
 }
 
-func (e *ErrBrokenHeaders) Error() string {
+func (e *BrokenHeadersError) Error() string {
 	return fmt.Sprintf("occured %d broken session headers", len(e.Errors))
 }
 
-var _ error = (*ErrBrokenHeader)(nil)
+var _ error = (*BrokenHeaderError)(nil)
 
-type ErrBrokenHeader struct {
+type BrokenHeaderError struct {
 	SessID  ID
 	AgentID agent.ID
 	cause   error
 }
 
-func NewErrBrokenHeader(
+func NewBrokenHeaderError(
 	sessID ID,
 	agentID agent.ID,
 	cause error,
-) *ErrBrokenHeader {
-	return &ErrBrokenHeader{
+) *BrokenHeaderError {
+	return &BrokenHeaderError{
 		SessID:  sessID,
 		AgentID: agentID,
 		cause:   cause,
 	}
 }
 
-func (e *ErrBrokenHeader) Unwrap() error {
+func (e *BrokenHeaderError) Unwrap() error {
 	return e.cause
 }
 
-func (e *ErrBrokenHeader) Error() string {
+func (e *BrokenHeaderError) Error() string {
 	return fmt.Sprintf("session header is borken. agent: %s, session: %s", e.AgentID, e.SessID)
 }
 
@@ -192,6 +193,7 @@ func (s *session) GetLastAgentMessage() *agent.AgentMessage {
 	}
 	return nil
 }
+
 func (s *session) GetLastUserMessage() *agent.UserMessage {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -210,6 +212,7 @@ func (s *session) Messages() []agent.Message {
 
 	return s.messages
 }
+
 func (s *session) AddMessages(newMessages ...agent.Message) {
 	if len(newMessages) == 0 {
 		return

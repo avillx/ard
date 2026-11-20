@@ -1,15 +1,16 @@
 package cleanup_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/cleanup"
-	"ard/internal/session"
 	"errors"
 	"log/slog"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/cleanup"
+	"ard/internal/session"
 )
 
 func newCleaner(sessRepo *mockSessionsRepo, agentRepo agent.Repo) *cleanup.SessionsCleaner {
@@ -63,9 +64,9 @@ func TestClean_KeepsRecentSessions(t *testing.T) {
 func TestClean_DeletesBrokenSessions(t *testing.T) {
 	sessRepo := &mockSessionsRepo{
 		headersErr: map[agent.ID]error{
-			testAgentID: session.NewErrBrokenHeaders(
-				session.NewErrBrokenHeader("broken-1", testAgentID, errors.New("cause")),
-				session.NewErrBrokenHeader("broken-2", testAgentID, errors.New("cause")),
+			testAgentID: session.NewBrokenHeadersError(
+				session.NewBrokenHeaderError("broken-1", testAgentID, errors.New("cause")),
+				session.NewBrokenHeaderError("broken-2", testAgentID, errors.New("cause")),
 			),
 		},
 	}
