@@ -85,16 +85,8 @@ func ConsolidationFSInstruction(cwd string, agentID agent.ID) string {
 //go:embed templates/consolidator.md
 var consolidateMemoryRaw string
 
-var consolidateMemoryTmpl = template.Must(
-	template.New("consolidate_memory").Parse(consolidateMemoryRaw),
-)
-
-func Memorization(agentID agent.ID) string {
-	vars := map[string]any{
-		"Agent": agentID,
-	}
-
-	return mustExecute(consolidateMemoryTmpl, vars)
+func Memorization() string {
+	return consolidateMemoryRaw
 }
 
 //go:embed templates/memorization_request.md
@@ -104,9 +96,8 @@ var memorizationRequestTmpl = template.Must(
 	template.New("memorization_request").Parse(memorizationRequestRaw),
 )
 
-func MemorizationRequest(agentID agent.ID, date time.Time, additional string) string {
+func MemorizationRequest(date time.Time, additional string) string {
 	vars := map[string]any{
-		"AgentID":           agentID,
 		"Date":              date.Format("2006.01.02"),
 		"AdditionalRequest": additional,
 	}

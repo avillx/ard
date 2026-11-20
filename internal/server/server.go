@@ -216,7 +216,7 @@ func New(
 
 	// memory consolidation
 	memoryConsolidationSvc, err := buildMemoryConsolidationService(
-		agentRepo, modelsSvc, memoryFiles, memoryRepo, fileStorage, skipPatterns, logger,
+		modelsSvc, memoryFiles, memoryRepo, fileStorage, skipPatterns, logger,
 	)
 	if err != nil {
 		return nil, err
@@ -325,7 +325,6 @@ func attachBuildinToolServers(
 }
 
 func buildMemoryConsolidationService(
-	agentRepo agent.Repo,
 	modelsSvc *model.Service,
 	memoryFiles *files.MemoryFiles,
 	memoryConfigFiles *files.MemoryFile,
@@ -344,7 +343,6 @@ func buildMemoryConsolidationService(
 	}
 
 	return memory.NewConsolidationService(
-		agentRepo,
 		[]agent.ToolServer{consolidationFsToolSrv},
 		memoryHooksResolver,
 		modelsSvc,

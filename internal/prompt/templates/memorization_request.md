@@ -1,2 +1,2 @@
-Process activity logs for agent {{ .AgentID }}, for a {{ .Date }}
+Process activity logs for agent, for a {{ .Date }}
 {{ .AdditionalRequest }}

@@ -1,15 +1,14 @@
 package memory_test
 
 import (
+	"ard/internal/agent"
+	"ard/internal/memory"
+	"ard/internal/types"
 	"log/slog"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/memory"
-	"ard/internal/types"
 )
 
 type consolidationModelRegistry struct {
@@ -52,15 +51,6 @@ func (r *memoryRepoStub) Save(cfg memory.ConsolidatorConfig) error {
 	return nil
 }
 
-type consolidationAgentRepo struct{}
-
-func (*consolidationAgentRepo) All() ([]agent.Agent, error) { return nil, nil }
-func (*consolidationAgentRepo) Get(agent.ID) (agent.Agent, error) {
-	return nil, types.ErrIsNotExist
-}
-func (*consolidationAgentRepo) Save(agent.Agent) error { return nil }
-func (*consolidationAgentRepo) Delete(agent.ID) error  { return nil }
-
 type consolidationToolServer struct{}
 
 func (*consolidationToolServer) Tools() []agent.Tool { return nil }
@@ -73,9 +63,8 @@ func newConsolidationService(
 	t.Helper()
 
 	svc, err := memory.NewConsolidationService(
-		&consolidationAgentRepo{},
 		[]agent.ToolServer{&consolidationToolServer{}},
-		func(agent.ID) []any { return nil },
+		func() []any { return nil },
 		registry,
 		repo,
 		slog.New(slog.DiscardHandler),

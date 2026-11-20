@@ -46,36 +46,26 @@ func NewAgentHooks(
 
 func NewMemoryHooksResolver(
 	indexer agent.MemoryIndexer,
-) (func(agentID agent.ID) []any, error) {
+) (func() []any, error) {
 	// for validation path patterns
-	_, err := NewMemoryHooks("unexisted_agent", indexer)
+	_, err := NewMemoryHooks(indexer)
 	if err != nil {
 		return nil, err
 	}
 
 	// produce factory
-	return func(agentID agent.ID) []any {
-		hooks, _ := NewMemoryHooks(agentID, indexer)
+	return func() []any {
+		hooks, _ := NewMemoryHooks(indexer)
 		return hooks
 	}, nil
 }
 
 func NewMemoryHooks(
-	agentID agent.ID,
 	indexer agent.MemoryIndexer,
 ) ([]any, error) {
-	// Readability helper
-	// Concat cwd with pattern and inject agentID in
-	// also normalize with filepath
-	fp := func(pattern ...string) string {
-		sp := filepath.Join(pattern...)
-		return filepath.Join(string(agentID), sp)
-	}
-
 	accessRules := []Rule{
 		{Pattern: filepath.Join(files.ActivityFolder, "**"), Access: Read},
 		{Pattern: filepath.Join(files.MemoryFolder, "**"), Access: Write},
-		{Pattern: fp(files.AgentFile), Access: No},
 	}
 
 	accessHook, err := NewFileAccessHook(accessRules...)
@@ -85,7 +75,6 @@ func NewMemoryHooks(
 
 	return []any{
 		accessHook,
-		// &UndoneTodoHook{storage: todoStorage},
 		&OnlyValidMemoryFrontmatterHook{indexer: indexer},
 		&EmptyAnswerHook{},
 	}, nil

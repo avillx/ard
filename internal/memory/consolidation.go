@@ -39,8 +39,6 @@ type ConsolidatorRepo interface {
 }
 
 type ConsolidationService struct {
-	agentRepo agent.Repo
-
 	modelName string
 	model     agent.Model
 	modelRepo agent.ModelRegistry
@@ -48,7 +46,7 @@ type ConsolidationService struct {
 	toolServer []agent.ToolServer
 	memoryRepo ConsolidatorRepo
 
-	resolveHooks func(agent.ID) []any
+	resolveHooks func() []any
 	enabled      bool
 	instruction  string
 
@@ -60,9 +58,8 @@ type ConsolidationService struct {
 }
 
 func NewConsolidationService(
-	agentRepo agent.Repo,
 	toolServer []agent.ToolServer,
-	hooksReslover func(agent.ID) []any,
+	hooksReslover func() []any,
 	modelRepo agent.ModelRegistry,
 	memoryRepo ConsolidatorRepo,
 	logger *slog.Logger,
@@ -71,14 +68,9 @@ func NewConsolidationService(
 		return nil, fmt.Errorf("no tools for managing memory")
 	}
 
-	if agentRepo == nil {
-		return nil, fmt.Errorf("has no agentRepo")
-	}
-
 	svc := &ConsolidationService{
 		memoryRepo:   memoryRepo,
 		modelRepo:    modelRepo,
-		agentRepo:    agentRepo,
 		toolServer:   toolServer,
 		resolveHooks: hooksReslover,
 		enabled:      false,
@@ -131,26 +123,15 @@ func (m *ConsolidationService) load() error {
 
 func (m *ConsolidationService) ConsolidateImmidate(
 	ctx context.Context,
-	agentID agent.ID,
 	evCh chan runtime.Event,
 ) error {
-	agt, err := m.agentRepo.Get(agentID)
-	if err != nil {
-		return err
-	}
-
-	return m.consolidateMemoryFor(ctx, agt, evCh)
+	return m.runConsolidation(ctx, evCh)
 }
 
-func (m *ConsolidationService) consolidateMemoryFor(
+func (m *ConsolidationService) runConsolidation(
 	ctx context.Context,
-	agt agent.Agent,
 	evCh chan runtime.Event,
 ) error {
-	if !agt.HasMemory() {
-		return ErrDisabledMemory
-	}
-
 	m.mu.RLock()
 	model := m.model
 	instruction := m.instruction
@@ -160,12 +141,12 @@ func (m *ConsolidationService) consolidateMemoryFor(
 		return fmt.Errorf("consolidation model is not set")
 	}
 
-	m.logger.InfoContext(ctx, "consolidation started", "agent", agt.ID())
+	m.logger.InfoContext(ctx, "consolidation started")
 
-	systemPrompt := prompt.Memorization(agt.ID())
+	systemPrompt := prompt.Memorization()
 	systemMessage := agent.NewSystemMessage(systemPrompt)
 
-	memoRequest := prompt.MemorizationRequest(agt.ID(), time.Now(), instruction)
+	memoRequest := prompt.MemorizationRequest(time.Now(), instruction)
 	userMessage := agent.NewUserMessage(memoRequest)
 
 	messages := []agent.Message{systemMessage, userMessage}
@@ -181,7 +162,7 @@ func (m *ConsolidationService) consolidateMemoryFor(
 		messages,
 		tools,
 		evCh,
-		m.resolveHooks(agt.ID()),
+		m.resolveHooks(),
 	)
 
 	return nil
@@ -212,32 +193,16 @@ func (m *ConsolidationService) SaveConfig(cfg ConsolidatorConfig) error {
 }
 
 func (m *ConsolidationService) consolidateInBackground(ctx context.Context) error {
-	agents, err := m.agentRepo.All()
-	if err != nil {
-		return err
-	}
+	evCh := make(chan runtime.Event, runtimeEventBuffer)
+	defer close(evCh)
 
-	var errc error
-	for _, agt := range agents {
-		if !agt.HasMemory() {
-			continue
+	// for drop consolidation events
+	go func() {
+		for range evCh {
 		}
+	}()
 
-		evCh := make(chan runtime.Event, runtimeEventBuffer)
-		defer close(evCh)
-
-		// for drop consolidation events
-		go func() {
-			for range evCh {
-			}
-		}()
-
-		if err := m.consolidateMemoryFor(ctx, agt, evCh); err != nil {
-			errc = errors.Join(errc, err)
-		}
-	}
-
-	return errc
+	return m.runConsolidation(ctx, evCh)
 }
 
 func (m *ConsolidationService) Run(ctx context.Context) {
