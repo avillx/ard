@@ -9,7 +9,7 @@ import (
 
 const defaultShell = "/bin/sh"
 
-var defaultShellAttributes = []string{"-c"}
+var defaultShellAttributes = []string{"-c"} //nolint: gochecknoglobals // global var over factory
 
 type processGroup struct {
 	// Unix doesn't need to store handles, process group is managed by kernel
