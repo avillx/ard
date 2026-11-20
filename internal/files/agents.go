@@ -3,20 +3,20 @@ package files
 import (
 	"ard/internal/agent"
 	"ard/internal/types"
-	"errors"
-	"fmt"
-	"io/fs"
-	"os"
 	"path/filepath"
-	"slices"
 	"sync"
 
 	toml "github.com/pelletier/go-toml/v2"
 )
 
-var _ agent.Repo = (*AgentFiles)(nil)
+const (
+	AgentFile     = "profiles.toml"
+	AgentFileMode = 0o755
+)
 
-const AgentFile = "agent.toml"
+var AgentFilePath = filepath.Join(ConfigDir, AgentFile) //nolint: gochecknoglobals // os safe path
+
+var _ agent.Repo = (*AgentFiles)(nil)
 
 type AgentFiles struct {
 	storage FileStorage
@@ -35,148 +35,108 @@ func (s *AgentFiles) All() ([]agent.Agent, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	entries, err := fs.ReadDir(s.storage.FS(), ".")
+	cfg, err := s.loadConfig()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
 		return nil, err
 	}
 
-	var dtos []AgentDTO
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-
-		dto, err := s.readConfig(agent.ID(e.Name()))
-		if err != nil {
-			continue
-		}
-		dtos = append(dtos, dto)
+	agents := []agent.Agent{}
+	for id, profile := range cfg {
+		agt := profileToAgent(id, profile)
+		agents = append(agents, agt)
 	}
 
-	return s.fromDTO(dtos...), nil
+	return agents, nil
 }
 
 func (s *AgentFiles) Get(id agent.ID) (agent.Agent, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	dto, err := s.readConfig(id)
+	cfg, err := s.loadConfig()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("agent %s: %w", id, types.ErrIsNotExist)
-		}
 		return nil, err
 	}
 
-	agts := s.fromDTO(dto)
-
-	if len(agts) > 0 {
-		return agts[0], nil
+	if profile, ok := cfg[id]; ok {
+		return profileToAgent(id, profile), nil
 	}
 
-	return nil, errors.New("can't get agent")
-}
-
-func validateAgentName(agentName string) error {
-	reservedNames := []string{
-		ConfigDir,
-		ReposDir,
-		SkillsDir,
-		TMPDir,
-	}
-
-	if slices.Contains(reservedNames, agentName) {
-		return fmt.Errorf("name %s is reserved", agentName)
-	}
-
-	return nil
+	return nil, types.ErrIsNotExist
 }
 
 func (s *AgentFiles) Save(agt agent.Agent) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if err := validateAgentName(string(agt.ID())); err != nil {
-		return err
-	}
-
-	data, err := marshalAgentFile(agt)
+	cfg, err := s.loadConfig()
 	if err != nil {
 		return err
 	}
 
-	if err := s.storage.MkdirAll(string(agt.ID()), ModeDirPerm); err != nil {
-		return err
+	cfg[agt.ID()] = ProfileDTO{
+		Description:  agt.Description(),
+		Model:        agt.Model(),
+		HasMemory:    agt.HasMemory(),
+		ToolServers:  agt.ToolServers(),
+		SystemPrompt: agt.SystemPrompt(),
 	}
 
-	return s.storage.WriteFile(resolveAgentFilePath(agt.ID()), data, ModeFilePerm)
+	return s.saveConfig(cfg)
 }
 
 func (s *AgentFiles) Delete(agentID agent.ID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.storage.RemoveAll(fmt.Sprintf("/%s", agentID))
-}
-
-func (s *AgentFiles) readConfig(id agent.ID) (AgentDTO, error) {
-	data, err := s.storage.ReadFile(resolveAgentFilePath(id))
+	cfg, err := s.loadConfig()
 	if err != nil {
-		return AgentDTO{}, err
+		return err
 	}
 
-	return parseTomlAgentFile(data)
+	delete(cfg, agentID)
+
+	return s.saveConfig(cfg)
 }
 
-func (s *AgentFiles) fromDTO(dtos ...AgentDTO) []agent.Agent {
-	agents := []agent.Agent{}
-
-	for _, dto := range dtos {
-		agents = append(agents, agent.NewAgent(
-			dto.ID,
-			dto.Description,
-			dto.SystemPrompt,
-			dto.Model,
-			dto.ToolServers,
-			dto.HasMemory,
-		))
+func (s *AgentFiles) loadConfig() (map[agent.ID]ProfileDTO, error) {
+	data, err := s.storage.ReadFile(AgentFilePath)
+	if err != nil {
+		return nil, err
 	}
 
-	return agents
-}
-
-type AgentDTO struct {
-	ID          agent.ID `yaml:"id"                     toml:"id"`
-	Description string   `yaml:"description,omitempty"  toml:"description,omitempty"`
-	Model       string   `yaml:"model,omitempty"        toml:"model,omitempty"`
-	HasMemory   bool     `yaml:"memory,omitempty"       toml:"memory,omitempty"`
-	ToolServers []string `yaml:"tool_servers,omitempty" toml:"tool_servers,omitempty"`
-
-	SystemPrompt string `yaml:"-" toml:"prompt" multiline:"true"`
-}
-
-func parseTomlAgentFile(data []byte) (AgentDTO, error) {
-	var dto AgentDTO
+	var dto map[agent.ID]ProfileDTO
 	if err := toml.Unmarshal(data, &dto); err != nil {
-		return AgentDTO{}, err
+		return nil, err
 	}
+
 	return dto, nil
 }
 
-func marshalAgentFile(agt agent.Agent) ([]byte, error) {
-	return toml.Marshal(AgentDTO{
-		ID:           agt.ID(),
-		Description:  agt.Description(),
-		Model:        agt.Model(),
-		HasMemory:    agt.HasMemory(),
-		SystemPrompt: agt.SystemPrompt(),
-		ToolServers:  agt.ToolServers(),
-	})
+func (s *AgentFiles) saveConfig(cfg map[agent.ID]ProfileDTO) error {
+	data, err := toml.Marshal(cfg)
+	if err != nil {
+		return nil
+	}
+
+	return s.storage.WriteFile(AgentFilePath, data, AgentFileMode)
 }
 
-func resolveAgentFilePath(agentID agent.ID) string {
-	return filepath.Join(string(agentID), AgentFile)
+type ProfileDTO struct {
+	Description  string   `toml:"description,omitempty"`
+	Model        string   `toml:"model,omitempty"`
+	HasMemory    bool     `toml:"memory,omitempty"`
+	ToolServers  []string `toml:"tool_servers,omitempty"`
+	SystemPrompt string   `toml:"prompt"                 multiline:"true"`
+}
+
+func profileToAgent(id agent.ID, profile ProfileDTO) agent.Agent {
+	return agent.NewAgent(
+		id,
+		profile.Description,
+		profile.SystemPrompt,
+		profile.Model,
+		profile.ToolServers,
+		profile.HasMemory,
+	)
 }

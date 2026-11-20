@@ -507,23 +507,33 @@ func agentsMarkdownToToml(root files.FileStorage) {
 	}
 }
 
-func parseMarkdownAgentFile(data []byte) (files.AgentDTO, error) {
+type LegacyAgentDTO struct {
+	ID          agent.ID `yaml:"id"                     toml:"id"`
+	Description string   `yaml:"description,omitempty"  toml:"description,omitempty"`
+	Model       string   `yaml:"model,omitempty"        toml:"model,omitempty"`
+	HasMemory   bool     `yaml:"memory,omitempty"       toml:"memory,omitempty"`
+	ToolServers []string `yaml:"tool_servers,omitempty" toml:"tool_servers,omitempty"`
+
+	SystemPrompt string `yaml:"-" toml:"prompt" multiline:"true"`
+}
+
+func parseMarkdownAgentFile(data []byte) (LegacyAgentDTO, error) {
 	const delim = "---"
 	s := strings.ReplaceAll(string(data), "\r\n", "\n")
 
 	after, ok := strings.CutPrefix(s, delim+"\n")
 	if !ok {
-		return files.AgentDTO{}, fmt.Errorf("agent file must start with ---")
+		return LegacyAgentDTO{}, fmt.Errorf("agent file must start with ---")
 	}
 
 	before, after0, ok := strings.Cut(after, "\n"+delim)
 	if !ok {
-		return files.AgentDTO{}, fmt.Errorf("unclosed frontmatter")
+		return LegacyAgentDTO{}, fmt.Errorf("unclosed frontmatter")
 	}
 
-	var dto files.AgentDTO
+	var dto LegacyAgentDTO
 	if err := yaml.Unmarshal([]byte(before), &dto); err != nil {
-		return files.AgentDTO{}, err
+		return LegacyAgentDTO{}, err
 	}
 
 	dto.SystemPrompt = strings.TrimPrefix(after0, "\n")
