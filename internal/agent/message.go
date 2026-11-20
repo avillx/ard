@@ -102,10 +102,23 @@ type UserMessage struct {
 	messageBase
 }
 
+func NewUserMessage[T string | []ContentPart](content T) *UserMessage {
+	return &UserMessage{
+		messageBase: newMessageBase(UserMessageRole, content),
+	}
+}
+
 type AgentMessage struct {
 	messageBase
 
 	toolCalls []*ToolCall
+}
+
+func NewAgentMessage[T string | []ContentPart](content T, tc []*ToolCall) *AgentMessage {
+	return &AgentMessage{
+		messageBase: newMessageBase(AgentMessageRole, content),
+		toolCalls:   tc,
+	}
 }
 
 func (b *AgentMessage) ToolCalls() []*ToolCall {
@@ -121,8 +134,16 @@ func (b *AgentMessage) String() string {
 }
 
 type ToolResultMessage struct {
-	toolCallID string
 	messageBase
+
+	toolCallID string
+}
+
+func NewToolResultMessage(res *ToolResult) *ToolResultMessage {
+	return &ToolResultMessage{
+		toolCallID:  res.ID,
+		messageBase: newMessageBase(ToolMessageRole, res.Result),
+	}
 }
 
 func (m *ToolResultMessage) ToolCallID() string {
@@ -131,26 +152,6 @@ func (m *ToolResultMessage) ToolCallID() string {
 
 type SystemMessage struct {
 	messageBase
-}
-
-func NewUserMessage[T string | []ContentPart](content T) *UserMessage {
-	return &UserMessage{
-		messageBase: newMessageBase(UserMessageRole, content),
-	}
-}
-
-func NewAgentMessage[T string | []ContentPart](content T, tc []*ToolCall) *AgentMessage {
-	return &AgentMessage{
-		messageBase: newMessageBase(AgentMessageRole, content),
-		toolCalls:   tc,
-	}
-}
-
-func NewToolResultMessage(res *ToolResult) *ToolResultMessage {
-	return &ToolResultMessage{
-		toolCallID:  res.ID,
-		messageBase: newMessageBase(ToolMessageRole, res.Result),
-	}
 }
 
 func NewSystemMessage[T string | []ContentPart](content T) *SystemMessage {

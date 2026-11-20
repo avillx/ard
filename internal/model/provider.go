@@ -1,13 +1,14 @@
 package model
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"errors"
 	"fmt"
 	"log/slog"
 	"path"
 	"sync"
+
+	"ard/internal/agent"
+	"ard/internal/types"
 )
 
 type ProviderService struct {
@@ -191,17 +192,17 @@ func (s *ProviderService) SetModel(providerID ProviderID, modelName string, mode
 	return s.repo.Save(providerConf)
 }
 
-type ErrModelLoad struct {
+type ModelLoadError struct {
 	Provider  string
 	ModelName string
 	err       error
 }
 
-func (e *ErrModelLoad) Unwrap() error {
+func (e *ModelLoadError) Unwrap() error {
 	return e.err
 }
 
-func (e *ErrModelLoad) Error() string {
+func (e *ModelLoadError) Error() string {
 	return fmt.Sprintf(
 		"model '%s' of '%s' provider is not loaded",
 		e.ModelName,
@@ -209,8 +210,8 @@ func (e *ErrModelLoad) Error() string {
 	)
 }
 
-func (s *ProviderService) loadModels(cfg ProviderConfig) []*ErrModelLoad {
-	loadErrs := []*ErrModelLoad{}
+func (s *ProviderService) loadModels(cfg ProviderConfig) []*ModelLoadError {
+	loadErrs := []*ModelLoadError{}
 	for modelName, modelCfg := range cfg.Models {
 		if err := s.modelSvc.add(
 			cfg.APIType,
@@ -219,7 +220,7 @@ func (s *ProviderService) loadModels(cfg ProviderConfig) []*ErrModelLoad {
 			resolveModelID(cfg.Name, modelName),
 			newModelSettings(modelName, modelCfg),
 		); err != nil {
-			loadErrs = append(loadErrs, &ErrModelLoad{
+			loadErrs = append(loadErrs, &ModelLoadError{
 				Provider:  string(cfg.Name),
 				ModelName: modelName,
 				err:       err,

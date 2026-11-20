@@ -53,6 +53,7 @@ type Server struct {
 	AgentFiles             *files.AgentFiles
 }
 
+// nolint: funlen
 func New(
 	ctx context.Context,
 	datapath string,

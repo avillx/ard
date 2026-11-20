@@ -97,6 +97,24 @@ type sessionHeader struct {
 	extras map[string]any
 }
 
+func NewHeader(
+	id ID,
+	inputTokens int64,
+	outputTokens int64,
+	createdAt time.Time,
+	updatedAt time.Time,
+	extras map[string]any,
+) *sessionHeader {
+	return &sessionHeader{
+		id:           id,
+		inputTokens:  inputTokens,
+		outputTokens: outputTokens,
+		createdAt:    createdAt,
+		updatedAt:    updatedAt,
+		extras:       extras,
+	}
+}
+
 func (s *sessionHeader) ID() ID {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -137,24 +155,6 @@ func (s *sessionHeader) Extras() map[string]any {
 	defer s.mu.RUnlock()
 
 	return s.extras
-}
-
-func NewHeader(
-	id ID,
-	inputTokens int64,
-	outputTokens int64,
-	createdAt time.Time,
-	updatedAt time.Time,
-	extras map[string]any,
-) *sessionHeader {
-	return &sessionHeader{
-		id:           id,
-		inputTokens:  inputTokens,
-		outputTokens: outputTokens,
-		createdAt:    createdAt,
-		updatedAt:    updatedAt,
-		extras:       extras,
-	}
 }
 
 var _ Session = (*session)(nil)

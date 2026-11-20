@@ -1,15 +1,16 @@
 package chat
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+
 	"ard/internal/agent"
 	"ard/internal/prompt"
 	"ard/internal/runtime"
 	"ard/internal/session"
 	"ard/internal/types"
-	"context"
-	"errors"
-	"fmt"
-	"log/slog"
 )
 
 type ActivityLogger interface {
@@ -176,6 +177,8 @@ func (s *Service) Chat(
 	return nil
 }
 
+// TODO: think about soloving complexity
+// nolint: funlen
 func (s *Service) runAgentLoopWithCallbacks(
 	ctx context.Context,
 	model agent.Model,
@@ -329,12 +332,15 @@ func extractTools(toolServers []agent.ToolServer) []agent.Tool {
 	return toolKit
 }
 
-type agentIDCTXKey struct{}
-type sessionIDCTXKey struct{}
+type (
+	agentIDCTXKey   struct{}
+	sessionIDCTXKey struct{}
+)
 
 func withAgentID(ctx context.Context, id agent.ID) context.Context {
 	return context.WithValue(ctx, agentIDCTXKey{}, id)
 }
+
 func AgentIDFromContext(ctx context.Context) (agent.ID, bool) {
 	id, ok := ctx.Value(agentIDCTXKey{}).(agent.ID)
 	return id, ok
@@ -343,6 +349,7 @@ func AgentIDFromContext(ctx context.Context) (agent.ID, bool) {
 func withSessionID(ctx context.Context, id session.ID) context.Context {
 	return context.WithValue(ctx, sessionIDCTXKey{}, id)
 }
+
 func SessionIDFromContext(ctx context.Context) (session.ID, bool) {
 	id, ok := ctx.Value(sessionIDCTXKey{}).(session.ID)
 	return id, ok

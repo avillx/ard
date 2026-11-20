@@ -1,11 +1,12 @@
 package api
 
 import (
-	"ard/internal/types"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
+
+	"ard/internal/types"
 )
 
 // Wrapper for simple status code response.
@@ -39,10 +40,6 @@ type jsonResponse struct {
 	content any
 }
 
-func (r *jsonResponse) Content() any {
-	return r.content
-}
-
 // content should be sended as response
 // string wrapped as { "message" : "..." }.
 func NewJSONResponse[T string | any](code int, msg T) *jsonResponse {
@@ -59,6 +56,10 @@ func NewJSONResponse[T string | any](code int, msg T) *jsonResponse {
 		response: NewResponse(code),
 		content:  s,
 	}
+}
+
+func (r *jsonResponse) Content() any {
+	return r.content
 }
 
 type internalError struct {

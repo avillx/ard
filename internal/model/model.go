@@ -1,10 +1,11 @@
 package model
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"strings"
 	"sync"
+
+	"ard/internal/agent"
+	"ard/internal/types"
 )
 
 var _ agent.ModelRegistry = (*ModelService)(nil)
@@ -17,8 +18,8 @@ type ModelService struct {
 
 func NewModelService(factories ...TypedModelFactory) *ModelService {
 	svc := &ModelService{
-		factories: map[APIType]ModelFactory{},
-		models:    map[ModelID]agent.Model{},
+		factories: make(map[APIType]ModelFactory),
+		models:    make(map[ModelID]agent.Model),
 	}
 
 	for _, f := range factories {
