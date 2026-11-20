@@ -5,19 +5,22 @@ import (
 	"context"
 )
 
-// TODO:
-// Rename to PostCompletion / PreToolCall / PostToolCall.
 type (
 	CompletionHook Hook[*agent.Completion]
-	ToolCallHook   Hook[*agent.ToolCall]
-	ToolResultHook Hook[*AfterToolCall]
+	ToolCallHook   Hook[*PreToolCall]
+	ToolResultHook Hook[*PostToolCall]
 )
 
 type Hook[T any] interface {
 	Apply(context.Context, T) (T, error)
 }
 
-type AfterToolCall struct {
+type PreToolCall struct {
+	ToolName  agent.ToolName
+	Arguments agent.ToolArguments
+}
+
+type PostToolCall struct {
 	*agent.ToolCall
 	*agent.ToolResult
 }

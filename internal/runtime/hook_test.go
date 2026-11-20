@@ -1,12 +1,11 @@
 package runtime_test
 
 import (
+	"ard/internal/agent"
+	"ard/internal/runtime"
 	"context"
 	"errors"
 	"testing"
-
-	"ard/internal/agent"
-	"ard/internal/runtime"
 )
 
 func TestApplyHooks_AppliesInOrder(t *testing.T) {
@@ -38,7 +37,7 @@ func TestApplyHooks_SkipsUnrelatedHooks(t *testing.T) {
 	completion := &agent.Completion{Content: "start"}
 
 	unrelated := &mockToolCallHook{
-		fn: func(ctx context.Context, c *agent.ToolCall) (*agent.ToolCall, error) {
+		fn: func(ctx context.Context, c *runtime.PreToolCall) (*runtime.PreToolCall, error) {
 			t.Fatal("unrelated hook must not be applied")
 			return c, nil
 		},

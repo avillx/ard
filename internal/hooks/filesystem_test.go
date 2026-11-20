@@ -1,14 +1,15 @@
 package hooks_test
 
 import (
+	"ard/internal/agent"
+	"ard/internal/hooks"
+	"ard/internal/runtime"
 	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"ard/internal/agent"
-	"ard/internal/hooks"
 	fstools "ard/internal/tools/fs"
 )
 
@@ -28,6 +29,13 @@ var (
 	moveName  = (&fstools.MoveTool{}).Name()
 )
 
+func newPreToolCall(name agent.ToolName, data agent.ToolArguments) *runtime.PreToolCall {
+	return &runtime.PreToolCall{
+		ToolName:  name,
+		Arguments: data,
+	}
+}
+
 func newHook(t *testing.T, rules ...hooks.Rule) *hooks.FileAccessHook {
 	t.Helper()
 
@@ -38,24 +46,24 @@ func newHook(t *testing.T, rules ...hooks.Rule) *hooks.FileAccessHook {
 	return h
 }
 
-func pathCall(t *testing.T, name agent.ToolName, p string) *agent.ToolCall {
+func pathCall(t *testing.T, name agent.ToolName, p string) *runtime.PreToolCall {
 	t.Helper()
 
 	raw, err := json.Marshal(pathArgs{Path: p})
 	if err != nil {
 		t.Fatalf("marshal args: %v", err)
 	}
-	return agent.NewToolCall("call-1", name, raw)
+	return newPreToolCall(name, raw)
 }
 
-func moveCall(t *testing.T, src, dst string) *agent.ToolCall {
+func moveCall(t *testing.T, src, dst string) *runtime.PreToolCall {
 	t.Helper()
 
 	raw, err := json.Marshal(moveArgs{Src: src, Dst: dst})
 	if err != nil {
 		t.Fatalf("marshal args: %v", err)
 	}
-	return agent.NewToolCall("call-1", moveName, raw)
+	return newPreToolCall(moveName, raw)
 }
 
 func assertDenied(t *testing.T, err error) {
@@ -66,7 +74,7 @@ func assertDenied(t *testing.T, err error) {
 	}
 }
 
-func assertAllowed(t *testing.T, tc *agent.ToolCall, err error) {
+func assertAllowed(t *testing.T, tc *runtime.PreToolCall, err error) {
 	t.Helper()
 
 	if err != nil {
@@ -86,7 +94,7 @@ func TestNewFileAccessHook_RejectsInvalidPattern(t *testing.T) {
 
 func TestApply_IgnoresNonFileTools(t *testing.T) {
 	h := newHook(t)
-	tc := agent.NewToolCall("call-1", "shell", agent.ToolArguments(`{"command":"ls"}`))
+	tc := newPreToolCall("shell", agent.ToolArguments(`{"command":"ls"}`))
 
 	got, err := h.Apply(context.Background(), tc)
 
@@ -98,7 +106,7 @@ func TestApply_IgnoresNonFileTools(t *testing.T) {
 
 func TestApply_RejectsMalformedArguments(t *testing.T) {
 	h := newHook(t, hooks.Rule{Pattern: "**", Access: hooks.Write})
-	tc := agent.NewToolCall("call-1", readName, agent.ToolArguments(`{"path":`))
+	tc := newPreToolCall(readName, agent.ToolArguments(`{"path":`))
 
 	_, err := h.Apply(context.Background(), tc)
 
@@ -172,7 +180,7 @@ func TestApply_ReadOnlyBlocksWriteTools(t *testing.T) {
 	h := newHook(t, hooks.Rule{Pattern: filepath.Join("shared", "**"), Access: hooks.Read})
 
 	for _, name := range []agent.ToolName{editName, writeName, moveName} {
-		var tc *agent.ToolCall
+		var tc *runtime.PreToolCall
 		if name == moveName {
 			tc = moveCall(t, p, filepath.Join("shared", "dst.md"))
 		} else {

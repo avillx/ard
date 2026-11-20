@@ -86,8 +86,8 @@ func NewShellHook() (*ShellHook, error) {
 
 func (h *ShellHook) Apply(
 	_ context.Context,
-	tc *runtime.AfterToolCall,
-) (*runtime.AfterToolCall, error) {
+	tc *runtime.PostToolCall,
+) (*runtime.PostToolCall, error) {
 	if tc.ToolName != shellToolName {
 		return tc, nil
 	}

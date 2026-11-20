@@ -1,13 +1,12 @@
 package runtime_test
 
 import (
+	"ard/internal/agent"
+	"ard/internal/runtime"
 	"context"
 	"sync"
 	"testing"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/runtime"
 )
 
 type mockCompletion struct {
@@ -96,24 +95,24 @@ func (h *mockCompletionHook) Apply(
 }
 
 type mockToolCallHook struct {
-	fn func(context.Context, *agent.ToolCall) (*agent.ToolCall, error)
+	fn func(context.Context, *runtime.PreToolCall) (*runtime.PreToolCall, error)
 }
 
 func (h *mockToolCallHook) Apply(
 	ctx context.Context,
-	c *agent.ToolCall,
-) (*agent.ToolCall, error) {
+	c *runtime.PreToolCall,
+) (*runtime.PreToolCall, error) {
 	return h.fn(ctx, c)
 }
 
 type mockToolResultHook struct {
-	fn func(context.Context, *runtime.AfterToolCall) (*runtime.AfterToolCall, error)
+	fn func(context.Context, *runtime.PostToolCall) (*runtime.PostToolCall, error)
 }
 
 func (h *mockToolResultHook) Apply(
 	ctx context.Context,
-	a *runtime.AfterToolCall,
-) (*runtime.AfterToolCall, error) {
+	a *runtime.PostToolCall,
+) (*runtime.PostToolCall, error) {
 	return h.fn(ctx, a)
 }
 

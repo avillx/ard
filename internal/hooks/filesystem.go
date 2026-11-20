@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	fstools "ard/internal/tools/fs"
+
 	doublestar "github.com/bmatcuk/doublestar/v4"
 )
 
@@ -55,7 +56,7 @@ func NewFileAccessHook(rules ...Rule) (*FileAccessHook, error) {
 	}, nil
 }
 
-func (h *FileAccessHook) Apply(_ context.Context, tc *agent.ToolCall) (*agent.ToolCall, error) {
+func (h *FileAccessHook) Apply(_ context.Context, tc *runtime.PreToolCall) (*runtime.PreToolCall, error) {
 	paths, err := resolvePaths(tc)
 	if err != nil {
 		// if not file tool then just ignore
@@ -136,7 +137,7 @@ func containsSymlink(p string) (bool, error) {
 	}
 }
 
-func resolvePaths(tc *agent.ToolCall) ([]string, error) {
+func resolvePaths(tc *runtime.PreToolCall) ([]string, error) {
 	switch tc.ToolName {
 	case
 		readToolName,

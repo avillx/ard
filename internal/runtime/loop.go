@@ -185,11 +185,15 @@ func processToolCall(
 
 	// apply pre call hooks
 	if len(hooks) > 0 {
-		var err error
-		call, err = ApplyHooks(ctx, hooks, call)
+		preTooCalls := &PreToolCall{
+			ToolName:  call.ToolName,
+			Arguments: call.Arguments,
+		}
+		preTooCalls, err := ApplyHooks(ctx, hooks, preTooCalls)
 		if err != nil {
 			return nil, err
 		}
+		call.Arguments = preTooCalls.Arguments
 	}
 
 	result, err := resolveCallSafely(ctx, tool, call)
@@ -199,16 +203,16 @@ func processToolCall(
 
 	// apply post call hooks
 	if len(hooks) > 0 {
-		afterToolCall := &AfterToolCall{
+		postToolCall := &PostToolCall{
 			ToolCall:   call,
 			ToolResult: result,
 		}
-		afterToolCall, err = ApplyHooks(ctx, hooks, afterToolCall)
+		postToolCall, err = ApplyHooks(ctx, hooks, postToolCall)
 		if err != nil {
 			return nil, err
 		}
 
-		result = afterToolCall.ToolResult
+		result = postToolCall.ToolResult
 	}
 
 	return result, err

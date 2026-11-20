@@ -32,8 +32,8 @@ type NeverToolCallSecretsHook struct {
 
 func (h *NeverToolCallSecretsHook) Apply(
 	_ context.Context,
-	c *agent.ToolCall,
-) (*agent.ToolCall, error) {
+	c *runtime.PreToolCall,
+) (*runtime.PreToolCall, error) {
 	stringArgs := string(c.Arguments)
 	safeString := h.r.Replace(stringArgs)
 	c.Arguments = []byte(safeString)
@@ -49,8 +49,8 @@ type NeverReadSecretsHook struct {
 
 func (h *NeverReadSecretsHook) Apply(
 	_ context.Context,
-	c *runtime.AfterToolCall,
-) (*runtime.AfterToolCall, error) {
+	c *runtime.PostToolCall,
+) (*runtime.PostToolCall, error) {
 	safeCps := []agent.ContentPart{}
 	for _, cp := range c.Result {
 		safe := h.r.Replace(cp.Text)

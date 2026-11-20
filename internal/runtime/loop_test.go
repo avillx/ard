@@ -1,15 +1,14 @@
 package runtime_test
 
 import (
-	"context"
-	"errors"
-	"strings"
-	"testing"
-
 	"ard/internal/agent"
 	"ard/internal/prompt"
 	"ard/internal/runtime"
 	"ard/internal/types"
+	"context"
+	"errors"
+	"strings"
+	"testing"
 )
 
 func TestRunAgentLoop_ExitsOnDone(t *testing.T) {
@@ -521,13 +520,13 @@ func TestRunAgentLoop_AppliesToolHooks(t *testing.T) {
 	}
 
 	callHook := &mockToolCallHook{
-		fn: func(ctx context.Context, c *agent.ToolCall) (*agent.ToolCall, error) {
+		fn: func(ctx context.Context, c *runtime.PreToolCall) (*runtime.PreToolCall, error) {
 			c.Arguments = agent.ToolArguments(`{"hooked":true}`)
 			return c, nil
 		},
 	}
 	resultHook := &mockToolResultHook{
-		fn: func(ctx context.Context, a *runtime.AfterToolCall) (*runtime.AfterToolCall, error) {
+		fn: func(ctx context.Context, a *runtime.PostToolCall) (*runtime.PostToolCall, error) {
 			a.ToolResult = agent.NewToolResult(a.ToolCall.ID, "hooked result")
 			return a, nil
 		},
@@ -622,7 +621,7 @@ func TestRunAgentLoop_ToolCallHookErrorIsReported(t *testing.T) {
 	}
 
 	hook := &mockToolCallHook{
-		fn: func(ctx context.Context, c *agent.ToolCall) (*agent.ToolCall, error) {
+		fn: func(ctx context.Context, c *runtime.PreToolCall) (*runtime.PreToolCall, error) {
 			return nil, errHookRejectedToolCall
 		},
 	}

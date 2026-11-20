@@ -20,8 +20,8 @@ type ContentSizeLimitHook struct {
 
 func (h *ContentSizeLimitHook) Apply(
 	_ context.Context,
-	tc *runtime.AfterToolCall,
-) (*runtime.AfterToolCall, error) {
+	tc *runtime.PostToolCall,
+) (*runtime.PostToolCall, error) {
 	// validation
 	var buf []byte
 	for _, p := range tc.Result {
