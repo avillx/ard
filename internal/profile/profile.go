@@ -91,7 +91,7 @@ func (p *profile) Merge(secondary Profile) {
 	// merge tool servers
 	if secondary.ToolServers() != nil && len(secondary.ToolServers()) > 0 {
 		for _, ts := range secondary.ToolServers() {
-			if !slices.Contains(p.toolServers, ts) {
+			if slices.Contains(p.toolServers, ts) {
 				continue
 			}
 			p.toolServers = append(p.toolServers, ts)
