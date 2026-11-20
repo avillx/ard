@@ -23,7 +23,7 @@ type Cron interface {
 	Expression() string
 }
 
-type TaskRepo interface {
+type Repo interface {
 	All() (map[string]Config, error)
 	Get(id string) (Config, error)
 	Delete(id string) error

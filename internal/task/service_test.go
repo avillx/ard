@@ -61,7 +61,7 @@ type taskRepoStub struct {
 	deleteErr error
 }
 
-func newTaskRepoStub() *taskRepoStub {
+func newRepoStub() *taskRepoStub {
 	return &taskRepoStub{tasks: map[string]task.Config{}}
 }
 
@@ -229,7 +229,7 @@ func waitExecution(t *testing.T, exec *executorStub) task.Config {
 
 func newService(
 	t *testing.T,
-	repo task.TaskRepo,
+	repo task.Repo,
 	agentRepo agent.Repo,
 	exec task.Executor,
 	cronFactory func(string) (task.Cron, error),
@@ -259,7 +259,7 @@ func validationProblem(t *testing.T, err error, key string) string {
 }
 
 func TestValidate_NilRecipients(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	cfg := validTask("task")
@@ -275,7 +275,7 @@ func TestValidate_NilRecipients(t *testing.T) {
 }
 
 func TestValidate_UnknownRecipient(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	cfg := validTask("task")
@@ -291,7 +291,7 @@ func TestValidate_UnknownRecipient(t *testing.T) {
 }
 
 func TestValidate_BadCronOnAdd(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	badCronFactory := func(string) (task.Cron, error) { return nil, task.ErrCron }
 	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), badCronFactory)
 
@@ -305,7 +305,7 @@ func TestValidate_BadCronOnAdd(t *testing.T) {
 }
 
 func TestValidate_BadCronOnPatch(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	repo.seed(validTask("task"))
 	badCronFactory := func(string) (task.Cron, error) { return nil, task.ErrCron }
 	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), badCronFactory)
@@ -323,7 +323,7 @@ func TestValidate_BadCronOnPatch(t *testing.T) {
 }
 
 func TestValidate_EmptyRequest(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	cfg := validTask("task")
@@ -339,7 +339,7 @@ func TestValidate_EmptyRequest(t *testing.T) {
 }
 
 func TestAdd_AllowsOnlyUniqueNames(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	if err := svc.Add(validTask("dup")); err != nil {
@@ -356,7 +356,7 @@ func TestAdd_AllowsOnlyUniqueNames(t *testing.T) {
 }
 
 func TestPatch_NewNameDeletesPreviousName(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), okCronFactory(time.Second))
 
 	if err := svc.Add(validTask("old")); err != nil {
@@ -379,7 +379,7 @@ func TestPatch_NewNameDeletesPreviousName(t *testing.T) {
 }
 
 func TestOnceTask_DisabledAfterExecution(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	cfg := validTask("once")
 	cfg.Active = true
 	cfg.Oneshot = true
@@ -408,7 +408,7 @@ func TestOnceTask_DisabledAfterExecution(t *testing.T) {
 }
 
 func TestPlannedTask_RunsAndStaysActive(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	cfg := validTask("planned")
 	cfg.Active = true
 	repo.seed(cfg)
@@ -447,7 +447,7 @@ func TestPlannedTask_RunsAndStaysActive(t *testing.T) {
 }
 
 func TestDelete_RemovesTaskFromRepoAndReloadStopsRuntime(t *testing.T) {
-	repo := newTaskRepoStub()
+	repo := newRepoStub()
 	cfg := validTask("periodic")
 	cfg.Active = true
 	repo.seed(cfg)

@@ -25,7 +25,7 @@ type taskRuntime struct {
 
 type Service struct {
 	mu          sync.Mutex
-	repo        TaskRepo
+	repo        Repo
 	runtimes    map[string]*taskRuntime
 	executor    Executor
 	cronFactory func(string) (Cron, error)
@@ -34,7 +34,7 @@ type Service struct {
 }
 
 func NewService(
-	repo TaskRepo,
+	repo Repo,
 	executor Executor,
 	cronFactory func(string) (Cron, error),
 	agentRepo agent.Repo,
