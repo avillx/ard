@@ -106,41 +106,34 @@ func (s *Service) buildChat(
 	ctx context.Context,
 	r Request,
 ) (*Chat, error) {
-	// get cached
 	if c, ok := s.cache.Get(r.SessionID); ok {
 		return c, nil
 	}
 
-	// validate request
 	if err := r.validate(); err != nil {
 		return nil, err
 	}
 
-	// session
 	sess, err := s.sessionRepo.Session(r.SessionID)
 	if err != nil {
 		return nil, err
 	}
 
-	// profile
 	p, err := s.profileSvc.Get(sess.ProfileID())
 	if err != nil {
 		return nil, err
 	}
 
-	// model
 	model, err := s.modelRepo.Get(p.Model())
 	if err != nil {
 		return nil, err
 	}
 
-	// tools
 	toolServers, err := resolveToolServers(s.toolRegistry, p, r.ProvidedToolServers, s.logger)
 	if err != nil {
 		return nil, err
 	}
 
-	// build context
 	systemMessage, err := s.systemMessageBuilder.BuildSystemMessage(
 		ctx,
 		p,
