@@ -3,7 +3,6 @@ package api
 import (
 	"ard/internal/agent"
 	"ard/internal/memory"
-	"ard/internal/profile"
 	"ard/internal/runtime"
 	"ard/internal/types"
 	"errors"
@@ -33,7 +32,7 @@ func NewMemoryHandler(
 	}
 }
 
-// GET /memory/{agent}.
+// GET /memory.
 func (h *memoryHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 	type MemoryRecordDTO map[string]string
 
@@ -48,15 +47,13 @@ func (h *memoryHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 	return NewJSONResponse(http.StatusOK, MemoryRecordDTO(idx))
 }
 
-// GET /memory/{agent}/{memory_name}.
+// GET /memory/{memory_name}.
 func (h *memoryHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 	type MemoryDTO struct {
-		ProfileID profile.ID `json:"agent"`
-		Name      string     `json:"memory_name"`
-		Content   string     `json:"content"`
+		Name    string `json:"memory_name"`
+		Content string `json:"content"`
 	}
 
-	profileID := profile.ID(r.PathValue("agent"))
 	memoryName := r.PathValue("memory_name")
 
 	content, err := h.memoryRepo.GetMemory(memoryName)
@@ -68,15 +65,14 @@ func (h *memoryHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 	}
 
 	dto := MemoryDTO{
-		ProfileID: profileID,
-		Name:      memoryName,
-		Content:   content,
+		Name:    memoryName,
+		Content: content,
 	}
 
 	return NewJSONResponse(http.StatusOK, dto)
 }
 
-// POST /memory/{agent}/consolidate.
+// POST /memory/consolidate.
 func (h *memoryHandler) Consolidate(w http.ResponseWriter, r *http.Request) Response {
 	stream := newStream(w)
 	defer stream.close()

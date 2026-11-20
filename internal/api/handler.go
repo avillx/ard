@@ -68,10 +68,10 @@ func (s *HTTPHandler) registerRoutes() {
 	s.HandleFunc("PATCH /task/{name}", taskHandler.Patch)
 
 	sessHandler := &sessionHandler{sessSvc: s.sessSvc}
-	s.HandleFunc("GET /session/{agent}", sessHandler.Sessions)
-	s.HandleFunc("GET /session/{agent}/{session}", sessHandler.Get)
-	s.HandleFunc("POST /session/{agent}", sessHandler.Create)
-	s.HandleFunc("DELETE /session/{agent}/{session}", sessHandler.Delete)
+	s.HandleFunc("GET /session", sessHandler.Sessions)
+	s.HandleFunc("POST /session", sessHandler.Create)
+	s.HandleFunc("GET /session/{session}", sessHandler.Get)
+	s.HandleFunc("DELETE /session/{session}", sessHandler.Delete)
 
 	mcpHandler := &mcpHandler{mcpSvc: s.mcpSvc}
 	s.HandleFunc("GET /mcp", mcpHandler.List)
@@ -79,9 +79,9 @@ func (s *HTTPHandler) registerRoutes() {
 	s.HandleFunc("DELETE /mcp/{mcp}", mcpHandler.Disconnect)
 
 	memoryHandler := NewMemoryHandler(s.consolidationSvc, s.memoryIndexer, s.memoryRepo, s.logger)
-	s.HandleFunc("POST /memory/{agent}/consolidate", memoryHandler.Consolidate)
-	s.HandleFunc("GET /memory/{agent}/{memory_name}", memoryHandler.Get)
-	s.HandleFunc("GET /memory/{agent}", memoryHandler.List)
+	s.HandleFunc("POST /memory/consolidate", memoryHandler.Consolidate)
+	s.HandleFunc("GET /memory/{memory_name}", memoryHandler.Get)
+	s.HandleFunc("GET /memory/", memoryHandler.List)
 	s.HandleFunc("GET /memory/config", memoryHandler.GetConfig)
 	s.HandleFunc("POST /memory/config", memoryHandler.SetConfig)
 
@@ -92,8 +92,8 @@ func (s *HTTPHandler) registerRoutes() {
 	s.HandleFunc("POST /toolresult/{id}", provToolHandler.ResolveCall)
 
 	chatHandler := NewChatHandler(s.chatSvc, provToolHandler, s.logger)
-	s.HandleFunc("POST /chat/{agent}/{session}", chatHandler.Chat)
-	s.HandleFunc("POST /chat/{agent}/{session}/interrupt", chatHandler.Interrupt)
+	s.HandleFunc("POST /chat/{session}", chatHandler.Chat)
+	s.HandleFunc("POST /chat/{session}/interrupt", chatHandler.Interrupt)
 
 	activityHandler := &activityHandler{store: s.activityStore, activitySvc: s.activitySvc}
 	s.HandleFunc("GET /activity", activityHandler.Activity)
