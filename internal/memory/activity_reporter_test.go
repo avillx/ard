@@ -1,6 +1,9 @@
 package memory_test
 
 import (
+	"ard/internal/agent"
+	"ard/internal/memory"
+	"ard/internal/session"
 	"context"
 	"errors"
 	"log/slog"
@@ -9,10 +12,6 @@ import (
 	"testing"
 	"testing/synctest"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/memory"
-	"ard/internal/session"
 )
 
 var (
@@ -62,7 +61,7 @@ type stubActivityRepo struct {
 	records []agent.ActivityRecord
 }
 
-func (r *stubActivityRepo) Log(_ agent.ID, record agent.ActivityRecord) error {
+func (r *stubActivityRepo) Log(record agent.ActivityRecord) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -73,11 +72,11 @@ func (r *stubActivityRepo) Log(_ agent.ID, record agent.ActivityRecord) error {
 	return nil
 }
 
-func (r *stubActivityRepo) GetActivity(agent.ID, time.Time) (string, error) {
+func (r *stubActivityRepo) GetActivity(time.Time) (string, error) {
 	return "", nil
 }
 
-func (r *stubActivityRepo) GetRange(agent.ID, time.Time, time.Time) ([]agent.ActivityLog, error) {
+func (r *stubActivityRepo) GetRange(time.Time, time.Time) ([]agent.ActivityLog, error) {
 	return nil, nil
 }
 

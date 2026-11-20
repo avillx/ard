@@ -188,7 +188,6 @@ func (s *ActivityService) flush(ctx context.Context, key sessionKey) error {
 	}
 
 	return s.activityRepo.Log(
-		key.AgentID,
 		agent.ActivityRecord{
 			Content: extract,
 			Stamp:   time.Now(),

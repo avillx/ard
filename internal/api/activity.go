@@ -39,12 +39,8 @@ func (r RequestDTO) Validate(_ context.Context) error {
 	return nil
 }
 
-type activityStore interface {
-	GetRange(agent.ID, time.Time, time.Time) ([]agent.ActivityLog, error)
-}
-
 type activityHandler struct {
-	store       activityStore
+	store       agent.ActivityRepo
 	activitySvc *memory.ActivityService
 }
 
@@ -59,7 +55,7 @@ func (h *activityHandler) Activity(_ http.ResponseWriter, r *http.Request) Respo
 		return NewInvalidRequest(err)
 	}
 
-	logs, err := h.store.GetRange(request.Agent, request.From, request.To)
+	logs, err := h.store.GetRange(request.From, request.To)
 	if err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			return NewNotFound("agent is not found")

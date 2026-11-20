@@ -20,6 +20,7 @@ func safeApplyMigrations(root files.FileStorage) {
 	renameSharedToRepos(root)
 	renameLogFile(root)
 	moveConfigsInDir(root)
+	activityToRoot(root)
 	cleanAgentFolder(root)
 	cleanRootFolder(root)
 }
@@ -94,11 +95,12 @@ func renameSharedToRepos(root files.FileStorage) {
 
 func cleanRootFolder(root files.FileStorage) {
 	keep := map[string]bool{
-		"repos":   true,
-		"conf":    true,
-		"tmp":     true,
-		"skills":  true,
-		"sys.log": true,
+		"activity": true,
+		"repos":    true,
+		"conf":     true,
+		"tmp":      true,
+		"skills":   true,
+		"sys.log":  true,
 	}
 
 	entries, err := fs.ReadDir(root.FS(), ".")
@@ -238,4 +240,96 @@ func freePath(root files.FileStorage, p string) string {
 		candidate = fmt.Sprintf("%s-%d", p, i)
 	}
 	return candidate
+}
+
+func activityToRoot(root files.FileStorage) {
+	const activityDir = "activity"
+
+	entries, err := fs.ReadDir(root.FS(), ".")
+	if err != nil {
+		return
+	}
+
+	for _, e := range entries {
+		if !isAgentDir(root, e) {
+			continue
+		}
+
+		src := path.Join(e.Name(), activityDir)
+		if !exists(root, src) {
+			continue
+		}
+
+		// nothing to merge with: move the whole folder
+		if !exists(root, activityDir) {
+			if err := moveTo(root, src, activityDir); err == nil {
+				continue
+			}
+		}
+
+		if err := mergeDirs(root, src, activityDir); err != nil {
+			slog.Error("migrate activity folder failed", "agent", e.Name(), "error", err)
+			continue
+		}
+
+		if err := root.Remove(src); err != nil {
+			slog.Error("remove migrated activity folder failed", "agent", e.Name(), "error", err)
+		}
+	}
+}
+
+// mergeDirs moves content of src into dst, appending same-named files.
+func mergeDirs(root files.FileStorage, src, dst string) error {
+	const dirPerm = 0o755
+
+	if err := root.MkdirAll(dst, dirPerm); err != nil {
+		return err
+	}
+
+	entries, err := fs.ReadDir(root.FS(), src)
+	if err != nil {
+		return err
+	}
+
+	for _, e := range entries {
+		srcPath := path.Join(src, e.Name())
+		dstPath := path.Join(dst, e.Name())
+
+		if e.IsDir() {
+			if err := mergeDirs(root, srcPath, dstPath); err != nil {
+				return err
+			}
+			if err := root.Remove(srcPath); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if err := mergeFiles(root, srcPath, dstPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func mergeFiles(root files.FileStorage, src, dst string) error {
+	if !exists(root, dst) {
+		return root.Rename(src, dst)
+	}
+
+	srcData, err := root.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	dstData, err := root.ReadFile(dst)
+	if err != nil {
+		return err
+	}
+
+	if err := root.WriteFile(dst, append(dstData, srcData...), files.ModeFilePerm); err != nil {
+		return err
+	}
+
+	return root.Remove(src)
 }

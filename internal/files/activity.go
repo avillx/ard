@@ -26,10 +26,10 @@ func NewActivityFiles(storage FileStorage) *ActivityFiles {
 	}
 }
 
-func (a *ActivityFiles) Log(id agent.ID, r agent.ActivityRecord) error {
+func (a *ActivityFiles) Log(r agent.ActivityRecord) error {
 	data := []byte(r.String())
 
-	p := resolveActivityFilePath(id, time.Now())
+	p := resolveActivityFilePath(time.Now())
 
 	if err := a.storage.MkdirAll(filepath.Dir(p), ModeDirPerm); err != nil {
 		return err
@@ -45,8 +45,8 @@ func (a *ActivityFiles) Log(id agent.ID, r agent.ActivityRecord) error {
 	return err
 }
 
-func (a *ActivityFiles) GetActivity(id agent.ID, date time.Time) (string, error) {
-	data, err := a.storage.ReadFile(resolveActivityFilePath(id, date))
+func (a *ActivityFiles) GetActivity(date time.Time) (string, error) {
+	data, err := a.storage.ReadFile(resolveActivityFilePath(date))
 	if err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			return "", types.ErrIsNotExist
@@ -57,11 +57,10 @@ func (a *ActivityFiles) GetActivity(id agent.ID, date time.Time) (string, error)
 }
 
 func (a *ActivityFiles) GetRange(
-	agentID agent.ID,
 	from time.Time,
 	to time.Time,
 ) ([]agent.ActivityLog, error) {
-	_, err := a.storage.Stat(resolveActivityFolderPath(agentID))
+	_, err := a.storage.Stat(ActivityFolder)
 	if err != nil {
 		if _, ok := errors.AsType[*os.PathError](err); ok {
 			return nil, types.ErrIsNotExist
@@ -76,7 +75,7 @@ func (a *ActivityFiles) GetRange(
 	}
 
 	for i := from; !i.After(to); i = i.AddDate(0, 0, 1) {
-		p := resolveActivityFilePath(agentID, i)
+		p := resolveActivityFilePath(i)
 		data, err := a.storage.ReadFile(p)
 		if err != nil && !errors.Is(err, types.ErrIsNotExist) {
 			return nil, err
@@ -92,19 +91,12 @@ func (a *ActivityFiles) GetRange(
 	return logs, nil
 }
 
-func resolveActivityFilePath(agentID agent.ID, t time.Time) string {
+func resolveActivityFilePath(t time.Time) string {
 	d := t.UTC().Truncate(dayDuration)
 	return filepath.Join(
-		resolveActivityFolderPath(agentID),
+		ActivityFolder,
 		d.Format("2006"),
 		d.Format("01"),
 		fmt.Sprintf("%s.md", d.Format("02")),
-	)
-}
-
-func resolveActivityFolderPath(agentID agent.ID) string {
-	return filepath.Join(
-		string(agentID),
-		ActivityFolder,
 	)
 }

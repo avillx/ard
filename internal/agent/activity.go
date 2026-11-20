@@ -14,9 +14,9 @@ type ActivityLog struct {
 }
 
 type ActivityRepo interface {
-	Log(ID, ActivityRecord) error
-	GetActivity(ID, time.Time) (string, error)
-	GetRange(ID, time.Time, time.Time) ([]ActivityLog, error)
+	Log(ActivityRecord) error
+	GetActivity(time.Time) (string, error)
+	GetRange(time.Time, time.Time) ([]ActivityLog, error)
 }
 
 type ConsolidatorRepo interface {
