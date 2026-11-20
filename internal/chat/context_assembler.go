@@ -151,6 +151,7 @@ type ConsolidatorRepo interface {
 }
 
 type MemoryPart struct {
+	p    profile.Profile
 	repo ConsolidatorRepo
 }
 

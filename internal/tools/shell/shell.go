@@ -249,11 +249,11 @@ func reapSpawnedChild(cmd *exec.Cmd, pg *processGroup) {
 }
 
 func metadataToEnv(ctx context.Context) []string {
-	ProfileID := tools.MustProfileID(ctx)
+	profileID := tools.MustProfileID(ctx)
 	sessionID := tools.MustSessionID(ctx)
 
 	return []string{
-		fmt.Sprintf("ARD_AGENT_PROFILE_ID=%s", ProfileID),
+		fmt.Sprintf("ARD_AGENT_PROFILE_ID=%s", profileID),
 		fmt.Sprintf("ARD_AGENT_SESSION_ID=%s", sessionID),
 	}
 }

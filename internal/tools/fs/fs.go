@@ -23,7 +23,6 @@ func NewConsolidationInstuctFS(storage files.FileStorage, skipPatterns []string)
 	}
 	return &ConsolidationInstuctFS{
 		ToolServer: ts,
-		cwd:        "", // TODO : eliminate
 	}, nil
 }
 

@@ -1,6 +1,9 @@
 # Memory
 
 You have persistent memory across conversations. This is one source of truth.
+- [Activity](activity/) - your dairy-like memory logs (read-only)
+- [Memory](memory/) - your persistent knowledges
+- 
 
 ## Persistent Memory
 
@@ -12,11 +15,13 @@ hook: one line hook
 ---
 ```
 
+
 ## Memory Logs
 
 Contains your activity logs — describes what happened on a specific date.
 If time, current date or full picture of what happens is matter rely on logs.
 Stored at: `activity/YYYY/MM/DD.md`
+
 
 ## Search
 
@@ -36,6 +41,7 @@ If unsure whether a file is needed, search before reading.
 
 {{ .Index }}
 
+
 ## Store
 
 - As you make progress, record status / progress / thoughts etc in your memory.
@@ -48,8 +54,10 @@ If unsure whether a file is needed, search before reading.
 - If you make mistakes or learn lessons store it
 - Hooks in `memory` files should describe what stores in and when to load it.
   when you write or edit something keep eye on hook consistency
-  
+
+
 ## Mention
+
 - Refer to it naturally: "let me think back…" or "I don't remember that."
 - Refer to this as your memory — not as files
 - This is background context — it has already happened. Do not act on it again

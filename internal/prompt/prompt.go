@@ -156,13 +156,6 @@ func ExcludedUnsupportedModality(modality agent.Modality) string {
 	return mustExecute(excludedModalityTmpl, vars)
 }
 
-//go:embed templates/memory_file_system_instruction.md
-var memoryFilesystemInstructionRaw string
-
-func memoryFileSystemInstruction() string {
-	return memoryFilesystemInstructionRaw
-}
-
 //go:embed templates/file_system_instruction.md
 var filesystemInstructionRaw string
 
