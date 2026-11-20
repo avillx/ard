@@ -36,9 +36,7 @@ func NewMemoryHandler(
 func (h *memoryHandler) List(_ http.ResponseWriter, r *http.Request) Response {
 	type MemoryRecordDTO map[string]string
 
-	agentID := agent.ID(r.PathValue("agent"))
-
-	idx, err := h.memoryIndexer.MemoryIndex(agentID)
+	idx, err := h.memoryIndexer.MemoryIndex()
 	if err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			return NewNotFound("agent memory is not found")
@@ -60,7 +58,7 @@ func (h *memoryHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 	agentID := agent.ID(r.PathValue("agent"))
 	memoryName := r.PathValue("memory_name")
 
-	content, err := h.memoryRepo.GetMemory(agentID, memoryName)
+	content, err := h.memoryRepo.GetMemory(memoryName)
 	if err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			return NewBadRequest("this memory is not exist")

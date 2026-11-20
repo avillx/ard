@@ -20,11 +20,11 @@ type ActivityRepo interface {
 }
 
 type ConsolidatorRepo interface {
-	GetMemory(ID, string) (string, error)
+	GetMemory(string) (string, error)
 }
 
 type MemoryIndexer interface {
-	MemoryIndex(ID) (map[string]string, error)
+	MemoryIndex() (map[string]string, error)
 }
 
 type ActivityRecord struct {

@@ -21,6 +21,7 @@ func safeApplyMigrations(root files.FileStorage) {
 	renameLogFile(root)
 	moveConfigsInDir(root)
 	activityToRoot(root)
+	memoryToRoot(root)
 	cleanAgentFolder(root)
 	cleanRootFolder(root)
 }
@@ -96,6 +97,7 @@ func renameSharedToRepos(root files.FileStorage) {
 func cleanRootFolder(root files.FileStorage) {
 	keep := map[string]bool{
 		"activity": true,
+		"memory":   true,
 		"repos":    true,
 		"conf":     true,
 		"tmp":      true,
@@ -242,6 +244,21 @@ func freePath(root files.FileStorage, p string) string {
 	return candidate
 }
 
+// freePathWithPrefix inserts a counter before the name: 1-note.md.
+func freePathWithPrefix(root files.FileStorage, p string) string {
+	if !exists(root, p) {
+		return p
+	}
+
+	dir, name := path.Split(p)
+	for i := 1; ; i++ {
+		candidate := path.Join(dir, fmt.Sprintf("%d-%s", i, name))
+		if !exists(root, candidate) {
+			return candidate
+		}
+	}
+}
+
 func activityToRoot(root files.FileStorage) {
 	const activityDir = "activity"
 
@@ -267,7 +284,9 @@ func activityToRoot(root files.FileStorage) {
 			}
 		}
 
-		if err := mergeDirs(root, src, activityDir); err != nil {
+		if err := mergeDirs(root, src, activityDir, func(src, dst string) error {
+			return mergeFiles(root, src, dst)
+		}); err != nil {
 			slog.Error("migrate activity folder failed", "agent", e.Name(), "error", err)
 			continue
 		}
@@ -278,8 +297,48 @@ func activityToRoot(root files.FileStorage) {
 	}
 }
 
-// mergeDirs moves content of src into dst, appending same-named files.
-func mergeDirs(root files.FileStorage, src, dst string) error {
+func memoryToRoot(root files.FileStorage) {
+	const memoryDir = "memory"
+
+	entries, err := fs.ReadDir(root.FS(), ".")
+	if err != nil {
+		return
+	}
+
+	moveFile := func(src, dst string) error {
+		return root.Rename(src, freePathWithPrefix(root, dst))
+	}
+
+	for _, e := range entries {
+		if !isAgentDir(root, e) {
+			continue
+		}
+
+		src := path.Join(e.Name(), memoryDir)
+		if !exists(root, src) {
+			continue
+		}
+
+		// nothing to merge with: move the whole folder
+		if !exists(root, memoryDir) {
+			if err := moveTo(root, src, memoryDir); err == nil {
+				continue
+			}
+		}
+
+		if err := mergeDirs(root, src, memoryDir, moveFile); err != nil {
+			slog.Error("migrate memory folder failed", "agent", e.Name(), "error", err)
+			continue
+		}
+
+		if err := root.Remove(src); err != nil {
+			slog.Error("remove migrated memory folder failed", "agent", e.Name(), "error", err)
+		}
+	}
+}
+
+// mergeDirs moves content of src into dst, merging same-named files via merge.
+func mergeDirs(root files.FileStorage, src, dst string, merge func(src, dst string) error) error {
 	const dirPerm = 0o755
 
 	if err := root.MkdirAll(dst, dirPerm); err != nil {
@@ -296,7 +355,7 @@ func mergeDirs(root files.FileStorage, src, dst string) error {
 		dstPath := path.Join(dst, e.Name())
 
 		if e.IsDir() {
-			if err := mergeDirs(root, srcPath, dstPath); err != nil {
+			if err := mergeDirs(root, srcPath, dstPath, merge); err != nil {
 				return err
 			}
 			if err := root.Remove(srcPath); err != nil {
@@ -305,7 +364,7 @@ func mergeDirs(root files.FileStorage, src, dst string) error {
 			continue
 		}
 
-		if err := mergeFiles(root, srcPath, dstPath); err != nil {
+		if err := merge(srcPath, dstPath); err != nil {
 			return err
 		}
 	}

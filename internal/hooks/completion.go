@@ -14,7 +14,6 @@ import (
 	"sync"
 )
 
-// ensure valid memory front matter.
 var _ runtime.CompletionHook = (*OnlyValidMemoryFrontmatterHook)(nil)
 
 type OnlyValidMemoryFrontmatterHook struct {
@@ -30,7 +29,7 @@ func (h *OnlyValidMemoryFrontmatterHook) Apply(
 		return c, nil
 	}
 
-	if _, err := h.indexer.MemoryIndex(h.agentID); err != nil {
+	if _, err := h.indexer.MemoryIndex(); err != nil {
 		if joinedErrs, ok := err.(interface{ Unwrap() []error }); ok {
 			var sb strings.Builder
 			for _, e := range joinedErrs.Unwrap() {
@@ -44,7 +43,6 @@ func (h *OnlyValidMemoryFrontmatterHook) Apply(
 	return c, nil
 }
 
-// empty answer harness.
 var _ runtime.CompletionHook = (*EmptyAnswerHook)(nil)
 
 type EmptyAnswerHook struct{}

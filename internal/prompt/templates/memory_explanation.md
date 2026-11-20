@@ -5,7 +5,7 @@ You have persistent memory across conversations. This is one source of truth.
 ## Persistent Memory
 
 This is not episodic memory; it contains recurring facts and persistent knowledge.
-- Stored at: `{{ .Agent }}/memory/`; all files already indexed by frontmatter:
+- Stored at: `memory`; all files already indexed by frontmatter:
 ```yaml
 ---
 hook: one line hook
@@ -32,7 +32,7 @@ If unsure whether a file is needed, search before reading.
 - If a file or folder doesn't exist, you were inactive or nothing occurred that day.
 - Use the `read` tool with tail of last activity file to check for recent progress.
 - Never try to read all memory at once only necceccary minimum in suitable moment.
-- No need to read `{{ .Agent }}/memory` folder. Read only entry files.
+- No need to read `memory` folder. Read only entry files.
 
 {{ .Index }}
 

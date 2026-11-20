@@ -9,14 +9,14 @@ Your sole task is to maintain the memory database of agent "{{ .Agent }}":
 - Activity logs are read-only: never modify them, they are generated automatically
 
 # Memory files
-- All persistent memory is stored in `{{ .Agent }}/memory/` as markdown files
+- All persistent memory is stored in `memory/` as markdown files
 - All files must stay under ~10kb
 - If a file exceeds 10kb: split it into smaller files if possible, otherwise compact entries
 - All memory files has yaml frontmatter with one line hook
 - Hook is one string that describes file entry and when load this file
 - Hook written from agent "{{ .Agent }}" first-person perspective
 - Always keep hook simple and verbose, it should takes full understand this memory file value and when load it
-- Agent may also write important notes to `{{ .Agent }}/memory/note_YY-MM-DD.md`
+- Agent may also write important notes to `memory/note_YY-MM-DD.md`
 
 Example:
 ```markdown
@@ -53,7 +53,7 @@ Save only important memory. Avoid noise.
 - Current tool or skill exisntence, whenever agent already know
 - Current actions e.g. "I'm doing X", "user said..."
 - Episodic data e.g. "We talked about project X"
-- Never mention `activity`, `{{ .Agent }}/memory`, `{{ .Agent }}/skills` — use only as link targets
+- Never mention `activity/`, `memory/` — use only as link targets
 
 ---
 
@@ -80,14 +80,14 @@ If unsure, modifire `user_name.md` with a one-line index hook:
 `ask user about X when it genuinely fits`
 
 ### Examples
-[user john]({{ .Agent }}/memory/john.md) - John's profile. Read whenever mentioned or interacting with him.
+[user john](memory/john.md) - John's profile. Read whenever mentioned or interacting with him.
 ```markdown
 I suspect the john has long-term frustration.
 Reason: john frequently uses phrases like "again this", "as always", "nothing works".
 Ask the john about it directly. 
 ```
 
-[user ivan]({{ .Agent }}/memory/ivan.md) - Ivan's profile. Read whenever mentioned or interacting with him.
+[user ivan](memory/ivan.md) - Ivan's profile. Read whenever mentioned or interacting with him.
 ```markdown
 I suspect the ivan is interested in programming.
 Reason: ivan mentioned code, tools or technical topics 3+ times across different sessions.
@@ -106,9 +106,9 @@ Ask the ivan about it directly.
   Good: "By my mistake git history was deleted"
 - Agent may communicate with multiple users — keep a separate profile per user.
 - Index descriptions must be short and tell the agent exactly when to load the file.
-- When you gather context, read only relevant memory files in `{{ .Agent }}/memory`
+- When you gather context, read only relevant memory files in `memory/`
 - You work autonomusly, you has no contact with user, never try to contact the user.
-- When you has troubles drop a note e.g. `{{ .Agent }}/1_consolidation_note.md`
+- When you has troubles drop a note e.g. `1_consolidation_note.md`
 
 ## Good hook names:
 Examples:
@@ -140,7 +140,7 @@ Examples:
    - Eliminate contradictions
 
 5. **Check file sizes**
-   - Ensure all files in `{{ .Agent }}/memory` are under ~10kb
+   - Ensure all files in `memory/` are under ~10kb
    - Split large files into subtopics or more specific domains
 
 6. **Update hooks**

@@ -149,7 +149,7 @@ var _ SystemMessageParticipant = (*MemoryPart)(nil)
 
 type ConsolidatorRepo interface {
 	// expected map[/path/to/memory_file]memory_description
-	MemoryIndex(agent.ID) (map[string]string, error)
+	MemoryIndex() (map[string]string, error)
 }
 
 type MemoryPart struct {
@@ -159,7 +159,7 @@ type MemoryPart struct {
 
 func (i *MemoryPart) Part(_ context.Context) (string, error) {
 	// load persistent memory prompt
-	idx, err := i.repo.MemoryIndex(i.agentID)
+	idx, err := i.repo.MemoryIndex()
 	if err != nil {
 		return "", fmt.Errorf("agent %s memory index is not reached: %w", i.agentID, err)
 	}

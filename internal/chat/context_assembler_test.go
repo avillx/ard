@@ -18,7 +18,7 @@ type mockConsolidatorRepo struct {
 	err error
 }
 
-func (m *mockConsolidatorRepo) MemoryIndex(agent.ID) (map[string]string, error) {
+func (m *mockConsolidatorRepo) MemoryIndex() (map[string]string, error) {
 	return m.idx, m.err
 }
 

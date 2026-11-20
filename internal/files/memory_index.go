@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io/fs"
 	"log/slog"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -30,22 +29,18 @@ func NewMemoryFiles(
 	}
 }
 
-func (f *MemoryFiles) MemoryIndex(agentID agent.ID) (map[string]string, error) {
-	// NOTE: all fs funcs disallow backslashes so that the reason to use path
-	// over filepath. Cause filepath on windows return path with backslashes
-	// and this stuff never read directory
-	memoryPath := path.Join(string(agentID), MemoryFolder)
+func (f *MemoryFiles) MemoryIndex() (map[string]string, error) {
 	index := map[string]string{}
 
 	// missing folder means no memories
-	if _, err := fs.Stat(f.storage.FS(), memoryPath); err != nil {
+	if _, err := fs.Stat(f.storage.FS(), MemoryFolder); err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			return index, nil
 		}
 		return nil, err
 	}
 
-	err := fs.WalkDir(f.storage.FS(), memoryPath, func(p string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(f.storage.FS(), MemoryFolder, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			f.logger.Error("walking dir", "path", p, "error", err)
 			return nil
@@ -84,18 +79,15 @@ func (f *MemoryFiles) MemoryIndex(agentID agent.ID) (map[string]string, error) {
 	return index, nil
 }
 
-func (f *MemoryFiles) GetMemory(agentID agent.ID, name string) (string, error) {
-	// NOTE: path over filepath is required
-	memoryPath := path.Join(string(agentID), MemoryFolder)
-
-	enties, err := fs.ReadDir(f.storage.FS(), memoryPath)
+func (f *MemoryFiles) GetMemory(name string) (string, error) {
+	enties, err := fs.ReadDir(f.storage.FS(), MemoryFolder)
 	if err != nil {
 		return "", err
 	}
 
 	for _, e := range enties {
 		if strings.TrimSuffix(e.Name(), filepath.Ext(e.Name())) == name {
-			data, err := f.storage.ReadFile(filepath.Join(memoryPath, e.Name()))
+			data, err := f.storage.ReadFile(filepath.Join(MemoryFolder, e.Name()))
 			if err != nil {
 				return "", err
 			}
