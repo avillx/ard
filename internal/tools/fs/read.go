@@ -1,10 +1,6 @@
 package fstools
 
 import (
-	"ard/internal/agent"
-	"ard/internal/files"
-	"ard/internal/tools"
-	"ard/internal/types"
 	"bytes"
 	"context"
 	"fmt"
@@ -14,8 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"ard/internal/agent"
+	"ard/internal/files"
+	"ard/internal/tools"
+	"ard/internal/types"
 	"github.com/bmatcuk/doublestar/v4"
 )
+
+const DirectoryReadDepthLimit = 2
 
 type ReadTool struct {
 	storage      files.FileStorage
@@ -111,12 +113,6 @@ func (t *ReadTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]age
 }
 
 func (t *ReadTool) ReadTextFile(p string, start, end *int) (string, error) {
-	if start != nil || end != nil {
-		res, err := t.storage.ReadFile(p)
-		lines := extractLines(res, start, end)
-		return lines, mapErrs(err)
-	}
-
 	data, err := t.storage.ReadFile(p)
 	if err != nil {
 		return "", mapErrs(err)
@@ -126,6 +122,11 @@ func (t *ReadTool) ReadTextFile(p string, start, end *int) (string, error) {
 		return "", types.NewAgentMistakeError("you can't read binary file")
 	}
 
+	if start != nil || end != nil {
+		lines := extractLines(data, start, end)
+		return lines, nil
+	}
+
 	return string(data), nil
 }
 
@@ -133,54 +134,25 @@ func (t *ReadTool) ReadDir(p string) (string, error) {
 	var sb strings.Builder
 	rootParts := strings.Split(p, string(os.PathSeparator))
 	err := fs.WalkDir(t.storage.FS(), filepath.ToSlash(p), func(path string, d fs.DirEntry, err error) error {
-		// should skip
+		// Should skip by pattern
 		for _, pattern := range t.skipPatterns {
 			if doublestar.PathMatchUnvalidated(pattern, path) {
 				return nil
 			}
 		}
 
-		labels := []string{}
+		// Represent path
+		labels := t.defineLabels(path, d, err)
+		fmt.Fprintf(&sb, "%s %s\n", path, strings.Join(labels, " "))
 
-		// error label
 		if err != nil {
-			fmt.Fprintf(&sb, "%s [err: %v]\n", path, err)
 			return nil
 		}
 
-		// directory label
-		if d.IsDir() {
-			// skip if depth greather than 2 levels
-			parts := strings.Split(path, string(os.PathSeparator))
-			if len(parts) > len(rootParts)+2 {
-				return fs.SkipDir
-			}
-			labels = append(labels, "[dir]")
+		// Skip if depth limit reached
+		if d.IsDir() && isDepthLevelLimit(rootParts, filepath.Clean(path), DirectoryReadDepthLimit) {
+			return fs.SkipDir
 		}
-
-		// size label
-		info, err := d.Info()
-		if err == nil {
-			size := int(info.Size())
-			labels = append(labels, files.FormatSize(size))
-		}
-
-		data, err := t.storage.ReadFile(path)
-		if err == nil {
-			if isBinary(data) {
-				// Binary file add binary label
-				labels = append(labels, "[bin]")
-			} else {
-				// Text file add a lines label
-				lineCount := bytes.Count(data, []byte("\n"))
-				if len(data) > 0 && data[len(data)-1] != '\n' {
-					lineCount++
-				}
-				labels = append(labels, fmt.Sprintf("[%d lines]", lineCount))
-			}
-		}
-
-		fmt.Fprintf(&sb, "%s %s\n", path, strings.Join(labels, " "))
 
 		return nil
 	})
@@ -189,6 +161,55 @@ func (t *ReadTool) ReadDir(p string) (string, error) {
 	}
 
 	return sb.String(), nil
+}
+
+func isDepthLevelLimit(rootPathParts []string, currentPath string, depthLimit int) bool {
+	// skip if depth greather than 2 levels
+	parts := strings.Split(currentPath, string(os.PathSeparator))
+	if len(parts) > len(rootPathParts)+depthLimit {
+		return true
+	}
+	return false
+}
+
+func (t *ReadTool) defineLabels(path string, d fs.DirEntry, err error) []string {
+	labels := []string{}
+
+	// error label
+	if err != nil {
+		errLabel := fmt.Sprintf("%s [err: %v]\n", path, err)
+		labels = append(labels, errLabel)
+		return labels
+	}
+
+	// directory label
+	if d.IsDir() {
+		labels = append(labels, "[dir]")
+	}
+
+	// size label
+	info, err := d.Info()
+	if err == nil {
+		size := int(info.Size())
+		labels = append(labels, files.FormatSize(size))
+	}
+
+	data, err := t.storage.ReadFile(path)
+	if err == nil {
+		if isBinary(data) {
+			// Binary file add binary label
+			labels = append(labels, "[bin]")
+		} else {
+			// Text file add a lines label
+			lineCount := bytes.Count(data, []byte("\n"))
+			if len(data) > 0 && data[len(data)-1] != '\n' {
+				lineCount++
+			}
+			labels = append(labels, fmt.Sprintf("[%d lines]", lineCount))
+		}
+	}
+
+	return labels
 }
 
 func detectImageType(p string) agent.AllowedMIME {

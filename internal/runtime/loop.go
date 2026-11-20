@@ -1,13 +1,14 @@
 package runtime
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"context"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/types"
 )
 
 const (
@@ -23,6 +24,7 @@ var (
 )
 
 // blocking.
+// nolint: gocognit
 func RunAgentLoop(
 	ctx context.Context,
 	model agent.Model,
