@@ -187,7 +187,7 @@ func New(
 	memoryFiles := files.NewMemoryFiles(fileStorage, logger)
 
 	chatSvc := chat.NewService(
-		profilesRepo,
+		profileSvc,
 		sessSvc,
 		modelsSvc,
 		toolSvc,

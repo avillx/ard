@@ -85,7 +85,8 @@ func (p *profile) Patch(patch Profile) {
 func (p *profile) Merge(secondary Profile) {
 	// merge system prompts
 	if secondary.SystemPrompt() != "" {
-		p.systemPrompt = fmt.Sprintf("%s\n\n%s", p.systemPrompt, secondary.SystemPrompt())
+		// Order First is secondary prompt, then profile prompt
+		p.systemPrompt = fmt.Sprintf("%s\n\n%s", secondary.SystemPrompt(), p.systemPrompt)
 	}
 
 	// merge tool servers
