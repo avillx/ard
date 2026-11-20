@@ -1,15 +1,16 @@
 package cleanup_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/cleanup"
-	"ard/internal/session"
 	"context"
 	"errors"
 	"log/slog"
 	"reflect"
 	"testing"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/cleanup"
+	"ard/internal/session"
 )
 
 func runSinglePass(t *testing.T, svc *cleanup.CleanUpService, signal <-chan struct{}) {
@@ -89,7 +90,7 @@ func TestNewCleanUpService_RejectsShortInterval(t *testing.T) {
 func TestRun_CleansImmediatelyAndStopsOnCancel(t *testing.T) {
 	old := time.Now().Add(-24 * time.Hour)
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.SessionHeader{
+		headersByAgent: map[agent.ID][]session.Header{
 			testAgentID: {
 				oldHeader("sess-old", old),
 				oldHeader("sess-new", time.Now()),

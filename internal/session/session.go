@@ -57,9 +57,9 @@ func (e *BrokenHeaderError) Error() string {
 
 type ID string
 
-var _ SessionHeader = (*sessionHeader)(nil)
+var _ Header = (*sessionHeader)(nil)
 
-type SessionHeader interface {
+type Header interface {
 	ID() ID
 
 	InputTokens() int64
@@ -72,7 +72,7 @@ type SessionHeader interface {
 }
 
 type Session interface {
-	SessionHeader
+	Header
 
 	Messages() []agent.Message
 	GetLastAgentMessage() *agent.AgentMessage
@@ -242,13 +242,13 @@ func (s *session) ApplyCompletion(completion *agent.Completion) {
 	s.messages = append(s.messages, agent.NewAgentMessage(completion.Content, completion.ToolCalls))
 }
 
-func (s *session) OverwriteMessages(inputTokens int64, new []agent.Message) {
+func (s *session) OverwriteMessages(inputTokens int64, newMessages []agent.Message) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.inputTokens = inputTokens
 	s.outputTokens = 0
-	s.messages = new
+	s.messages = newMessages
 }
 
 func (s *session) SetExtras(e map[string]any) {

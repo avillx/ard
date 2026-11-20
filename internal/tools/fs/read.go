@@ -66,8 +66,7 @@ func (t *ReadTool) Schema() map[string]any {
 	}
 }
 
-// read file.
-func (t *ReadTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
+func (t *ReadTool) Call(_ context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
 	args, err := tools.UnwrapArgs[struct {
 		Path      string `json:"path"`
 		StartLine *int   `json:"start_line,omitempty"`

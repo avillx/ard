@@ -1,8 +1,9 @@
 package session
 
 import (
-	"ard/internal/agent"
 	"log/slog"
+
+	"ard/internal/agent"
 )
 
 var _ SessionsRepo = (*Service)(nil)
@@ -11,7 +12,7 @@ type SessionsRepo interface {
 	Session(agentID agent.ID, SessionID ID) (Session, error)
 	Save(agentID agent.ID, Session Session) error
 	Delete(agentID agent.ID, SessionID ID) error
-	Headers(agentID agent.ID) ([]SessionHeader, error)
+	Headers(agentID agent.ID) ([]Header, error)
 }
 
 type UUIDGenerator interface {
@@ -71,6 +72,6 @@ func (s *Service) Delete(agentID agent.ID, sessionID ID) error {
 	return s.repo.Delete(agentID, sessionID)
 }
 
-func (s *Service) Headers(agentID agent.ID) ([]SessionHeader, error) {
+func (s *Service) Headers(agentID agent.ID) ([]Header, error) {
 	return s.repo.Headers(agentID)
 }

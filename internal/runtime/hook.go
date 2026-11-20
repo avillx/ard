@@ -1,15 +1,18 @@
 package runtime
 
 import (
-	"ard/internal/agent"
 	"context"
+
+	"ard/internal/agent"
 )
 
 // TODO:
 // Rename to PostCompletion / PreToolCall / PostToolCall.
-type CompletionHook Hook[*agent.Completion]
-type ToolCallHook Hook[*agent.ToolCall]
-type ToolResultHook Hook[*AfterToolCall]
+type (
+	CompletionHook Hook[*agent.Completion]
+	ToolCallHook   Hook[*agent.ToolCall]
+	ToolResultHook Hook[*AfterToolCall]
+)
 
 type Hook[T any] interface {
 	Apply(context.Context, T) (T, error)
@@ -27,11 +30,11 @@ func ApplyHooks[T any](ctx context.Context, hooks []any, event T) (T, error) {
 			continue
 		}
 
-		new, err := typedHook.Apply(ctx, event)
+		newEvent, err := typedHook.Apply(ctx, event)
 		if err != nil {
-			return new, err
+			return newEvent, err
 		}
-		event = new
+		event = newEvent
 	}
 
 	return event, nil

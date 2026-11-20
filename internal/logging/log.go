@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"ard/internal/agent"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -10,6 +9,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"ard/internal/agent"
 )
 
 type LoggerConfig struct {
@@ -70,7 +71,7 @@ func ToLogLevel(level string) (slog.Level, error) {
 	}
 }
 
-func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
+func replaceAttrs(_ []string, a slog.Attr) slog.Attr {
 	switch v := a.Value.Any().(type) {
 	// message
 	case []agent.Message:

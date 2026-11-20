@@ -11,17 +11,17 @@ import (
 	"ard/internal/session"
 )
 
-var _ TaskExecutor = (*executor)(nil)
+var _ Executor = (*executor)(nil)
 
 type executor struct {
 	sessionSvc   *session.Service
-	chatExecutor chat.ChatExecutor
+	chatExecutor chat.Executor
 	logger       *slog.Logger
 }
 
 func NewExecutor(
 	sessionSvc *session.Service,
-	chatExecutor chat.ChatExecutor,
+	chatExecutor chat.Executor,
 	logger *slog.Logger,
 ) *executor {
 	return &executor{
@@ -31,7 +31,7 @@ func NewExecutor(
 	}
 }
 
-func (s *executor) Execute(ctx context.Context, t TaskConfig) {
+func (s *executor) Execute(ctx context.Context, t Config) {
 	logger := s.logger.With("task", t.Name)
 
 	for _, r := range t.Recipients {

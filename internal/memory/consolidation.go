@@ -1,15 +1,16 @@
 package memory
 
 import (
-	"ard/internal/agent"
-	"ard/internal/prompt"
-	"ard/internal/runtime"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/prompt"
+	"ard/internal/runtime"
 )
 
 var ErrDisabledMemory = errors.New("agent memory is disabled")
@@ -26,7 +27,7 @@ func (c ConsolidatorConfig) IsZero() bool {
 		c.Instruction == ""
 }
 
-type MemoryRepo interface {
+type ConsolidatorRepo interface {
 	Load() (ConsolidatorConfig, error)
 	Save(ConsolidatorConfig) error
 }
@@ -39,7 +40,7 @@ type ConsolidationService struct {
 	modelRepo agent.ModelRegistry
 
 	toolServer []agent.ToolServer
-	memoryRepo MemoryRepo
+	memoryRepo ConsolidatorRepo
 
 	resolveHooks func(agent.ID) []any
 	enabled      bool
@@ -57,7 +58,7 @@ func NewConsolidationService(
 	toolServer []agent.ToolServer,
 	hooksReslover func(agent.ID) []any,
 	modelRepo agent.ModelRegistry,
-	memoryRepo MemoryRepo,
+	memoryRepo ConsolidatorRepo,
 	logger *slog.Logger,
 ) (*ConsolidationService, error) {
 	if len(toolServer) <= 0 {
@@ -180,7 +181,6 @@ func (m *ConsolidationService) consolidateMemoryFor(
 	return nil
 }
 
-// without mutex.
 func (m *ConsolidationService) Config() ConsolidatorConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

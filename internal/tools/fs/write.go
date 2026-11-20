@@ -1,11 +1,12 @@
 package fstools
 
 import (
+	"context"
+	"fmt"
+
 	"ard/internal/agent"
 	"ard/internal/files"
 	"ard/internal/tools"
-	"context"
-	"fmt"
 )
 
 type WriteMode string
@@ -23,6 +24,7 @@ func (t *WriteTool) Name() agent.ToolName { return "write" }
 func (t *WriteTool) Description() string {
 	return "Write content to a file, creating it if it does not exist; default mode overwrites"
 }
+
 func (t *WriteTool) Schema() map[string]any {
 	return map[string]any{
 		"type": "object",
@@ -46,7 +48,7 @@ e.g. 'shared/project-x/README.md', 'shared/non/exist/path/README.md'`,
 	}
 }
 
-func (t *WriteTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
+func (t *WriteTool) Call(_ context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
 	args, err := tools.UnwrapArgs[struct {
 		Path    string    `json:"path"`
 		Content string    `json:"content"`

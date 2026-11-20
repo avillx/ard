@@ -10,7 +10,7 @@ import (
 	"ard/internal/types"
 )
 
-type SessionHeaderDTO struct {
+type HeaderDTO struct {
 	ID           session.ID     `json:"session_id"`
 	InputTokens  int64          `json:"input_tokens"`
 	OutputTokens int64          `json:"output_tokens"`
@@ -21,7 +21,7 @@ type SessionHeaderDTO struct {
 }
 
 type SessionDTO struct {
-	SessionHeaderDTO
+	HeaderDTO
 
 	Messages []MessageDTO `json:"messages"`
 }
@@ -64,8 +64,8 @@ func (h *sessionHandler) Get(w http.ResponseWriter, r *http.Request) Response {
 	}
 
 	dto := SessionDTO{
-		SessionHeaderDTO: sessHeaderToDTO(sess),
-		Messages:         messagesToDTO(sess.Messages()),
+		HeaderDTO: sessHeaderToDTO(sess),
+		Messages:  messagesToDTO(sess.Messages()),
 	}
 
 	return NewJSONResponse(http.StatusOK, dto)
@@ -74,7 +74,7 @@ func (h *sessionHandler) Get(w http.ResponseWriter, r *http.Request) Response {
 func (h *sessionHandler) Sessions(w http.ResponseWriter, r *http.Request) Response {
 	agentID := agent.ID(r.PathValue("agent"))
 
-	dtos := []SessionHeaderDTO{}
+	dtos := []HeaderDTO{}
 
 	sessions, err := h.sessSvc.Headers(agentID)
 	if err != nil {
@@ -91,7 +91,7 @@ func (h *sessionHandler) Sessions(w http.ResponseWriter, r *http.Request) Respon
 
 		// packing broken headers
 		for _, e := range BrokenHeadersError.Errors {
-			dtos = append(dtos, SessionHeaderDTO{
+			dtos = append(dtos, HeaderDTO{
 				ID:    e.SessID,
 				Cause: e.Error(),
 			})
@@ -146,8 +146,8 @@ func (h *sessionHandler) Delete(w http.ResponseWriter, r *http.Request) Response
 	return NewResponse(http.StatusOK)
 }
 
-func sessHeaderToDTO(header session.SessionHeader) SessionHeaderDTO {
-	return SessionHeaderDTO{
+func sessHeaderToDTO(header session.Header) HeaderDTO {
+	return HeaderDTO{
 		ID:           header.ID(),
 		InputTokens:  header.InputTokens(),
 		OutputTokens: header.OutputTokens(),

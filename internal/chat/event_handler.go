@@ -25,7 +25,7 @@ type SessionSaveSink interface {
 	Save(agent.ID, session.Session) error
 }
 
-type ChatEventHandler struct {
+type ChatEventHandler struct { //nolint: revive
 	agentID        agent.ID
 	sess           session.Session
 	sessSink       SessionSaveSink

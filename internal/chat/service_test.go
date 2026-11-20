@@ -57,8 +57,8 @@ func (m *mockSessionsRepo) Save(agentID agent.ID, s session.Session) error {
 	return nil
 }
 
-func (m *mockSessionsRepo) Delete(agent.ID, session.ID) error                 { return nil }
-func (m *mockSessionsRepo) Headers(agent.ID) ([]session.SessionHeader, error) { return nil, nil }
+func (m *mockSessionsRepo) Delete(agent.ID, session.ID) error          { return nil }
+func (m *mockSessionsRepo) Headers(agent.ID) ([]session.Header, error) { return nil, nil }
 
 // mockModelRegistry implements agent.ModelRegistry.
 type mockModelRegistry struct {

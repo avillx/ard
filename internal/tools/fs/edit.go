@@ -1,13 +1,14 @@
 package fstools
 
 import (
+	"context"
+	"fmt"
+	"strings"
+
 	"ard/internal/agent"
 	"ard/internal/files"
 	"ard/internal/tools"
 	"ard/internal/types"
-	"context"
-	"fmt"
-	"strings"
 )
 
 type EditTool struct {
@@ -40,7 +41,7 @@ func (t *EditTool) Schema() map[string]any {
 	}
 }
 
-func (t *EditTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
+func (t *EditTool) Call(_ context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
 	args, err := tools.UnwrapArgs[struct {
 		Path string `json:"path"`
 		Old  string `json:"old"`

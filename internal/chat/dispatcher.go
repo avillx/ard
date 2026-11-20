@@ -1,14 +1,15 @@
 package chat
 
 import (
-	"ard/internal/agent"
-	"ard/internal/session"
 	"context"
 	"log/slog"
 	"sync"
+
+	"ard/internal/agent"
+	"ard/internal/session"
 )
 
-var _ ChatExecutor = (*Dispatcher)(nil)
+var _ Executor = (*Dispatcher)(nil)
 
 type sessionKey struct {
 	AgentID   agent.ID

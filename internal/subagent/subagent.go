@@ -1,16 +1,16 @@
 package subagent
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/prompt"
 	"ard/internal/runtime"
 	"ard/internal/session"
-	"errors"
-	"fmt"
-	"log/slog"
-
-	"context"
 )
 
 var ErrCallStackOverflow = errors.New("sub agent call is overflow")
@@ -18,13 +18,13 @@ var ErrCallStackOverflow = errors.New("sub agent call is overflow")
 const maxSubAgentDepth = 3
 
 type Service struct {
-	chatExecutor chat.ChatExecutor
+	chatExecutor chat.Executor
 	sessService  *session.Service
 	logger       *slog.Logger
 }
 
 func NewService(
-	chatExecutor chat.ChatExecutor,
+	chatExecutor chat.Executor,
 	sessService *session.Service,
 	logger *slog.Logger,
 ) *Service {

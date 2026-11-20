@@ -19,7 +19,7 @@ type ActivityRepo interface {
 	GetRange(ID, time.Time, time.Time) ([]ActivityLog, error)
 }
 
-type MemoryRepo interface {
+type ConsolidatorRepo interface {
 	GetMemory(ID, string) (string, error)
 }
 

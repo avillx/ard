@@ -117,9 +117,8 @@ func NewActivityService(
 	return svc
 }
 
-// for both user and completion stuff.
-func (o *ActivityService) Commit(agentID agent.ID, sessID session.ID, msgs []agent.Message) {
-	if !o.Config().Enabled {
+func (s *ActivityService) Commit(agentID agent.ID, sessID session.ID, msgs []agent.Message) {
+	if !s.Config().Enabled {
 		// if sevice disabled then drop commits silently
 		return
 	}
@@ -134,62 +133,62 @@ func (o *ActivityService) Commit(agentID agent.ID, sessID session.ID, msgs []age
 }
 
 func (o *ActivityService) releaseBuffer(key sessionKey) (*messageBuffer, error) {
-	o.mu.Lock()
+	s.mu.Lock()
 	defer o.mu.Unlock()
 
-	buf, ok := o.messageBuffers[key]
+	buf, ok := s.messageBuffers[key]
 	if !ok {
 		return nil, types.ErrIsNotExist
 	}
 
-	delete(o.flushTimer, key)
-	delete(o.messageBuffers, key)
+	delete(s.flushTimer, key)
+	delete(s.messageBuffers, key)
 
 	return buf, nil
 }
 
-func (o *ActivityService) getBuffer(key sessionKey) *messageBuffer {
-	o.mu.Lock()
-	defer o.mu.Unlock()
+func (s *ActivityService) getBuffer(key sessionKey) *messageBuffer {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	buf, ok := o.messageBuffers[key]
+	buf, ok := s.messageBuffers[key]
 	if !ok {
 		buf = newMessageBuffer()
-		interval := time.Duration(o.Config().Interval) * time.Second
+		interval := time.Duration(s.Config().Interval) * time.Second
 		timer := time.AfterFunc(interval, func() {
-			logger := o.logger.With("agent", key.AgentID, "session", key.SessionID)
+			logger := s.logger.With("agent", key.AgentID, "session", key.SessionID)
 
-			if !o.Config().Enabled {
+			if !s.Config().Enabled {
 				logger.Warn("not logged, service disabled")
 				return
 			}
 
-			if err := o.flush(context.Background(), key); err != nil {
+			if err := s.flush(context.Background(), key); err != nil {
 				logger.Error("not logged", "error", err)
 				return
 			}
 
 			logger.Info("logged")
 		})
-		o.flushTimer[key] = timer
-		o.messageBuffers[key] = buf
+		s.flushTimer[key] = timer
+		s.messageBuffers[key] = buf
 	}
 
 	return buf
 }
 
-func (o *ActivityService) flush(ctx context.Context, key sessionKey) error {
-	buf, err := o.releaseBuffer(key)
+func (s *ActivityService) flush(ctx context.Context, key sessionKey) error {
+	buf, err := s.releaseBuffer(key)
 	if err != nil {
 		return err
 	}
 
-	extract, err := o.extractActivity(ctx, buf)
+	extract, err := s.extractActivity(ctx, buf)
 	if err != nil {
 		return err
 	}
 
-	return o.activityRepo.Log(
+	return s.activityRepo.Log(
 		key.AgentID,
 		agent.ActivityRecord{
 			Content: extract,
@@ -198,10 +197,10 @@ func (o *ActivityService) flush(ctx context.Context, key sessionKey) error {
 	)
 }
 
-func (r *ActivityService) extractActivity(ctx context.Context, buf *messageBuffer) (string, error) {
-	r.cfgMu.RLock()
+func (s *ActivityService) extractActivity(ctx context.Context, buf *messageBuffer) (string, error) {
+	s.cfgMu.RLock()
 	model := r.model
-	r.cfgMu.RUnlock()
+	s.cfgMu.RUnlock()
 
 	if model == nil {
 		return "", fmt.Errorf("model is not set")

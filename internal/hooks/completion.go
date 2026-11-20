@@ -63,7 +63,7 @@ func (h *EmptyAnswerHook) Apply(
 }
 
 type todoStorage interface {
-	List(session.ID) []todo.TodoItem
+	List(session.ID) []todo.Item
 }
 
 const maxIncomplitedTodoAttempts = 3
@@ -122,8 +122,8 @@ func (h *UndoneTodoHook) Apply(
 	return c, nil
 }
 
-func (h *UndoneTodoHook) extractUndoneTodos(sessID session.ID) []todo.TodoItem {
-	var undoneTodos []todo.TodoItem
+func (h *UndoneTodoHook) extractUndoneTodos(sessID session.ID) []todo.Item {
+	var undoneTodos []todo.Item
 	for _, item := range h.storage.List(sessID) {
 		if item.Status != todo.Done && item.Status != todo.Declined {
 			undoneTodos = append(undoneTodos, item)
@@ -153,7 +153,7 @@ func (h *UndoneTodoHook) isAgentCantHandle(sessID session.ID) bool {
 	return h.attemptCounter[sessID] >= maxIncomplitedTodoAttempts
 }
 
-func todoToList(todoItems []todo.TodoItem) string {
+func todoToList(todoItems []todo.Item) string {
 	var b strings.Builder
 	for _, t := range todoItems {
 		fmt.Fprintf(&b, "%s\n", t.String())

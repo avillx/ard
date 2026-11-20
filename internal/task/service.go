@@ -1,8 +1,6 @@
 package task
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"context"
 	"errors"
 	"log/slog"
@@ -10,23 +8,26 @@ import (
 	"slices"
 	"sync"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/types"
 )
 
-type TaskExecutor interface {
-	Execute(ctx context.Context, t TaskConfig)
+type Executor interface {
+	Execute(ctx context.Context, t Config)
 }
 
 type taskRuntime struct {
 	cancel  context.CancelFunc
 	stopped chan struct{}
-	config  TaskConfig
+	config  Config
 }
 
 type Service struct {
 	mu          sync.Mutex
 	repo        TaskRepo
 	runtimes    map[string]*taskRuntime
-	executor    TaskExecutor
+	executor    Executor
 	cronFactory func(string) (Cron, error)
 	agentRepo   agent.Repo
 	logger      *slog.Logger
@@ -34,7 +35,7 @@ type Service struct {
 
 func NewService(
 	repo TaskRepo,
-	executor TaskExecutor,
+	executor Executor,
 	cronFactory func(string) (Cron, error),
 	agentRepo agent.Repo,
 	logger *slog.Logger,
@@ -58,14 +59,13 @@ func NewService(
 	return svc, nil
 }
 
-// implement sentinel action.
 func (s *Service) Reload(_ context.Context) error {
 	tasks, err := s.repo.All()
 	if err != nil {
 		return err
 	}
 
-	loadCandidates := map[string]TaskConfig{}
+	loadCandidates := map[string]Config{}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -102,7 +102,7 @@ func (s *Service) Reload(_ context.Context) error {
 }
 
 // run all tasks from config.
-func (s *Service) runTasks(cfgs map[string]TaskConfig) {
+func (s *Service) runTasks(cfgs map[string]Config) {
 	for _, t := range cfgs {
 		if !t.Active {
 			continue
@@ -123,7 +123,7 @@ func (s *Service) stopRuntime(name string) {
 	delete(s.runtimes, name)
 }
 
-func (s *Service) start(cfg TaskConfig) error {
+func (s *Service) start(cfg Config) error {
 	cron, err := s.cronFactory(cfg.Reglament)
 	if err != nil {
 		return ErrCron
@@ -169,7 +169,7 @@ func (s *Service) start(cfg TaskConfig) error {
 	return nil
 }
 
-func runLoop(ctx context.Context, cron Cron, cfg TaskConfig, onExecute func(context.Context, TaskConfig)) {
+func runLoop(ctx context.Context, cron Cron, cfg Config, onExecute func(context.Context, Config)) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -183,7 +183,7 @@ func runLoop(ctx context.Context, cron Cron, cfg TaskConfig, onExecute func(cont
 	}
 }
 
-func (s *Service) List() ([]TaskConfig, error) {
+func (s *Service) List() ([]Config, error) {
 	taskMap, err := s.repo.All()
 	if err != nil {
 		return nil, err
@@ -191,14 +191,14 @@ func (s *Service) List() ([]TaskConfig, error) {
 
 	taskConfigs := slices.Collect(maps.Values(taskMap))
 	if taskConfigs == nil {
-		taskConfigs = []TaskConfig{}
+		taskConfigs = []Config{}
 	}
 
 	return taskConfigs, nil
 }
 
-func (s *Service) Add(cfg TaskConfig) error {
-	if err := validateTaskConfig(cfg, s.cronFactory); err != nil {
+func (s *Service) Add(cfg Config) error {
+	if err := validateConfig(cfg, s.cronFactory); err != nil {
 		return err
 	}
 
@@ -216,7 +216,7 @@ func (s *Service) Add(cfg TaskConfig) error {
 	return s.repo.Save(cfg)
 }
 
-func (s *Service) Patch(name string, patch TaskPatch) error {
+func (s *Service) Patch(name string, patch Patch) error {
 	if patch.Recipients != nil {
 		if err := s.validateRecipients(*patch.Recipients); err != nil {
 			return err
@@ -238,7 +238,7 @@ func (s *Service) Patch(name string, patch TaskPatch) error {
 		return nil
 	}
 
-	if err := validateTaskConfig(next, s.cronFactory); err != nil {
+	if err := validateConfig(next, s.cronFactory); err != nil {
 		return err
 	}
 

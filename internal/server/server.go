@@ -31,7 +31,6 @@ import (
 	"ard/internal/uuid"
 )
 
-// Simple orchestrator.
 type Server struct {
 	TMPFiles               *files.TemporaryFiles
 	SecretSvc              *secrets.Service
@@ -292,7 +291,7 @@ func attachBuildinToolServers(
 	fileStorage files.FileStorage,
 	skipPatterns []string,
 	todoStorage todo.Store,
-	chatExecutor chat.ChatExecutor,
+	chatExecutor chat.Executor,
 	sessSvc *session.Service,
 	logger *slog.Logger,
 	agentRepo agent.Repo,
@@ -304,7 +303,7 @@ func attachBuildinToolServers(
 	if err := toolSvc.Connect("filesystem", fsToolSrv); err != nil {
 		return err
 	}
-	if err := toolSvc.Connect("todo", todo.NewTodoToolServer(todoStorage)); err != nil {
+	if err := toolSvc.Connect("todo", todo.NewToolServer(todoStorage)); err != nil {
 		return err
 	}
 	if err := toolSvc.Connect("agent", tools.NewCallAgentToolServer(
@@ -313,7 +312,7 @@ func attachBuildinToolServers(
 	)); err != nil {
 		return err
 	}
-	return toolSvc.Connect("shell", shell.NewShellToolServer(
+	return toolSvc.Connect("shell", shell.NewToolServer(
 		datapath,
 		secretSvc,
 		agentShell,
@@ -374,7 +373,7 @@ func buildSentinels(
 		sentinel.WithWatch(files.MemoryConfigFile, files.NewMemoReloader(memoryConsolidationSvc, activitySvc)),
 		sentinel.WithWatch(files.ModelsConfigFile, files.NewModelsReloader(providerSvc)),
 		sentinel.WithWatch(files.SecretsConfigFile, files.NewSecretsReloader(secretSvc)),
-		sentinel.WithWatch(files.TaskConfigFile, files.NewTasksReloader(taskSvc)),
+		sentinel.WithWatch(files.ConfigFile, files.NewTasksReloader(taskSvc)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("config sentinel: %w", err)

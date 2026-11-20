@@ -22,20 +22,21 @@ type SecretsSource interface {
 	All() map[string]string
 }
 
-type ShellToolServer struct {
+type ToolServer struct {
 	*tools.BuildInToolServer
 
 	instruction string
 }
 
+// NewToolServer
 // customShell is not required. leave it "" if you not need in it
 // customShellAttributes dosent apply if customShell is "".
-func NewShellToolServer(
+func NewToolServer(
 	cwd string,
 	secretsSource SecretsSource,
 	shell string,
 	shellAttributes []string,
-) *ShellToolServer {
+) *ToolServer {
 	if shell == "" {
 		shell = defaultShell
 	}
@@ -44,10 +45,10 @@ func NewShellToolServer(
 		shellAttributes = defaultShellAttributes
 	}
 
-	return &ShellToolServer{
+	return &ToolServer{
 		instruction: renderInstruction(rt.GOOS, shell),
 		BuildInToolServer: tools.NewBuildInToolServer(
-			&ShellTool{
+			&Tool{
 				secretsSource:   secretsSource,
 				cwd:             cwd,
 				shell:           shell,
@@ -57,7 +58,7 @@ func NewShellToolServer(
 	}
 }
 
-func (t *ShellToolServer) Instruction() string {
+func (t *ToolServer) Instruction() string {
 	return t.instruction
 }
 
@@ -74,29 +75,29 @@ func renderInstruction(os, shell string) string {
 - NEVER try to read env directly, just ask user env name if you need one.`
 }
 
-var _ agent.Tool = (*ShellTool)(nil)
+var _ agent.Tool = (*Tool)(nil)
 
-type ShellTool struct {
+type Tool struct {
 	secretsSource   SecretsSource
 	cwd             string
 	shell           string
 	shellAttributes []string
 }
 
-func (t *ShellTool) Name() agent.ToolName {
+func (t *Tool) Name() agent.ToolName {
 	return "shell"
 }
 
-// this is edge timeout, sets in runtime.
-func (t *ShellTool) TimeOut() time.Duration {
+// TimeOut this is edge timeout, sets in runtime.
+func (t *Tool) TimeOut() time.Duration {
 	return 15 * time.Minute
 }
 
-func (t *ShellTool) Description() string {
+func (t *Tool) Description() string {
 	return "access to shell"
 }
 
-func (t *ShellTool) Schema() map[string]any {
+func (t *Tool) Schema() map[string]any {
 	return map[string]any{
 		"type": "object",
 		"properties": map[string]any{
@@ -119,7 +120,7 @@ func (t *ShellTool) Schema() map[string]any {
 
 const waitDelayAfterShellExit = 5 * time.Second
 
-func (t *ShellTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
+func (t *Tool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
 	args, err := tools.UnwrapArgs[struct {
 		Command string `json:"command"`
 		Timeout int    `json:"timeout,omitempty"`

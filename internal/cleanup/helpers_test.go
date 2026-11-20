@@ -1,13 +1,14 @@
 package cleanup_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/session"
 	"context"
 	"errors"
 	"log/slog"
 	"sync"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/session"
 )
 
 const (
@@ -50,7 +51,7 @@ type deletedSession struct {
 }
 
 type mockSessionsRepo struct {
-	headersByAgent map[agent.ID][]session.SessionHeader
+	headersByAgent map[agent.ID][]session.Header
 	headersErr     map[agent.ID]error
 	deleteErr      error
 
@@ -81,7 +82,7 @@ func (m *mockSessionsRepo) Delete(agentID agent.ID, sessID session.ID) error {
 	return nil
 }
 
-func (m *mockSessionsRepo) Headers(agentID agent.ID) ([]session.SessionHeader, error) {
+func (m *mockSessionsRepo) Headers(agentID agent.ID) ([]session.Header, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -119,7 +120,7 @@ func (m *mockSessionsRepo) headersCalls(agentID agent.ID) int {
 	return count
 }
 
-func oldHeader(id session.ID, updatedAt time.Time) session.SessionHeader {
+func oldHeader(id session.ID, updatedAt time.Time) session.Header {
 	return session.NewHeader(id, 0, 0, updatedAt, updatedAt, nil)
 }
 

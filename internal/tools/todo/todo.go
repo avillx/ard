@@ -1,19 +1,20 @@
 package todo
 
 import (
-	"ard/internal/agent"
-	"ard/internal/tools"
 	"context"
 	"fmt"
 	"strings"
+
+	"ard/internal/agent"
+	"ard/internal/tools"
 )
 
-type TodoToolServer struct {
+type ToolServer struct {
 	*tools.BuildInToolServer
 }
 
-func NewTodoToolServer(todoStorage Store) *TodoToolServer {
-	return &TodoToolServer{
+func NewToolServer(todoStorage Store) *ToolServer {
+	return &ToolServer{
 		BuildInToolServer: tools.NewBuildInToolServer(
 			&CreateTodoTool{Store: todoStorage},
 			&ListTodoTool{Store: todoStorage},
@@ -22,7 +23,7 @@ func NewTodoToolServer(todoStorage Store) *TodoToolServer {
 	}
 }
 
-func (t *TodoToolServer) Instruction() string {
+func (t *ToolServer) Instruction() string {
 	return `## Todo managment:
 When your task is too complex create a plan with todo list and follow it step by step
 Use create_todo to plan steps before starting a multistep task.
@@ -45,7 +46,7 @@ var statusBadge = map[Status]string{
 	Declined:   "[-]",
 }
 
-func renderList(items []TodoItem) string {
+func renderList(items []Item) string {
 	if len(items) == 0 {
 		return "_No todos yet._"
 	}
@@ -87,9 +88,9 @@ func (t *CreateTodoTool) Call(ctx context.Context, rawArgs agent.ToolArguments) 
 
 	sessionID := tools.MustSessionID(ctx)
 
-	items := make([]TodoItem, len(args.Titles))
+	items := make([]Item, len(args.Titles))
 	for i, title := range args.Titles {
-		items[i] = TodoItem{Title: title}
+		items[i] = Item{Title: title}
 	}
 	t.Store.Add(sessionID, items)
 

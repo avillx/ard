@@ -61,7 +61,7 @@ func (t *FindTool) Schema() map[string]any {
 	}
 }
 
-func (t *FindTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
+func (t *FindTool) Call(_ context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
 	args, err := tools.UnwrapArgs[struct {
 		Glob  string  `json:"glob"`
 		Regex *string `json:"regex"`

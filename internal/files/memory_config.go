@@ -1,19 +1,19 @@
 package files
 
 import (
-	"ard/internal/memory"
-	"ard/internal/sentinel"
 	"bytes"
 	"context"
 	"path/filepath"
 	"sync"
 
+	"ard/internal/memory"
+	"ard/internal/sentinel"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pelletier/go-toml/v2"
 )
 
 const (
-	MemoryConfigFileMode FileMode = 0755
+	MemoryConfigFileMode FileMode = 0o755
 	MemoryConfigFile              = "memory.toml"
 	memoryConfigDoc      string   = `# Memory config
 
@@ -165,7 +165,7 @@ func (r *ActivityRepo) Load() (memory.ActivityConfig, error) {
 }
 
 // Persistent memory repo.
-var _ memory.MemoryRepo = (*ConsolidatorRepo)(nil)
+var _ memory.ConsolidatorRepo = (*ConsolidatorRepo)(nil)
 
 type ConsolidatorRepo struct {
 	*MemoryFile

@@ -1,8 +1,9 @@
 package runtime
 
 import (
-	"ard/internal/agent"
 	"time"
+
+	"ard/internal/agent"
 )
 
 type Event any
@@ -42,7 +43,6 @@ func (ev *CompactionEvent) CompactedContext() []agent.Message {
 	return ev.compactedContext
 }
 
-// complete event.
 type CompleteEvent struct {
 	baseEvent
 
@@ -60,7 +60,6 @@ func (e *CompleteEvent) Complete() *agent.Completion {
 	return e.completion
 }
 
-// tool call result event.
 type ToolResultEvent struct {
 	baseEvent
 
@@ -84,7 +83,6 @@ func (e *ToolResultEvent) Result() *agent.ToolResult {
 	return e.result
 }
 
-// tool call error event.
 type ToolCallErrEvent struct {
 	baseEvent
 
@@ -114,7 +112,6 @@ func (e *ToolCallErrEvent) Err() error {
 	return e.err
 }
 
-// loop exit event.
 type LoopExitEvent struct {
 	baseEvent
 
@@ -132,7 +129,6 @@ func (e *LoopExitEvent) Err() error {
 	return e.err
 }
 
-// completion mistake event.
 type CompletionMistakeEvent struct {
 	baseEvent
 

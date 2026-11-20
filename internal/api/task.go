@@ -1,10 +1,11 @@
 package api
 
 import (
-	"ard/internal/task"
-	"ard/internal/types"
 	"errors"
 	"net/http"
+
+	"ard/internal/task"
+	"ard/internal/types"
 )
 
 // handler.
@@ -24,7 +25,7 @@ func (s *taskHandler) List(w http.ResponseWriter, _ *http.Request) Response {
 
 // POST /task/{name}.
 func (s *taskHandler) Create(w http.ResponseWriter, r *http.Request) Response {
-	cfg, err := decode[task.TaskConfig](r)
+	cfg, err := decode[task.Config](r)
 	if err != nil {
 		return NewInvalidRequest(err)
 	}
@@ -44,7 +45,7 @@ func (s *taskHandler) Create(w http.ResponseWriter, r *http.Request) Response {
 func (s *taskHandler) Patch(w http.ResponseWriter, r *http.Request) Response {
 	taskName := r.PathValue("name")
 
-	patch, err := decode[task.TaskPatch](r)
+	patch, err := decode[task.Patch](r)
 	if err != nil {
 		return NewInvalidRequest(err)
 	}

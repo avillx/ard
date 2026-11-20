@@ -1,23 +1,24 @@
 package chat_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/chat"
-	"ard/internal/session"
 	"context"
 	"errors"
 	"strings"
 	"testing"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/chat"
+	"ard/internal/session"
 )
 
-// mockMemoryRepo implements chat.MemoryRepo.
-type mockMemoryRepo struct {
+// mockConsolidatorRepo implements chat.ConsolidatorRepo.
+type mockConsolidatorRepo struct {
 	idx map[string]string
 	err error
 }
 
-func (m *mockMemoryRepo) MemoryIndex(agent.ID) (map[string]string, error) {
+func (m *mockConsolidatorRepo) MemoryIndex(agent.ID) (map[string]string, error) {
 	return m.idx, m.err
 }
 
@@ -81,7 +82,7 @@ func newAssemblerSession(extras map[string]any) session.Session {
 
 func buildSystemMessage(
 	t *testing.T,
-	memoryRepo chat.MemoryRepo,
+	memoryRepo chat.ConsolidatorRepo,
 	skillRepo chat.SkillsRepo,
 	agt agent.Agent,
 	toolServers []agent.ToolServer,
@@ -142,7 +143,7 @@ func TestBuildSystemMessage_HappyPath(t *testing.T) {
 	const agentInstruction = "call other agents when needed"
 	const sessionInstruction = "answer in russian"
 
-	memoryRepo := &mockMemoryRepo{idx: map[string]string{
+	memoryRepo := &mockConsolidatorRepo{idx: map[string]string{
 		memoryOnePath: "task memory",
 		memoryTwoPath: "notes memory",
 	}}
@@ -199,7 +200,7 @@ func TestBuildSystemMessage_HappyPath(t *testing.T) {
 func TestAgentPart_IncludesCustomSystemPrompt(t *testing.T) {
 	const prompt = "custom system prompt"
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, &mockSkillsRepo{},
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
 		newAssemblerAgent(prompt), nil,
 		newAssemblerSession(nil))
 	if err != nil {
@@ -212,7 +213,7 @@ func TestAgentPart_IncludesCustomSystemPrompt(t *testing.T) {
 func TestAgentPart_FallsBackToDefaultPrompt(t *testing.T) {
 	const prompt = "custom system prompt"
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, &mockSkillsRepo{},
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
 		newAssemblerAgent(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
@@ -229,7 +230,7 @@ func TestMemoryPart_IncludesMemoryIndex(t *testing.T) {
 	const path = "/memory/notes.md"
 	const desc = "notes about the project"
 
-	repo := &mockMemoryRepo{idx: map[string]string{path: desc}}
+	repo := &mockConsolidatorRepo{idx: map[string]string{path: desc}}
 
 	text, err := buildSystemMessage(t, repo, &mockSkillsRepo{},
 		newAssemblerAgent(""), nil,
@@ -244,7 +245,7 @@ func TestMemoryPart_IncludesMemoryIndex(t *testing.T) {
 func TestMemoryPart_SkipsEmptyIndex(t *testing.T) {
 	const path = "/memory/notes.md"
 
-	repo := &mockMemoryRepo{idx: map[string]string{}}
+	repo := &mockConsolidatorRepo{idx: map[string]string{}}
 
 	text, err := buildSystemMessage(t, repo, &mockSkillsRepo{},
 		newAssemblerAgent(""), nil,
@@ -257,7 +258,7 @@ func TestMemoryPart_SkipsEmptyIndex(t *testing.T) {
 }
 
 func TestMemoryPart_ErrorWhenIndexNotReached(t *testing.T) {
-	repo := &mockMemoryRepo{err: errors.New("memory repo is down")}
+	repo := &mockConsolidatorRepo{err: errors.New("memory repo is down")}
 
 	_, err := buildSystemMessage(t, repo, &mockSkillsRepo{},
 		newAssemblerAgent(""), nil,
@@ -273,7 +274,7 @@ func TestSkillPart_IncludesSkillIndex(t *testing.T) {
 
 	repo := &mockSkillsRepo{skills: map[string]string{path: desc}}
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, repo,
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, repo,
 		newAssemblerAgent(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
@@ -288,7 +289,7 @@ func TestSkillPart_SkipsEmptyIndex(t *testing.T) {
 
 	repo := &mockSkillsRepo{skills: map[string]string{}}
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, repo,
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, repo,
 		newAssemblerAgent(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
@@ -307,7 +308,7 @@ func TestToolAwarePart_IncludesToolInstructions(t *testing.T) {
 		&agentInstructedToolServer{instruction: agentInstruction},
 	}
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, &mockSkillsRepo{},
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
 		newAssemblerAgent(""), toolServers,
 		newAssemblerSession(nil))
 	if err != nil {
@@ -326,7 +327,7 @@ func TestToolAwarePart_IncludesBothInstructionsFromOneServer(t *testing.T) {
 		&bothInstructedToolServer{instruction: toolInstruction, agentInstruction: agentInstruction},
 	}
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, &mockSkillsRepo{},
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
 		newAssemblerAgent(""), toolServers,
 		newAssemblerSession(nil))
 	if err != nil {
@@ -345,7 +346,7 @@ func TestToolAwarePart_IgnoresServersWithoutInstructions(t *testing.T) {
 		&instructedToolServer{instruction: toolInstruction},
 	}
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, &mockSkillsRepo{},
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
 		newAssemblerAgent(""), toolServers,
 		newAssemblerSession(nil))
 	if err != nil {
@@ -359,7 +360,7 @@ func TestToolAwarePart_SkipsWhenNoTools(t *testing.T) {
 	const toolInstruction = "shell tool instruction"
 	const agentInstruction = "call agent instruction"
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, &mockSkillsRepo{},
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
 		newAssemblerAgent(""), nil,
 		newAssemblerSession(nil))
 	if err != nil {
@@ -373,7 +374,7 @@ func TestToolAwarePart_SkipsWhenNoTools(t *testing.T) {
 func TestSessionPart_IncludesInstruction(t *testing.T) {
 	const instruction = "always answer in english"
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, &mockSkillsRepo{},
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
 		newAssemblerAgent(""), nil,
 		newAssemblerSession(map[string]any{"instruction": instruction}))
 	if err != nil {
@@ -386,7 +387,7 @@ func TestSessionPart_IncludesInstruction(t *testing.T) {
 func TestSessionPart_SkipsWithoutInstruction(t *testing.T) {
 	const instruction = "always answer in english"
 
-	text, err := buildSystemMessage(t, &mockMemoryRepo{}, &mockSkillsRepo{},
+	text, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
 		newAssemblerAgent(""), nil,
 		newAssemblerSession(map[string]any{"other": "no instruction here"}))
 	if err != nil {
@@ -397,7 +398,7 @@ func TestSessionPart_SkipsWithoutInstruction(t *testing.T) {
 }
 
 func TestSessionPart_ErrorOnBadInstructionType(t *testing.T) {
-	_, err := buildSystemMessage(t, &mockMemoryRepo{}, &mockSkillsRepo{},
+	_, err := buildSystemMessage(t, &mockConsolidatorRepo{}, &mockSkillsRepo{},
 		newAssemblerAgent(""), nil,
 		newAssemblerSession(map[string]any{"instruction": 42}))
 	if err == nil {

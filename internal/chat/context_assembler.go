@@ -1,15 +1,16 @@
 package chat
 
 import (
-	"ard/internal/agent"
-	"ard/internal/prompt"
-	"ard/internal/session"
 	"context"
 	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/prompt"
+	"ard/internal/session"
 )
 
 const cacheLifeTime = 30 * time.Minute
@@ -68,13 +69,13 @@ type SystemMessageParticipant interface {
 
 type ContextAssembler struct {
 	skillRepo  SkillsRepo
-	memoryRepo MemoryRepo
+	memoryRepo ConsolidatorRepo
 	cache      *SystemMessageCache
 }
 
 func NewContextAssembler(
 	skillRepo SkillsRepo,
-	memoryRepo MemoryRepo,
+	memoryRepo ConsolidatorRepo,
 ) *ContextAssembler {
 	return &ContextAssembler{
 		skillRepo:  skillRepo,
@@ -144,17 +145,17 @@ func (i *AgentPart) Part(_ context.Context) (string, error) {
 // memory index.
 var _ SystemMessageParticipant = (*MemoryPart)(nil)
 
-type MemoryRepo interface {
+type ConsolidatorRepo interface {
 	// expected map[/path/to/memory_file]memory_description
 	MemoryIndex(agent.ID) (map[string]string, error)
 }
 
 type MemoryPart struct {
 	agentID agent.ID
-	repo    MemoryRepo
+	repo    ConsolidatorRepo
 }
 
-func (i *MemoryPart) Part(ctx context.Context) (string, error) {
+func (i *MemoryPart) Part(_ context.Context) (string, error) {
 	// load persistent memory prompt
 	idx, err := i.repo.MemoryIndex(i.agentID)
 	if err != nil {
@@ -223,7 +224,7 @@ type ToolAwarePart struct {
 	toolServers []agent.ToolServer
 }
 
-func (i *ToolAwarePart) Part(ctx context.Context) (string, error) {
+func (i *ToolAwarePart) Part(_ context.Context) (string, error) {
 	// if has no tools no need to guide it
 	if len(i.toolServers) <= 0 {
 		return "", nil
@@ -254,7 +255,7 @@ type SessionPart struct {
 	sess session.Session
 }
 
-func (i *SessionPart) Part(ctx context.Context) (string, error) {
+func (i *SessionPart) Part(_ context.Context) (string, error) {
 	extras := i.sess.Extras()
 	if len(extras) <= 0 {
 		return "", nil

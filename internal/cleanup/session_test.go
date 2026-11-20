@@ -22,7 +22,7 @@ func newCleaner(sessRepo *mockSessionsRepo, agentRepo agent.Repo) *cleanup.Sessi
 
 func TestClean_DeletesDeprecatedSessions(t *testing.T) {
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.SessionHeader{
+		headersByAgent: map[agent.ID][]session.Header{
 			testAgentID: {
 				oldHeader("sess-old", time.Now().Add(-24*time.Hour)),
 				oldHeader("sess-new", time.Now()),
@@ -43,7 +43,7 @@ func TestClean_DeletesDeprecatedSessions(t *testing.T) {
 
 func TestClean_KeepsRecentSessions(t *testing.T) {
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.SessionHeader{
+		headersByAgent: map[agent.ID][]session.Header{
 			testAgentID: {
 				oldHeader("s1", time.Now()),
 				oldHeader("s2", time.Now().Add(-time.Hour)),
@@ -117,7 +117,7 @@ func TestClean_PropagatesAgentRepoError(t *testing.T) {
 func TestClean_ContinuesOnDeleteError(t *testing.T) {
 	old := time.Now().Add(-24 * time.Hour)
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.SessionHeader{
+		headersByAgent: map[agent.ID][]session.Header{
 			testAgentID: {
 				oldHeader("s1", old),
 				oldHeader("s2", old),
@@ -143,7 +143,7 @@ func TestClean_ProcessesAllAgents(t *testing.T) {
 	agent2 := agent.ID("0")
 	old := time.Now().Add(-24 * time.Hour)
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.SessionHeader{
+		headersByAgent: map[agent.ID][]session.Header{
 			testAgentID: {oldHeader("a1", old)},
 			agent2:      {oldHeader("b1", old), oldHeader("b2", old)},
 		},
@@ -171,7 +171,7 @@ func TestClean_ProcessesAllAgents(t *testing.T) {
 func TestClean_IsConcurrencySafe(t *testing.T) {
 	old := time.Now().Add(-24 * time.Hour)
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.SessionHeader{
+		headersByAgent: map[agent.ID][]session.Header{
 			testAgentID: {oldHeader("s1", old), oldHeader("s2", old)},
 		},
 	}

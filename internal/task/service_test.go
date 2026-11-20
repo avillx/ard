@@ -18,8 +18,8 @@ import (
 //go:fix inline
 func strPtr(s string) *string { return new(s) }
 
-func validTask(name string) task.TaskConfig {
-	return task.TaskConfig{
+func validTask(name string) task.Config {
+	return task.Config{
 		Name:        name,
 		Description: "description",
 		Recipients:  []agent.ID{"agent-a"},
@@ -51,8 +51,8 @@ func okCronFactory(d time.Duration) func(string) (task.Cron, error) {
 
 type taskRepoStub struct {
 	mu      sync.Mutex
-	tasks   map[string]task.TaskConfig
-	saves   []task.TaskConfig
+	tasks   map[string]task.Config
+	saves   []task.Config
 	deletes []string
 
 	allErr    error
@@ -62,17 +62,17 @@ type taskRepoStub struct {
 }
 
 func newTaskRepoStub() *taskRepoStub {
-	return &taskRepoStub{tasks: map[string]task.TaskConfig{}}
+	return &taskRepoStub{tasks: map[string]task.Config{}}
 }
 
-func (r *taskRepoStub) seed(cfg task.TaskConfig) {
+func (r *taskRepoStub) seed(cfg task.Config) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	r.tasks[cfg.Name] = cfg
 }
 
-func (r *taskRepoStub) All() (map[string]task.TaskConfig, error) {
+func (r *taskRepoStub) All() (map[string]task.Config, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -80,27 +80,27 @@ func (r *taskRepoStub) All() (map[string]task.TaskConfig, error) {
 		return nil, r.allErr
 	}
 
-	out := make(map[string]task.TaskConfig, len(r.tasks))
+	out := make(map[string]task.Config, len(r.tasks))
 	maps.Copy(out, r.tasks)
 	return out, nil
 }
 
-func (r *taskRepoStub) Get(name string) (task.TaskConfig, error) {
+func (r *taskRepoStub) Get(name string) (task.Config, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if r.getErr != nil {
-		return task.TaskConfig{}, r.getErr
+		return task.Config{}, r.getErr
 	}
 
 	cfg, ok := r.tasks[name]
 	if !ok {
-		return task.TaskConfig{}, types.ErrIsNotExist
+		return task.Config{}, types.ErrIsNotExist
 	}
 	return cfg, nil
 }
 
-func (r *taskRepoStub) Save(cfg task.TaskConfig) error {
+func (r *taskRepoStub) Save(cfg task.Config) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -126,7 +126,7 @@ func (r *taskRepoStub) Delete(name string) error {
 	return nil
 }
 
-func (r *taskRepoStub) saved() []task.TaskConfig {
+func (r *taskRepoStub) saved() []task.Config {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -180,16 +180,16 @@ func (r *agentRepoStub) Delete(agent.ID) error  { return nil }
 
 type executorStub struct {
 	mu      sync.Mutex
-	calls   []task.TaskConfig
+	calls   []task.Config
 	lastCtx context.Context
-	callCh  chan task.TaskConfig
+	callCh  chan task.Config
 }
 
 func newExecutorStub() *executorStub {
-	return &executorStub{callCh: make(chan task.TaskConfig, 16)}
+	return &executorStub{callCh: make(chan task.Config, 16)}
 }
 
-func (e *executorStub) Execute(ctx context.Context, cfg task.TaskConfig) {
+func (e *executorStub) Execute(ctx context.Context, cfg task.Config) {
 	e.mu.Lock()
 	e.calls = append(e.calls, cfg)
 	e.lastCtx = ctx
@@ -215,7 +215,7 @@ func (e *executorStub) context() context.Context {
 	return e.lastCtx
 }
 
-func waitExecution(t *testing.T, exec *executorStub) task.TaskConfig {
+func waitExecution(t *testing.T, exec *executorStub) task.Config {
 	t.Helper()
 
 	select {
@@ -223,7 +223,7 @@ func waitExecution(t *testing.T, exec *executorStub) task.TaskConfig {
 		return cfg
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for task execution")
-		return task.TaskConfig{}
+		return task.Config{}
 	}
 }
 
@@ -231,7 +231,7 @@ func newService(
 	t *testing.T,
 	repo task.TaskRepo,
 	agentRepo agent.Repo,
-	exec task.TaskExecutor,
+	exec task.Executor,
 	cronFactory func(string) (task.Cron, error),
 ) *task.Service {
 	t.Helper()
@@ -310,7 +310,7 @@ func TestValidate_BadCronOnPatch(t *testing.T) {
 	badCronFactory := func(string) (task.Cron, error) { return nil, task.ErrCron }
 	svc := newService(t, repo, newAgentRepoStub("agent-a"), newExecutorStub(), badCronFactory)
 
-	err := svc.Patch("task", task.TaskPatch{Reglament: new("bad")})
+	err := svc.Patch("task", task.Patch{Reglament: new("bad")})
 	if got := validationProblem(t, err, "schedule"); got != "invalid cron" {
 		t.Fatalf("schedule problem = %q, want %q", got, "invalid cron")
 	}
@@ -363,7 +363,7 @@ func TestPatch_NewNameDeletesPreviousName(t *testing.T) {
 		t.Fatalf("Add() error = %v", err)
 	}
 
-	if err := svc.Patch("old", task.TaskPatch{Name: new("new")}); err != nil {
+	if err := svc.Patch("old", task.Patch{Name: new("new")}); err != nil {
 		t.Fatalf("Patch() error = %v", err)
 	}
 

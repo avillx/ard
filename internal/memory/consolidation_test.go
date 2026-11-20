@@ -68,7 +68,7 @@ func (*consolidationToolServer) Tools() []agent.Tool { return nil }
 func newConsolidationService(
 	t *testing.T,
 	registry agent.ModelRegistry,
-	repo memory.MemoryRepo,
+	repo memory.ConsolidatorRepo,
 ) *memory.ConsolidationService {
 	t.Helper()
 

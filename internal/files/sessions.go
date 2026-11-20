@@ -64,20 +64,20 @@ func (r *SessionFiles) Delete(agentID agent.ID, sessionID session.ID) error {
 	return r.storage.Remove(sessionFilePath)
 }
 
-func (r *SessionFiles) Headers(agentID agent.ID) ([]session.SessionHeader, error) {
+func (r *SessionFiles) Headers(agentID agent.ID) ([]session.Header, error) {
 	sessionDir := resolveSessionFolderPath(agentID)
 	sessionDir = filepath.ToSlash(sessionDir)
 	files, err := fs.ReadDir(r.storage.FS(), sessionDir)
 	if err != nil {
 		// if session folder or agent is not exist well it nil count of headers
 		if errors.Is(err, types.ErrIsNotExist) {
-			return []session.SessionHeader{}, nil
+			return []session.Header{}, nil
 		}
 		return nil, err
 	}
 
 	var brokenHeaders []*session.BrokenHeaderError
-	headers := []session.SessionHeader{}
+	headers := []session.Header{}
 	for _, file := range files {
 		fileName := file.Name()
 		rawID := strings.TrimSuffix(fileName, filepath.Ext(fileName))
@@ -101,7 +101,7 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.SessionHeader, error
 			continue
 		}
 
-		var header SessionHeaderDTO
+		var header HeaderDTO
 		dec := json.NewDecoder(bytes.NewReader(data))
 		if err := dec.Decode(&header); err != nil {
 			brokenHeader := session.NewBrokenHeaderError(sessID, agentID, err)
@@ -126,7 +126,7 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.SessionHeader, error
 	return headers, err
 }
 
-type SessionHeaderDTO struct {
+type HeaderDTO struct {
 	InputTokens  int64          `json:"input_tokens"`
 	OutputTokens int64          `json:"output_tokens"`
 	CreatedAt    time.Time      `json:"created_at"`
@@ -139,7 +139,7 @@ func marshalSession(s session.Session) ([]byte, error) {
 
 	enc := json.NewEncoder(&buf)
 
-	if err := enc.Encode(SessionHeaderDTO{
+	if err := enc.Encode(HeaderDTO{
 		InputTokens:  s.InputTokens(),
 		OutputTokens: s.OutputTokens(),
 		CreatedAt:    s.CreatedAt(),
@@ -161,7 +161,7 @@ func marshalSession(s session.Session) ([]byte, error) {
 func unmarshalSession(sessionID session.ID, data []byte) (session.Session, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 
-	var header SessionHeaderDTO
+	var header HeaderDTO
 	if err := dec.Decode(&header); err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func unmarshalSession(sessionID session.ID, data []byte) (session.Session, error
 	return dtoToSession(sessionID, header, msgs)
 }
 
-func dtoToSession(sessionID session.ID, headerDTO SessionHeaderDTO, messagesDTO []MessageDTO) (session.Session, error) {
+func dtoToSession(sessionID session.ID, headerDTO HeaderDTO, messagesDTO []MessageDTO) (session.Session, error) {
 	msgs, err := DtoToMessages(messagesDTO)
 	if err != nil {
 		return nil, err

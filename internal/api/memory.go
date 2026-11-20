@@ -15,14 +15,14 @@ import (
 type memoryHandler struct {
 	consolidationSvc *memory.ConsolidationService
 	memoryIndexer    agent.MemoryIndexer
-	memoryRepo       agent.MemoryRepo
+	memoryRepo       agent.ConsolidatorRepo
 	logger           *slog.Logger
 }
 
 func NewMemoryHandler(
 	consolidationSvc *memory.ConsolidationService,
 	memoryIndexer agent.MemoryIndexer,
-	memoryRepo agent.MemoryRepo,
+	memoryRepo agent.ConsolidatorRepo,
 	logger *slog.Logger,
 ) *memoryHandler {
 	return &memoryHandler{

@@ -56,9 +56,9 @@ func (r Request) validate() error {
 	return nil
 }
 
-var _ ChatExecutor = (*Service)(nil)
+var _ Executor = (*Service)(nil)
 
-type ChatExecutor interface {
+type Executor interface {
 	Chat(ctx context.Context, r Request) error
 }
 

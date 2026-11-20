@@ -234,19 +234,19 @@ Widely used protection pattern: a public interface and constructor, with a priva
 
 ## [session domain](./internal/session)
 The "tier 2" domain for sessions.
-Includes the `Session` interface and its implementation, `SessionHeader`/`BrokenHeadersError`, and `session.Service` (with the `SessionsRepo` port) for operating on sessions.
+Includes the `Session` interface and its implementation, `Header`/`BrokenHeadersError`, and `session.Service` (with the `SessionsRepo` port) for operating on sessions.
 
 ## [tasks](./internal/task)
 Tasks for autonomous calls that happen without a direct user request.
 
-- [task](./internal/task/task.go) — the `TaskConfig` domain and the `Cron` port.
+- [task](./internal/task/task.go) — the `Config` domain and the `Cron` port.
 - [service](./internal/task/service.go) — `TaskService`; schedules tasks via the cron port.
 - [executor](./internal/task/executor.go) — runs a scheduled task by invoking the chat service in a fresh session for each recipient.
 
 ## [chat service](./internal/chat)
 Orchestrator for the common agent call flow. Launches a completion by `sessionID`, `agentID`, and request.
 
-- [service](./internal/chat/service.go) — `ChatService` (`ChatExecutor` port): resolves agent/model/tools/session, builds the context, runs the agent loop and applies its events to the session.
+- [service](./internal/chat/service.go) — `ChatService` (`Executor` port): resolves agent/model/tools/session, builds the context, runs the agent loop and applies its events to the session.
 - [context assembler](./internal/chat/context_assembler.go) — builds the system message from parts (agent system prompt, memory index, skill index, tool instructions, session extras) and caches it per session for 30 minutes.
 - [dispatcher](./internal/chat/dispatcher.go) — guarantees a single in-flight completion per session; a new request cancels the previous one, and exposes interruption.
 

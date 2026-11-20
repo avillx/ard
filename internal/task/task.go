@@ -1,17 +1,20 @@
 package task
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"errors"
 	"slices"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/types"
 )
 
-var ErrIsNotExist = types.ErrIsNotExist
-var ErrAlreadyExist = types.ErrAlreadyExist
-var ErrCron = errors.New("cron is not support this expression")
-var ErrNoRecipients = errors.New("must contain at least one recipient")
+var (
+	ErrIsNotExist   = types.ErrIsNotExist
+	ErrAlreadyExist = types.ErrAlreadyExist
+	ErrCron         = errors.New("cron is not support this expression")
+	ErrNoRecipients = errors.New("must contain at least one recipient")
+)
 
 type ValidationError types.ValidationError
 
@@ -21,13 +24,13 @@ type Cron interface {
 }
 
 type TaskRepo interface {
-	All() (map[string]TaskConfig, error)
-	Get(id string) (TaskConfig, error)
+	All() (map[string]Config, error)
+	Get(id string) (Config, error)
 	Delete(id string) error
-	Save(t TaskConfig) error
+	Save(t Config) error
 }
 
-type TaskConfig struct {
+type Config struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	Recipients  []agent.ID `json:"recipients"`
@@ -37,7 +40,7 @@ type TaskConfig struct {
 	Oneshot     bool       `json:"oneshot"`
 }
 
-func (t TaskConfig) Equals(other TaskConfig) bool {
+func (t Config) Equals(other Config) bool {
 	return slices.Equal(t.Recipients, other.Recipients) &&
 		t.Name == other.Name &&
 		t.Description == other.Description &&
@@ -47,7 +50,7 @@ func (t TaskConfig) Equals(other TaskConfig) bool {
 		t.Oneshot == other.Oneshot
 }
 
-type TaskPatch struct {
+type Patch struct {
 	Active      *bool       `json:"active,omitempty"`
 	Name        *string     `json:"name,omitempty"`
 	Description *string     `json:"description,omitempty"`
@@ -57,7 +60,7 @@ type TaskPatch struct {
 	Oneshot     *bool       `json:"oneshot,omitempty"`
 }
 
-func applyPatch(cfg TaskConfig, patch TaskPatch) TaskConfig {
+func applyPatch(cfg Config, patch Patch) Config {
 	if patch.Active != nil {
 		cfg.Active = *patch.Active
 	}
@@ -89,7 +92,7 @@ func applyPatch(cfg TaskConfig, patch TaskPatch) TaskConfig {
 	return cfg
 }
 
-func validateTaskConfig(cfg TaskConfig, cronFactory func(string) (Cron, error)) error {
+func validateConfig(cfg Config, cronFactory func(string) (Cron, error)) error {
 	problems := make(map[string]string)
 	if cfg.Name == "" {
 		problems["name"] = "must be not empty"

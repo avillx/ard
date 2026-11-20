@@ -1,10 +1,6 @@
 package files
 
 import (
-	"ard/internal/agent"
-	"ard/internal/sentinel"
-	"ard/internal/task"
-	"ard/internal/types"
 	"bytes"
 	"context"
 	"fmt"
@@ -12,14 +8,18 @@ import (
 	"path/filepath"
 	"sync"
 
+	"ard/internal/agent"
+	"ard/internal/sentinel"
+	"ard/internal/task"
+	"ard/internal/types"
 	"github.com/fsnotify/fsnotify"
 	toml "github.com/pelletier/go-toml/v2"
 )
 
 const (
-	TaskConfigFileMode = 0755
-	TaskConfigFile     = "tasks.toml"
-	taskConfigDoc      = `# Cron tasks config
+	ConfigFileMode = 0o755
+	ConfigFile     = "tasks.toml"
+	taskConfigDoc  = `# Cron tasks config
 
 	# Tasks are planned requests sent to agent recipients on a cron schedule.
 	# When a recipient receives a request, it works autonomously.
@@ -58,7 +58,7 @@ const (
 	# After edit, ensure file consistency and comment integrity`
 )
 
-var TaskConfigFilePath = filepath.Join(ConfigDir, TaskConfigFile)
+var ConfigFilePath = filepath.Join(ConfigDir, ConfigFile)
 
 type TaskFiles struct {
 	mu      sync.RWMutex
@@ -68,9 +68,9 @@ type TaskFiles struct {
 func NewTaskFiles(storage FileStorage) (*TaskFiles, error) {
 	if err := ensureFilePlaceholder(
 		storage,
-		TaskConfigFilePath,
+		ConfigFilePath,
 		[]byte(taskConfigDoc),
-		TaskConfigFileMode,
+		ConfigFileMode,
 	); err != nil {
 		return nil, err
 	}
@@ -80,31 +80,31 @@ func NewTaskFiles(storage FileStorage) (*TaskFiles, error) {
 	}, nil
 }
 
-func (tf *TaskFiles) All() (map[string]task.TaskConfig, error) {
+func (tf *TaskFiles) All() (map[string]task.Config, error) {
 	tf.mu.RLock()
 	defer tf.mu.RUnlock()
 
 	return loadTasks(tf.storage)
 }
 
-func (tf *TaskFiles) Get(id string) (task.TaskConfig, error) {
+func (tf *TaskFiles) Get(id string) (task.Config, error) {
 	tf.mu.RLock()
 	defer tf.mu.RUnlock()
 
 	tasks, err := loadTasks(tf.storage)
 	if err != nil {
-		return task.TaskConfig{}, err
+		return task.Config{}, err
 	}
 
 	t, ok := tasks[id]
 	if !ok {
-		return task.TaskConfig{}, fmt.Errorf("task %s: %w", id, types.ErrIsNotExist)
+		return task.Config{}, fmt.Errorf("task %s: %w", id, types.ErrIsNotExist)
 	}
 
 	return t, nil
 }
 
-func (tf *TaskFiles) Save(t task.TaskConfig) error {
+func (tf *TaskFiles) Save(t task.Config) error {
 	tf.mu.Lock()
 	defer tf.mu.Unlock()
 
@@ -135,27 +135,27 @@ func (tf *TaskFiles) Delete(id string) error {
 	return flushTasks(tf.storage, tasks)
 }
 
-func loadTasks(storage FileStorage) (map[string]task.TaskConfig, error) {
-	data, err := storage.ReadFile(TaskConfigFilePath)
+func loadTasks(storage FileStorage) (map[string]task.Config, error) {
+	data, err := storage.ReadFile(ConfigFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return map[string]task.TaskConfig{}, nil
+			return map[string]task.Config{}, nil
 		}
 		return nil, err
 	}
 	if len(data) == 0 {
-		return map[string]task.TaskConfig{}, nil
+		return map[string]task.Config{}, nil
 	}
 
 	return UnmarshalTasks(data)
 }
 
-func flushTasks(storage FileStorage, tasks map[string]task.TaskConfig) error {
+func flushTasks(storage FileStorage, tasks map[string]task.Config) error {
 	data, err := MarshalTasks(tasks)
 	if err != nil {
 		return err
 	}
-	return storage.WriteFile(TaskConfigFilePath, data, ModePerm)
+	return storage.WriteFile(ConfigFilePath, data, ModePerm)
 }
 
 type TaskDTO struct {
@@ -167,15 +167,15 @@ type TaskDTO struct {
 	Request     string     `toml:"request"     multiline:"true"`
 }
 
-func UnmarshalTasks(data []byte) (map[string]task.TaskConfig, error) {
+func UnmarshalTasks(data []byte) (map[string]task.Config, error) {
 	var dtos map[string]TaskDTO
 	if err := toml.Unmarshal(data, &dtos); err != nil {
 		return nil, err
 	}
 
-	tasks := make(map[string]task.TaskConfig, len(dtos))
+	tasks := make(map[string]task.Config, len(dtos))
 	for k, v := range dtos {
-		tasks[k] = task.TaskConfig{
+		tasks[k] = task.Config{
 			Name:        k,
 			Description: v.Description,
 			Recipients:  v.Recipients,
@@ -189,7 +189,7 @@ func UnmarshalTasks(data []byte) (map[string]task.TaskConfig, error) {
 	return tasks, nil
 }
 
-func MarshalTasks(tasks map[string]task.TaskConfig) ([]byte, error) {
+func MarshalTasks(tasks map[string]task.Config) ([]byte, error) {
 	dtos := map[string]TaskDTO{}
 
 	for _, v := range tasks {

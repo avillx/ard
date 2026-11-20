@@ -12,11 +12,11 @@ import (
 	"ard/internal/session"
 )
 
-type stubChatExecutor struct {
+type stubExecutor struct {
 	events []runtime.Event
 }
 
-func (e *stubChatExecutor) Chat(_ context.Context, r chat.Request) error {
+func (e *stubExecutor) Chat(_ context.Context, r chat.Request) error {
 	for _, ev := range e.events {
 		r.Sink <- ev
 	}
@@ -41,7 +41,7 @@ func (r *stubSessionsRepo) Delete(agent.ID, session.ID) error {
 	return nil
 }
 
-func (r *stubSessionsRepo) Headers(agent.ID) ([]session.SessionHeader, error) {
+func (r *stubSessionsRepo) Headers(agent.ID) ([]session.Header, error) {
 	return nil, nil
 }
 
@@ -53,7 +53,7 @@ func (u stubUUID) New() string {
 	return u.id
 }
 
-func newTestService(t *testing.T, chatExec chat.ChatExecutor, repo session.SessionsRepo) *Service {
+func newTestService(t *testing.T, chatExec chat.Executor, repo session.SessionsRepo) *Service {
 	t.Helper()
 
 	sessService := session.NewService(
@@ -71,7 +71,7 @@ func newTestService(t *testing.T, chatExec chat.ChatExecutor, repo session.Sessi
 
 func TestCall_HappyPath(t *testing.T) {
 	repo := &stubSessionsRepo{}
-	chatExec := &stubChatExecutor{
+	chatExec := &stubExecutor{
 		events: []runtime.Event{
 			runtime.NewCompleteEvent(&agent.Completion{Content: "done", Done: true}),
 		},
@@ -93,7 +93,7 @@ func TestCall_HappyPath(t *testing.T) {
 
 func TestCall_CallStackOverflow(t *testing.T) {
 	repo := &stubSessionsRepo{}
-	svc := newTestService(t, &stubChatExecutor{}, repo)
+	svc := newTestService(t, &stubExecutor{}, repo)
 
 	ctx := context.Background()
 	for range maxSubAgentDepth {

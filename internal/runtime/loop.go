@@ -23,7 +23,6 @@ var (
 	ErrTooManyMistakes  = errors.New("agent makes too much mistakes")
 )
 
-// blocking.
 // nolint: gocognit
 func RunAgentLoop(
 	ctx context.Context,

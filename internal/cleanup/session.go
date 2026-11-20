@@ -78,7 +78,7 @@ func (c *SessionsCleaner) handleBrokenSessions(brokenHeadersErr *session.BrokenH
 func (c *SessionsCleaner) eliminateDepricatedSessions(
 	retention time.Duration,
 	agentID agent.ID,
-	headers []session.SessionHeader,
+	headers []session.Header,
 ) {
 	cutDate := time.Now().Add(-retention)
 	for _, h := range headers {
