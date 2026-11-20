@@ -7,10 +7,8 @@ import (
 	"ard/internal/session"
 	"ard/internal/types"
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"sync"
 )
 
 type ActivityLogger interface {
@@ -76,6 +74,7 @@ type Service struct {
 	toolRegistry         agent.ToolRegistry
 	systemMessageBuilder SystemMessageBuilder
 	activityLogger       ActivityLogger
+	cache                *Cache
 	hooks                []any
 	logger               *slog.Logger
 }
@@ -98,44 +97,48 @@ func NewService(
 		activityLogger:       activityLogger,
 		systemMessageBuilder: systemMessageBuilder,
 		hooks:                hooks,
+		cache:                NewCache(DefaultCacheLifeTime),
 		logger:               logger.WithGroup("chat"),
 	}
 }
 
-func (s *Service) Chat(
+func (s *Service) buildChat(
 	ctx context.Context,
 	r Request,
-) error {
+) (*Chat, error) {
+	// get cached
+	if c, ok := s.cache.Get(r.SessionID); ok {
+		return c, nil
+	}
+
 	// validate request
 	if err := r.validate(); err != nil {
-		return err
+		return nil, err
 	}
 
 	// session
 	sess, err := s.sessionRepo.Session(r.SessionID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// profile
 	p, err := s.profileSvc.Get(sess.ProfileID())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// model
 	model, err := s.modelRepo.Get(p.Model())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// tools
 	toolServers, err := resolveToolServers(s.toolRegistry, p, r.ProvidedToolServers, s.logger)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	sess.AddMessages(r.UserMessage)
 
 	// build context
 	systemMessage, err := s.systemMessageBuilder.BuildSystemMessage(
@@ -145,33 +148,50 @@ func (s *Service) Chat(
 		sess,
 	)
 	if err != nil {
+		return nil, err
+	}
+
+	c := &Chat{
+		SystemMessage: systemMessage,
+		Sess:          sess,
+		Profile:       p,
+		Tools:         extractTools(toolServers),
+		Model:         model,
+	}
+
+	// put cache
+	s.cache.Put(r.SessionID, c)
+
+	return c, nil
+}
+
+func (s *Service) Chat(
+	ctx context.Context,
+	r Request,
+) error {
+	c, err := s.buildChat(ctx, r)
+	if err != nil {
 		return err
 	}
 
-	agentContext := []agent.Message{}
-	agentContext = append(agentContext, systemMessage)
-	agentContext = append(agentContext, sess.Messages()...)
-
 	if r.Logging {
-		s.activityLogger.Commit(sess.ID(), []agent.Message{r.UserMessage})
+		s.activityLogger.Commit(c.Sess.ID(), []agent.Message{r.UserMessage})
 	}
 
 	// inject id's
-	ctx = withProfileID(ctx, p.ID())
+	ctx = withProfileID(ctx, c.Profile.ID())
 	ctx = withSessionID(ctx, r.SessionID)
 
 	logger := s.logger.With(
-		"profile", p.ID(),
-		"session", sess.ID(),
+		"profile", c.Profile.ID(),
+		"session", c.Sess.ID(),
 	)
 
-	h := NewChatEventHandler(p.ID(), sess, s.sessionRepo, s.activityLogger, r.Logging, logger)
+	h := NewChatEventHandler(c.Profile.ID(), c.Sess, s.sessionRepo, s.activityLogger, r.Logging, logger)
 
-	runAgentLoopWithHandlers(
+	c.Run(
 		ctx,
-		model,
-		agentContext,
-		extractTools(toolServers),
+		r.UserMessage,
 		[]EventHandler{h},
 		s.hooks,
 		r.Sink,
@@ -179,78 +199,6 @@ func (s *Service) Chat(
 	)
 
 	return nil
-}
-
-func runAgentLoopWithHandlers(
-	ctx context.Context,
-	model agent.Model,
-	agentContext []agent.Message,
-	toolKit []agent.Tool,
-	eventHandlers []EventHandler,
-	hooks []any,
-	sink chan runtime.Event,
-	logger *slog.Logger,
-) {
-	// sink
-	evCh := make(chan runtime.Event, runtimeEventBuffer)
-
-	go func() {
-		defer close(evCh)
-		runtime.RunAgentLoop(
-			ctx,
-			model,
-			agentContext,
-			toolKit,
-			evCh,
-			hooks,
-		)
-	}()
-
-	for rawEv := range evCh {
-		sinkEvent(rawEv, sink)
-		handleEventHandlerGroup(ctx, rawEv, eventHandlers, logger)
-	}
-}
-
-func sinkEvent(ev runtime.Event, sink chan runtime.Event) {
-	outEv := ev
-	if ev, ok := outEv.(*runtime.LoopExitEvent); ok {
-		if errors.Is(ev.Err(), context.Canceled) {
-			outEv = runtime.NewLoopExitEvent(nil)
-		}
-	}
-	sink <- outEv
-}
-
-func handleEventHandlerGroup(ctx context.Context, ev runtime.Event, eventHandlers []EventHandler, logger *slog.Logger) {
-	var wg sync.WaitGroup
-	for _, h := range eventHandlers {
-		wg.Go(func() {
-			if err := handleEvent(ctx, h, ev); err != nil {
-				logger.ErrorContext(ctx, "handling runtime problems", "error", err)
-			}
-		})
-	}
-	wg.Wait()
-}
-
-func handleEvent(ctx context.Context, h EventHandler, rawEv runtime.Event) error {
-	switch ev := rawEv.(type) {
-	case *runtime.LoopExitEvent:
-		return h.HandleLoopExitEvent(ctx, ev)
-	case *runtime.ToolCallErrEvent:
-		return h.HandleToolCallErrEvent(ctx, ev)
-	case *runtime.ToolResultEvent:
-		return h.HandleToolResultEvent(ctx, ev)
-	case *runtime.CompletionMistakeEvent:
-		return h.HandleCompletionMistakeEvent(ctx, ev)
-	case *runtime.CompleteEvent:
-		return h.HandleCompleteEvent(ctx, ev)
-	case *runtime.CompactionEvent:
-		return h.HandleCompactionEvent(ctx, ev)
-	default:
-		return fmt.Errorf("unknown event")
-	}
 }
 
 func resolveToolServers(

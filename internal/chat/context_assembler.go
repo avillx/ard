@@ -9,59 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"sync"
-	"time"
 )
-
-const cacheLifeTime = 30 * time.Minute
-
-type SystemMessageCache struct {
-	messages     map[session.ID]string
-	deleteTimers map[session.ID]*time.Timer
-
-	mu sync.Mutex
-}
-
-func NewSystemMessageCache() *SystemMessageCache {
-	return &SystemMessageCache{
-		messages:     map[session.ID]string{},
-		deleteTimers: map[session.ID]*time.Timer{},
-	}
-}
-
-func (c *SystemMessageCache) Put(sessID session.ID, message string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// try to delete
-	delete(c.messages, sessID)
-	if t, ok := c.deleteTimers[sessID]; ok {
-		t.Stop()
-		delete(c.deleteTimers, sessID)
-	}
-
-	c.messages[sessID] = message
-	c.deleteTimers[sessID] = time.AfterFunc(cacheLifeTime, func() {
-		c.mu.Lock()
-		defer c.mu.Unlock()
-
-		delete(c.messages, sessID)
-		delete(c.deleteTimers, sessID)
-	})
-}
-
-func (c *SystemMessageCache) Get(sessID session.ID) (string, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	msg, ok := c.messages[sessID]
-
-	if ok {
-		c.deleteTimers[sessID].Reset(cacheLifeTime)
-	}
-
-	return msg, ok
-}
 
 type SystemMessageParticipant interface {
 	Part(ctx context.Context) (string, error)
@@ -72,7 +20,6 @@ var _ SystemMessageBuilder = (*ContextAssembler)(nil)
 type ContextAssembler struct {
 	skillRepo  SkillsRepo
 	memoryRepo ConsolidatorRepo
-	cache      *SystemMessageCache
 	logger     *slog.Logger
 }
 
@@ -84,7 +31,6 @@ func NewContextAssembler(
 	return &ContextAssembler{
 		skillRepo:  skillRepo,
 		memoryRepo: memoryRepo,
-		cache:      NewSystemMessageCache(),
 		logger:     logger.WithGroup("context_assembler"),
 	}
 }
@@ -95,10 +41,6 @@ func (a *ContextAssembler) BuildSystemMessage(
 	toolServers []agent.ToolServer,
 	sess session.Session,
 ) (*agent.SystemMessage, error) {
-	if cached, hit := a.cache.Get(sess.ID()); hit {
-		return agent.NewSystemMessage(cached), nil
-	}
-
 	parts := []SystemMessageParticipant{
 		&ProflilePart{p: p},
 		&MemoryPart{p: p, repo: a.memoryRepo},
@@ -112,7 +54,6 @@ func (a *ContextAssembler) BuildSystemMessage(
 		return nil, err
 	}
 
-	a.cache.Put(sess.ID(), text)
 	return agent.NewSystemMessage(text), nil
 }
 
