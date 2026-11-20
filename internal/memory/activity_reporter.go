@@ -1,18 +1,17 @@
 package memory
 
 import (
+	"ard/internal/agent"
+	"ard/internal/chat"
+	"ard/internal/prompt"
+	"ard/internal/session"
+	"ard/internal/types"
 	"context"
 	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/chat"
-	"ard/internal/prompt"
-	"ard/internal/session"
-	"ard/internal/types"
 )
 
 var _ chat.ActivityLogger = (*ActivityService)(nil)

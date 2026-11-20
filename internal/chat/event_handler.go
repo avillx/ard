@@ -1,15 +1,14 @@
 package chat
 
 import (
-	"context"
-	"errors"
-	"log/slog"
-
 	"ard/internal/agent"
 	"ard/internal/prompt"
 	"ard/internal/runtime"
 	"ard/internal/session"
 	"ard/internal/types"
+	"context"
+	"errors"
+	"log/slog"
 )
 
 type EventHandler interface {

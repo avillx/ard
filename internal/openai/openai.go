@@ -1,12 +1,10 @@
 package openai
 
 import (
-	"errors"
-	"reflect"
-
 	"ard/internal/agent"
 	"ard/internal/runtime"
-	"github.com/invopop/jsonschema"
+	"errors"
+
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/shared"
 )
@@ -180,29 +178,29 @@ func toolToOpenAI(t agent.Tool) openai.ChatCompletionToolUnionParam {
 	}
 }
 
-func openAIResponseFormat[T any](strict bool) openai.ChatCompletionNewParamsResponseFormatUnion {
-	return openai.ChatCompletionNewParamsResponseFormatUnion{
-		OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
-			JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{
-				Name:   "Response",
-				Strict: openai.Bool(strict),
-				Schema: generateScheme[T](),
-			},
-		},
-	}
-}
+// func openAIResponseFormat[T any](strict bool) openai.ChatCompletionNewParamsResponseFormatUnion {
+// 	return openai.ChatCompletionNewParamsResponseFormatUnion{
+// 		OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
+// 			JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{
+// 				Name:   "Response",
+// 				Strict: openai.Bool(strict),
+// 				Schema: generateScheme[T](),
+// 			},
+// 		},
+// 	}
+// }
 
-func generateScheme[T any]() *jsonschema.Schema {
-	reflector := jsonschema.Reflector{
-		AllowAdditionalProperties:  false,
-		RequiredFromJSONSchemaTags: true,
-	}
-	var v T
-	typeName := reflect.TypeOf(v).Name()
-
-	scheme := reflector.Reflect(v).Definitions[typeName]
-	return scheme
-}
+// func generateScheme[T any]() *jsonschema.Schema {
+// 	reflector := jsonschema.Reflector{
+// 		AllowAdditionalProperties:  false,
+// 		RequiredFromJSONSchemaTags: true,
+// 	}
+// 	var v T
+// 	typeName := reflect.TypeOf(v).Name()
+//
+// 	scheme := reflector.Reflect(v).Definitions[typeName]
+// 	return scheme
+// }
 
 func ToolChoice(tc string) openai.ChatCompletionToolChoiceOptionUnionParam {
 	return openai.ChatCompletionToolChoiceOptionUnionParam{
@@ -210,11 +208,11 @@ func ToolChoice(tc string) openai.ChatCompletionToolChoiceOptionUnionParam {
 	}
 }
 
-func builtMessages(conversation []agent.Message, prompt string) []openai.ChatCompletionMessageParamUnion {
-	return append(
-		[]openai.ChatCompletionMessageParamUnion{openai.SystemMessage(prompt)},
-		messagesToOpenAI(conversation)...)
-}
+// func builtMessages(conversation []agent.Message, prompt string) []openai.ChatCompletionMessageParamUnion {
+// 	return append(
+// 		[]openai.ChatCompletionMessageParamUnion{openai.SystemMessage(prompt)},
+// 		messagesToOpenAI(conversation)...)
+// }
 
 func CompletionToContent(completion *openai.ChatCompletion) (string, error) {
 	if len(completion.Choices) == 0 {

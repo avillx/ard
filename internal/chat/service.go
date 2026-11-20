@@ -1,16 +1,15 @@
 package chat
 
 import (
+	"ard/internal/agent"
+	"ard/internal/runtime"
+	"ard/internal/session"
+	"ard/internal/types"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
-
-	"ard/internal/agent"
-	"ard/internal/runtime"
-	"ard/internal/session"
-	"ard/internal/types"
 )
 
 type ActivityLogger interface {

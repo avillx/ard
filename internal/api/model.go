@@ -1,12 +1,11 @@
 package api
 
 import (
+	"ard/internal/model"
+	"ard/internal/types"
 	"encoding/base64"
 	"errors"
 	"net/http"
-
-	"ard/internal/model"
-	"ard/internal/types"
 )
 
 // handler.

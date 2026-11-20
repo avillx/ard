@@ -1,6 +1,8 @@
 package shell
 
 import (
+	"ard/internal/agent"
+	"ard/internal/tools"
 	"bytes"
 	"cmp"
 	"context"
@@ -11,9 +13,6 @@ import (
 	rt "runtime"
 	"strings"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/tools"
 )
 
 const defaultTimeout = 30 * time.Second

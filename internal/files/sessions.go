@@ -1,6 +1,9 @@
 package files
 
 import (
+	"ard/internal/agent"
+	"ard/internal/session"
+	"ard/internal/types"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -12,10 +15,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/session"
-	"ard/internal/types"
 )
 
 const SessionsFolder = "sessions"

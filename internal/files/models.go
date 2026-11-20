@@ -1,14 +1,14 @@
 package files
 
 import (
+	"ard/internal/model"
+	"ard/internal/sentinel"
+	"ard/internal/types"
 	"bytes"
 	"context"
 	"path/filepath"
 	"sync"
 
-	"ard/internal/model"
-	"ard/internal/sentinel"
-	"ard/internal/types"
 	"github.com/fsnotify/fsnotify"
 	toml "github.com/pelletier/go-toml/v2"
 )
@@ -59,7 +59,7 @@ const (
 var ModelsConfigFilePath = filepath.Join(
 	ConfigDir,
 	ModelsConfigFile,
-) //nolint: gochecknoglobals // for os independet path
+)
 
 var _ model.ProviderConfigRepo = (*ProviderFiles)(nil)
 

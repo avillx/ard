@@ -1,11 +1,10 @@
 package todo
 
 import (
+	"ard/internal/session"
 	"fmt"
 	"sync"
 	"time"
-
-	"ard/internal/session"
 )
 
 const todoTTL = 1 * time.Hour

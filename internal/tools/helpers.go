@@ -1,17 +1,15 @@
 package tools
 
 import (
-	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"log/slog"
-	"strings"
-
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/session"
 	"ard/internal/types"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
 )
 
 var _ agent.ToolServer = (*BuildInToolServer)(nil)
@@ -60,18 +58,12 @@ func UnwrapValidArgs[T types.Validator](ctx context.Context, raw agent.ToolArgum
 }
 
 func MustAgentID(ctx context.Context) agent.ID {
-	agentID, ok := chat.AgentIDFromContext(ctx)
-	if !ok {
-		slog.ErrorContext(ctx, "critical error context has no agentID")
-	}
+	agentID, _ := chat.AgentIDFromContext(ctx)
 	return agentID
 }
 
 func MustSessionID(ctx context.Context) session.ID {
-	sessionID, ok := chat.SessionIDFromContext(ctx)
-	if !ok {
-		slog.ErrorContext(ctx, "critical error context has no sessionID")
-	}
+	sessionID, _ := chat.SessionIDFromContext(ctx)
 	return sessionID
 }
 

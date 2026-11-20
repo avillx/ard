@@ -1,15 +1,15 @@
 package files
 
 import (
+	"ard/internal/mcp"
+	"ard/internal/sentinel"
+	"ard/internal/types"
 	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
 	"sync"
 
-	"ard/internal/mcp"
-	"ard/internal/sentinel"
-	"ard/internal/types"
 	"github.com/fsnotify/fsnotify"
 	toml "github.com/pelletier/go-toml/v2"
 )

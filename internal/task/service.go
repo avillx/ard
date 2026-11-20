@@ -1,6 +1,8 @@
 package task
 
 import (
+	"ard/internal/agent"
+	"ard/internal/types"
 	"context"
 	"errors"
 	"log/slog"
@@ -8,9 +10,6 @@ import (
 	"slices"
 	"sync"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/types"
 )
 
 type Executor interface {

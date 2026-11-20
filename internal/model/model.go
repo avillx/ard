@@ -1,11 +1,10 @@
 package model
 
 import (
-	"strings"
-	"sync"
-
 	"ard/internal/agent"
 	"ard/internal/types"
+	"strings"
+	"sync"
 )
 
 var _ agent.ModelRegistry = (*Service)(nil)

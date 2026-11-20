@@ -1,16 +1,15 @@
 package chat
 
 import (
+	"ard/internal/agent"
+	"ard/internal/prompt"
+	"ard/internal/session"
 	"context"
 	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/prompt"
-	"ard/internal/session"
 )
 
 const cacheLifeTime = 30 * time.Minute

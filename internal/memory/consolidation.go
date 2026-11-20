@@ -1,16 +1,15 @@
 package memory
 
 import (
+	"ard/internal/agent"
+	"ard/internal/prompt"
+	"ard/internal/runtime"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/prompt"
-	"ard/internal/runtime"
 )
 
 var ErrDisabledMemory = errors.New("agent memory is disabled")

@@ -1,12 +1,11 @@
 package session
 
 import (
+	"ard/internal/agent"
 	"fmt"
 	"slices"
 	"sync"
 	"time"
-
-	"ard/internal/agent"
 )
 
 const TokenLimit = 20000

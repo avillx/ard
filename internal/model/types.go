@@ -1,11 +1,10 @@
 package model
 
 import (
-	"context"
-	"errors"
-
 	"ard/internal/agent"
 	"ard/internal/types"
+	"context"
+	"errors"
 )
 
 type (

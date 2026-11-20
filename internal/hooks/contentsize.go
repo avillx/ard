@@ -1,11 +1,10 @@
 package hooks
 
 import (
-	"context"
-
 	"ard/internal/agent"
 	"ard/internal/runtime"
 	"ard/internal/types"
+	"context"
 )
 
 var _ runtime.ToolResultHook = (*ContentSizeLimitHook)(nil)

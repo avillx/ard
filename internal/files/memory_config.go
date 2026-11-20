@@ -1,13 +1,13 @@
 package files
 
 import (
+	"ard/internal/memory"
+	"ard/internal/sentinel"
 	"bytes"
 	"context"
 	"path/filepath"
 	"sync"
 
-	"ard/internal/memory"
-	"ard/internal/sentinel"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pelletier/go-toml/v2"
 )
@@ -55,7 +55,7 @@ const (
 var MemoryConfigFilePath = filepath.Join(
 	ConfigDir,
 	MemoryConfigFile,
-) //nolint: gochecknoglobals // for os independet path
+)
 
 type MemoryFile struct {
 	storage FileStorage

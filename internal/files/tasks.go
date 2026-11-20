@@ -1,6 +1,10 @@
 package files
 
 import (
+	"ard/internal/agent"
+	"ard/internal/sentinel"
+	"ard/internal/task"
+	"ard/internal/types"
 	"bytes"
 	"context"
 	"fmt"
@@ -8,10 +12,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"ard/internal/agent"
-	"ard/internal/sentinel"
-	"ard/internal/task"
-	"ard/internal/types"
 	"github.com/fsnotify/fsnotify"
 	toml "github.com/pelletier/go-toml/v2"
 )

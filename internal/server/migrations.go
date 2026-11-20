@@ -1,12 +1,11 @@
 package server
 
 import (
+	"ard/internal/files"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"path"
-
-	"ard/internal/files"
 )
 
 // Generated shit

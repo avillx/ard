@@ -1,6 +1,10 @@
 package fstools
 
 import (
+	"ard/internal/agent"
+	"ard/internal/files"
+	"ard/internal/tools"
+	"ard/internal/types"
 	"bytes"
 	"context"
 	"fmt"
@@ -9,10 +13,6 @@ import (
 	"regexp"
 	"strings"
 
-	"ard/internal/agent"
-	"ard/internal/files"
-	"ard/internal/tools"
-	"ard/internal/types"
 	"github.com/bmatcuk/doublestar/v4"
 )
 

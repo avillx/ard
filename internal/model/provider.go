@@ -1,14 +1,13 @@
 package model
 
 import (
+	"ard/internal/agent"
+	"ard/internal/types"
 	"errors"
 	"fmt"
 	"log/slog"
 	"path"
 	"sync"
-
-	"ard/internal/agent"
-	"ard/internal/types"
 )
 
 type ProviderService struct {

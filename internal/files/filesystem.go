@@ -1,15 +1,14 @@
 package files
 
 import (
+	"ard/internal/types"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"strings"
-	"syscall"
 	"time"
 
-	"ard/internal/types"
 	toml "github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -72,13 +71,13 @@ type OpenFileStorage interface {
 type FileStorage interface {
 	OpenFileStorage
 	Chmod(name string, mode FileMode) error
-	Chown(name string, uid int, gid int) error
-	Chtimes(name string, atime time.Time, mtime time.Time) error
+	Chown(name string, uid, gid int) error
+	Chtimes(name string, atime, mtime time.Time) error
 	Close() error
 	Create(name string) (*File, error)
 	FS() fs.FS
-	Lchown(name string, uid int, gid int) error
-	Link(oldname string, newname string) error
+	Lchown(name string, uid, gid int) error
+	Link(oldname, newname string) error
 	Lstat(name string) (FileInfo, error)
 	Mkdir(name string, perm FileMode) error
 	MkdirAll(name string, perm FileMode) error
@@ -88,9 +87,9 @@ type FileStorage interface {
 	Readlink(name string) (string, error)
 	Remove(name string) error
 	RemoveAll(name string) error
-	Rename(oldname string, newname string) error
+	Rename(oldname, newname string) error
 	Stat(name string) (FileInfo, error)
-	Symlink(oldname string, newname string) error
+	Symlink(oldname, newname string) error
 	WriteFile(name string, data []byte, perm FileMode) error
 }
 
@@ -150,14 +149,14 @@ func (r *fileStorage) Chmod(name string, mode FileMode) error {
 	return r.root.Chmod(name, mode)
 }
 
-func (r *fileStorage) Chown(name string, uid int, gid int) error {
+func (r *fileStorage) Chown(name string, uid, gid int) error {
 	unlock := r.flock.Lock(name)
 	defer unlock()
 
 	return r.root.Chown(name, uid, gid)
 }
 
-func (r *fileStorage) Chtimes(name string, atime time.Time, mtime time.Time) error {
+func (r *fileStorage) Chtimes(name string, atime, mtime time.Time) error {
 	unlock := r.flock.Lock(name)
 	defer unlock()
 
@@ -184,14 +183,14 @@ func (r *fileStorage) FS() fs.FS {
 	return r.root.FS()
 }
 
-func (r *fileStorage) Lchown(name string, uid int, gid int) error {
+func (r *fileStorage) Lchown(name string, uid, gid int) error {
 	unlock := r.flock.Lock(name)
 	defer unlock()
 
 	return r.root.Lchown(name, uid, gid)
 }
 
-func (r *fileStorage) Link(oldname string, newname string) error {
+func (r *fileStorage) Link(oldname, newname string) error {
 	unlockOld := r.flock.Lock(oldname)
 	defer unlockOld()
 
@@ -278,7 +277,7 @@ func (r *fileStorage) RemoveAll(name string) error {
 	return r.root.RemoveAll(name)
 }
 
-func (r *fileStorage) Rename(oldname string, newname string) error {
+func (r *fileStorage) Rename(oldname, newname string) error {
 	unlockOld := r.flock.Lock(oldname)
 	defer unlockOld()
 
@@ -295,7 +294,7 @@ func (r *fileStorage) Stat(name string) (FileInfo, error) {
 	return r.root.Stat(name)
 }
 
-func (r *fileStorage) Symlink(oldname string, newname string) error {
+func (r *fileStorage) Symlink(oldname, newname string) error {
 	unlockOld := r.flock.Lock(oldname)
 	defer unlockOld()
 
@@ -310,16 +309,6 @@ func (r *fileStorage) WriteFile(name string, data []byte, perm FileMode) error {
 	defer unlock()
 
 	return r.root.WriteFile(name, data, perm)
-}
-
-func toInternalNotExist(err error) error {
-	if errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
-		return types.ErrIsNotExist
-	}
-	if errors.Is(err, os.ErrExist) {
-		return types.ErrAlreadyExist
-	}
-	return err
 }
 
 func ensureFilePlaceholder(

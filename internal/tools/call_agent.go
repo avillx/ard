@@ -1,27 +1,28 @@
 package tools
 
 import (
+	"ard/internal/agent"
+	"ard/internal/subagent"
+	"ard/internal/types"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/subagent"
-	"ard/internal/types"
 )
 
 type CallAgentToolServer struct {
 	*BuildInToolServer
 
+	logger    *slog.Logger
 	agentRepo agent.Repo
 }
 
-func NewCallAgentToolServer(s *subagent.Service, agentRepo agent.Repo) *CallAgentToolServer {
+func NewCallAgentToolServer(s *subagent.Service, agentRepo agent.Repo, logger *slog.Logger) *CallAgentToolServer {
 	return &CallAgentToolServer{
 		agentRepo: agentRepo,
+		logger:    logger.WithGroup("call_agent_tool"),
 		BuildInToolServer: NewBuildInToolServer(
 			&CallAgentTool{
 				subagentSvc: s,
@@ -43,14 +44,14 @@ then agent need full request with clarificaton again.
 
 	agents, err := t.agentRepo.All()
 	if err != nil {
-		slog.Error("call agent tool", "error", "can't gather agents")
+		t.logger.Error("call agent tool", "error", "can't gather agents")
 		return ""
 	}
 
 	var sb strings.Builder
 
 	sb.WriteString(instruction + "\n")
-	sb.WriteString("Agent contacts:\n")
+	sb.WriteString("Agents:\n")
 	for _, a := range agents {
 		isYouLabel := ""
 		if a.ID() == agt.ID() {

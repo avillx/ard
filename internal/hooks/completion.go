@@ -1,11 +1,6 @@
 package hooks
 
 import (
-	"context"
-	"fmt"
-	"strings"
-	"sync"
-
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/prompt"
@@ -13,6 +8,10 @@ import (
 	"ard/internal/session"
 	"ard/internal/tools/todo"
 	"ard/internal/types"
+	"context"
+	"fmt"
+	"strings"
+	"sync"
 )
 
 // ensure valid memory front matter.

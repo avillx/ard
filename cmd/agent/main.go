@@ -1,6 +1,9 @@
 package main
 
 import (
+	"ard/internal/api"
+	"ard/internal/logging"
+	"ard/internal/server"
 	"context"
 	"errors"
 	"fmt"
@@ -12,10 +15,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"ard/internal/api"
-	"ard/internal/logging"
-	"ard/internal/server"
 )
 
 const (

@@ -1,13 +1,12 @@
 package cleanup
 
 import (
+	"ard/internal/agent"
+	"ard/internal/session"
 	"errors"
 	"log/slog"
 	"sync"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/session"
 )
 
 type SessionsCleaner struct {

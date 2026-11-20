@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"ard/internal/types"
 	"context"
 	"errors"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"os/exec"
 	"sync"
 
-	"ard/internal/types"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/oauth2"
 )
@@ -26,7 +26,7 @@ type httpGateway struct {
 	mu sync.Mutex
 }
 
-func newHTTPGateway(url string, authToken string) *httpGateway {
+func newHTTPGateway(url, authToken string) *httpGateway {
 	return &httpGateway{
 		url:       url,
 		authToken: authToken,

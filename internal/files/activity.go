@@ -1,14 +1,13 @@
 package files
 
 import (
+	"ard/internal/agent"
+	"ard/internal/types"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/types"
 )
 
 var _ agent.ActivityRepo = (*ActivityFiles)(nil)

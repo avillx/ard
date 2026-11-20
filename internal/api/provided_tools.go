@@ -1,16 +1,15 @@
 package api
 
 import (
+	"ard/internal/agent"
+	"ard/internal/chat"
+	"ard/internal/types"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/chat"
-	"ard/internal/types"
 )
 
 // how long the client has to answer a provided tool call.

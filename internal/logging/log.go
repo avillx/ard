@@ -1,16 +1,13 @@
 package logging
 
 import (
-	"bytes"
-	"encoding/json"
+	"ard/internal/agent"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"strconv"
 	"strings"
-
-	"ard/internal/agent"
 )
 
 type LoggerConfig struct {
@@ -43,18 +40,18 @@ func WithAgentLog(h slog.Handler, w io.Writer) slog.Handler {
 	return newMultiHandler([]slog.Handler{h, simpleHandler})
 }
 
-type prettyWriter struct {
-	out io.Writer
-}
-
-func (w *prettyWriter) Write(p []byte) (int, error) {
-	var buf bytes.Buffer
-	if err := json.Indent(&buf, p, "", "  "); err != nil {
-		return w.out.Write(p)
-	}
-	buf.WriteByte('\n')
-	return w.out.Write(buf.Bytes())
-}
+// type prettyWriter struct {
+// 	out io.Writer
+// }
+//
+// func (w *prettyWriter) Write(p []byte) (int, error) {
+// 	var buf bytes.Buffer
+// 	if err := json.Indent(&buf, p, "", "  "); err != nil {
+// 		return w.out.Write(p)
+// 	}
+// 	buf.WriteByte('\n')
+// 	return w.out.Write(buf.Bytes())
+// }
 
 func ToLogLevel(level string) (slog.Level, error) {
 	switch strings.ToLower(level) {

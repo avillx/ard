@@ -1,12 +1,11 @@
 package api
 
 import (
+	"ard/internal/agent"
+	"ard/internal/types"
 	"context"
 	"errors"
 	"net/http"
-
-	"ard/internal/agent"
-	"ard/internal/types"
 )
 
 type AgentDTO struct {

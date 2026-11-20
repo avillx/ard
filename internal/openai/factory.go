@@ -1,12 +1,12 @@
 package openai
 
 import (
+	"ard/internal/agent"
+	"ard/internal/model"
 	"encoding/json"
 	"fmt"
 	"sync"
 
-	"ard/internal/agent"
-	"ard/internal/model"
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 )

@@ -1,12 +1,11 @@
 package tools
 
 import (
+	"ard/internal/agent"
+	"ard/internal/types"
 	"errors"
 	"fmt"
 	"sync"
-
-	"ard/internal/agent"
-	"ard/internal/types"
 )
 
 type Service struct {

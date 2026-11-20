@@ -1,11 +1,10 @@
 package api
 
 import (
-	"errors"
-	"net/http"
-
 	"ard/internal/task"
 	"ard/internal/types"
+	"errors"
+	"net/http"
 )
 
 // handler.

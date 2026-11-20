@@ -1,12 +1,12 @@
 package files
 
 import (
+	"ard/internal/secrets"
+	"ard/internal/sentinel"
 	"bytes"
 	"context"
 	"path/filepath"
 
-	"ard/internal/secrets"
-	"ard/internal/sentinel"
 	"github.com/fsnotify/fsnotify"
 	toml "github.com/pelletier/go-toml/v2"
 )
@@ -32,7 +32,7 @@ const (
 var SecretsConfigFilePath = filepath.Join(
 	ConfigDir,
 	SecretsConfigFile,
-) //nolint: gochecknoglobals // for os independet path
+)
 
 var _ secrets.Repo = (*SecretsFiles)(nil)
 

@@ -1,13 +1,6 @@
 package server
 
 import (
-	"context"
-	"fmt"
-	"log/slog"
-	"path"
-	"path/filepath"
-	"time"
-
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/cleanup"
@@ -25,10 +18,17 @@ import (
 	"ard/internal/subagent"
 	"ard/internal/task"
 	"ard/internal/tools"
-	fstools "ard/internal/tools/fs"
 	"ard/internal/tools/shell"
 	"ard/internal/tools/todo"
 	"ard/internal/uuid"
+	"context"
+	"fmt"
+	"log/slog"
+	"path"
+	"path/filepath"
+	"time"
+
+	fstools "ard/internal/tools/fs"
 )
 
 type Server struct {
@@ -309,6 +309,7 @@ func attachBuildinToolServers(
 	if err := toolSvc.Connect("agent", tools.NewCallAgentToolServer(
 		subagent.NewService(chatExecutor, sessSvc, logger),
 		agentRepo,
+		logger,
 	)); err != nil {
 		return err
 	}

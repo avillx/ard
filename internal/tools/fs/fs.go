@@ -1,14 +1,13 @@
 package fstools
 
 import (
-	"bytes"
-	"errors"
-
 	"ard/internal/agent"
 	"ard/internal/files"
 	"ard/internal/prompt"
 	"ard/internal/tools"
 	"ard/internal/types"
+	"bytes"
+	"errors"
 )
 
 type ConsolidationInstuctFS struct {

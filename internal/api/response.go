@@ -1,12 +1,11 @@
 package api
 
 import (
+	"ard/internal/types"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
-
-	"ard/internal/types"
 )
 
 type Response interface {

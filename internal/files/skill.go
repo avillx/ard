@@ -1,15 +1,13 @@
 package files
 
 import (
+	"ard/internal/agent"
+	"ard/internal/chat"
+	"ard/internal/types"
 	"errors"
 	"io/fs"
 	"log/slog"
 	"maps"
-	"sync"
-
-	"ard/internal/agent"
-	"ard/internal/chat"
-	"ard/internal/types"
 )
 
 const (
@@ -23,8 +21,6 @@ var _ chat.SkillsRepo = (*SkillFiles)(nil)
 type SkillFiles struct {
 	storage FileStorage
 	logger  *slog.Logger
-
-	mu sync.RWMutex
 }
 
 func NewSkillFiles(

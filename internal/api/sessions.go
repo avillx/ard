@@ -1,13 +1,12 @@
 package api
 
 import (
-	"errors"
-	"net/http"
-	"time"
-
 	"ard/internal/agent"
 	"ard/internal/session"
 	"ard/internal/types"
+	"errors"
+	"net/http"
+	"time"
 )
 
 type HeaderDTO struct {

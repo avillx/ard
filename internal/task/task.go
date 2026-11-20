@@ -1,12 +1,11 @@
 package task
 
 import (
+	"ard/internal/agent"
+	"ard/internal/types"
 	"errors"
 	"slices"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/types"
 )
 
 const Required = "required"

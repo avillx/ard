@@ -1,9 +1,8 @@
 package session
 
 import (
-	"log/slog"
-
 	"ard/internal/agent"
+	"log/slog"
 )
 
 var _ SessionsRepo = (*Service)(nil)

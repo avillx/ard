@@ -1,6 +1,8 @@
 package files
 
 import (
+	"ard/internal/sentinel"
+	"ard/internal/types"
 	"context"
 	"errors"
 	"io/fs"
@@ -10,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"ard/internal/sentinel"
-	"ard/internal/types"
 	"github.com/fsnotify/fsnotify"
 )
 

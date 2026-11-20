@@ -1,6 +1,8 @@
 package files
 
 import (
+	"ard/internal/agent"
+	"ard/internal/types"
 	"bytes"
 	"errors"
 	"fmt"
@@ -11,8 +13,6 @@ import (
 	"strings"
 	"sync"
 
-	"ard/internal/agent"
-	"ard/internal/types"
 	"gopkg.in/yaml.v3"
 )
 

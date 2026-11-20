@@ -1,12 +1,11 @@
 package logging
 
 import (
+	"ard/internal/files"
 	"bytes"
 	"fmt"
 	"io"
 	"sync"
-
-	"ard/internal/files"
 )
 
 const (

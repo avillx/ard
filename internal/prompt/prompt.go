@@ -1,13 +1,12 @@
 package prompt
 
 import (
+	"ard/internal/agent"
 	"bytes"
 	_ "embed"
 	"fmt"
 	"text/template"
 	"time"
-
-	"ard/internal/agent"
 )
 
 // raw prompts
@@ -80,7 +79,7 @@ func ConsolidationFSInstruction(cwd string, agentID agent.ID) string {
 		"Cwd":   cwd,
 	}
 
-	return mustExecute(consolidateMemoryTmpl, vars)
+	return mustExecute(consolidationFSinstructionTempl, vars)
 }
 
 //go:embed templates/consolidator.md
@@ -122,7 +121,7 @@ var persistentMemoryTmpl = template.Must(
 	template.New("persistent_memory").Parse(persistentMemoryRaw),
 )
 
-func PersistentMemory(agentID agent.ID, memoryIndex string, activity string) string {
+func PersistentMemory(agentID agent.ID, memoryIndex, activity string) string {
 	vars := map[string]any{
 		"Index":    memoryIndex,
 		"Agent":    agentID,

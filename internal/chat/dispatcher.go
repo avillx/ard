@@ -1,12 +1,10 @@
 package chat
 
 import (
-	"context"
-	"log/slog"
-	"sync"
-
 	"ard/internal/agent"
 	"ard/internal/session"
+	"context"
+	"sync"
 )
 
 var _ Executor = (*Dispatcher)(nil)
@@ -25,7 +23,6 @@ type Dispatcher struct {
 	*Service
 
 	processes map[sessionKey]*requestProcessing
-	logging   *slog.Logger
 	mu        sync.Mutex
 }
 

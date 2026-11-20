@@ -1,10 +1,6 @@
 package api
 
 import (
-	"encoding/json"
-	"log/slog"
-	"net/http"
-
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/mcp"
@@ -14,6 +10,9 @@ import (
 	"ard/internal/session"
 	"ard/internal/task"
 	"ard/internal/uuid"
+	"encoding/json"
+	"log/slog"
+	"net/http"
 )
 
 type HTTPHandler struct {

@@ -1,6 +1,8 @@
 package mcp
 
 import (
+	"ard/internal/agent"
+	"ard/internal/types"
 	"context"
 	"fmt"
 	"maps"
@@ -8,8 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"ard/internal/agent"
-	"ard/internal/types"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -143,7 +143,6 @@ type mcpServer struct {
 	err           error
 	shutdownCh    chan struct{}
 	closeShutdown sync.Once
-	mu            sync.Mutex
 }
 
 func (s *mcpServer) ID() ServerID                { return s.id }

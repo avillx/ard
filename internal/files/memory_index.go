@@ -1,15 +1,14 @@
 package files
 
 import (
+	"ard/internal/agent"
+	"ard/internal/types"
 	"errors"
 	"io/fs"
 	"log/slog"
 	"path"
 	"path/filepath"
 	"strings"
-
-	"ard/internal/agent"
-	"ard/internal/types"
 )
 
 const MemoryFolder = "memory"

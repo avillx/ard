@@ -1,12 +1,11 @@
 package todo
 
 import (
+	"ard/internal/agent"
+	"ard/internal/tools"
 	"context"
 	"fmt"
 	"strings"
-
-	"ard/internal/agent"
-	"ard/internal/tools"
 )
 
 type ToolServer struct {

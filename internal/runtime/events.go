@@ -1,9 +1,8 @@
 package runtime
 
 import (
-	"time"
-
 	"ard/internal/agent"
+	"time"
 )
 
 type Event any
