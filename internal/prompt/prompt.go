@@ -1,12 +1,13 @@
 package prompt
 
 import (
-	"ard/internal/agent"
 	"bytes"
 	_ "embed"
 	"fmt"
 	"text/template"
 	"time"
+
+	"ard/internal/agent"
 )
 
 // raw prompts
@@ -84,7 +85,10 @@ func ConsolidationFSInstruction(cwd string, agentID agent.ID) string {
 
 //go:embed templates/consolidator.md
 var consolidateMemoryRaw string
-var consolidateMemoryTmpl = template.Must(template.New("consolidate_memory").Parse(consolidateMemoryRaw))
+
+var consolidateMemoryTmpl = template.Must(
+	template.New("consolidate_memory").Parse(consolidateMemoryRaw),
+)
 
 func Memorization(agentID agent.ID) string {
 	vars := map[string]any{
@@ -96,7 +100,10 @@ func Memorization(agentID agent.ID) string {
 
 //go:embed templates/memorization_request.md
 var memorizationRequestRaw string
-var memorizationRequestTmpl = template.Must(template.New("memorization_request").Parse(memorizationRequestRaw))
+
+var memorizationRequestTmpl = template.Must(
+	template.New("memorization_request").Parse(memorizationRequestRaw),
+)
 
 func MemorizationRequest(agentID agent.ID, date time.Time, additional string) string {
 	vars := map[string]any{
@@ -110,7 +117,10 @@ func MemorizationRequest(agentID agent.ID, date time.Time, additional string) st
 
 //go:embed templates/memory_explanation.md
 var persistentMemoryRaw string
-var persistentMemoryTmpl = template.Must(template.New("persistent_memory").Parse(persistentMemoryRaw))
+
+var persistentMemoryTmpl = template.Must(
+	template.New("persistent_memory").Parse(persistentMemoryRaw),
+)
 
 func PersistentMemory(agentID agent.ID, memoryIndex string, activity string) string {
 	vars := map[string]any{
@@ -124,7 +134,10 @@ func PersistentMemory(agentID agent.ID, memoryIndex string, activity string) str
 
 //go:embed templates/skill_guidance.md
 var skillGuidanceRaw string
-var skillGuidanceTmpl = template.Must(template.New("skill_guidance").Parse(skillGuidanceRaw))
+
+var skillGuidanceTmpl = template.Must(
+	template.New("skill_guidance").Parse(skillGuidanceRaw),
+)
 
 func SkillGuidance(availableSkills string) string {
 	vars := map[string]any{
@@ -136,7 +149,10 @@ func SkillGuidance(availableSkills string) string {
 
 //go:embed templates/summary_explanation.md
 var summaryExplanationRaw string
-var summaryExplanationTmpl = template.Must(template.New("summary_explanation").Parse(summaryExplanationRaw))
+
+var summaryExplanationTmpl = template.Must(
+	template.New("summary_explanation").Parse(summaryExplanationRaw),
+)
 
 func SummaryExplanation(summary string) string {
 	vars := map[string]any{
@@ -148,7 +164,10 @@ func SummaryExplanation(summary string) string {
 
 //go:embed templates/excluded_unsupported_modality.md
 var excludedModalityRaw string
-var excludedModalityTmpl = template.Must(template.New("excluded_unsupported_modality").Parse(excludedModalityRaw))
+
+var excludedModalityTmpl = template.Must(
+	template.New("excluded_unsupported_modality").Parse(excludedModalityRaw),
+)
 
 func ExcludedUnsupportedModality(modality agent.Modality) string {
 	vars := map[string]any{
@@ -160,7 +179,10 @@ func ExcludedUnsupportedModality(modality agent.Modality) string {
 
 //go:embed templates/memory_file_system_instruction.md
 var memoryFilesystemInstructionRaw string
-var memoryFilesystemInstructionTmpl = template.Must(template.New("mem_fs_inst").Parse(memoryFilesystemInstructionRaw))
+
+var memoryFilesystemInstructionTmpl = template.Must(
+	template.New("mem_fs_inst").Parse(memoryFilesystemInstructionRaw),
+)
 
 func memoryFileSystemInstruction(agentID agent.ID) string {
 	vars := map[string]any{
@@ -172,7 +194,10 @@ func memoryFileSystemInstruction(agentID agent.ID) string {
 
 //go:embed templates/file_system_instruction.md
 var filesystemInstructionRaw string
-var filesystemInstructionTmpl = template.Must(template.New("file_system_instruction").Parse(filesystemInstructionRaw))
+
+var filesystemInstructionTmpl = template.Must(
+	template.New("file_system_instruction").Parse(filesystemInstructionRaw),
+)
 
 func FileSystemInstruction(cwd string, agentID agent.ID, addMemory bool) string {
 	additional := ""
@@ -192,7 +217,10 @@ func FileSystemInstruction(cwd string, agentID agent.ID, addMemory bool) string 
 
 //go:embed templates/undone_todos_caution.md
 var undoneTodoCautionRaw string
-var undoneTodoCautionTmpl = template.Must(template.New("undone_todos_caution").Parse(undoneTodoCautionRaw))
+
+var undoneTodoCautionTmpl = template.Must(
+	template.New("undone_todos_caution").Parse(undoneTodoCautionRaw),
+)
 
 func UndoneTodosCaution(todoList string) string {
 	vars := map[string]any{

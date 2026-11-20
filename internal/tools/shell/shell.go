@@ -16,7 +16,7 @@ import (
 	"ard/internal/tools"
 )
 
-var defaultTimeout = 30 * time.Second
+var defaultTimeout = 30 * time.Second // nolint: gochecknoglobals
 
 const (
 	// edge timeout of the shell tool, set in runtime.

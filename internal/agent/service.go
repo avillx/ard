@@ -7,15 +7,6 @@ import (
 
 var _ Repo = (*Service)(nil)
 
-var defaultAgent = NewAgent(
-	"default",
-	"agent placeholder",
-	"",
-	"",
-	[]string{"filesystem"},
-	false,
-)
-
 type Sync interface {
 	DeleteAgent(ID) error
 }
@@ -46,7 +37,7 @@ func NewService(
 	}
 
 	if len(agts) == 0 {
-		if err := storage.Save(defaultAgent); err != nil {
+		if err := storage.Save(buildDefaultAgent()); err != nil {
 			return nil, fmt.Errorf("failed to create default agent, %w", err)
 		}
 	}
@@ -92,4 +83,15 @@ func (s *Service) Delete(agentID ID) error {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
+}
+
+func buildDefaultAgent() Agent {
+	return NewAgent(
+		"default",
+		"agent placeholder",
+		"",
+		"",
+		[]string{"filesystem"},
+		false,
+	)
 }

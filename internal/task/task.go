@@ -9,6 +9,8 @@ import (
 	"ard/internal/types"
 )
 
+const Required = "required"
+
 var (
 	ErrIsNotExist   = types.ErrIsNotExist
 	ErrAlreadyExist = types.ErrAlreadyExist
@@ -95,10 +97,10 @@ func applyPatch(cfg Config, patch Patch) Config {
 func validateConfig(cfg Config, cronFactory func(string) (Cron, error)) error {
 	problems := make(map[string]string)
 	if cfg.Name == "" {
-		problems["name"] = "must be not empty"
+		problems["name"] = Required
 	}
 	if cfg.Description == "" {
-		problems["description"] = "must be not empty"
+		problems["description"] = Required
 	}
 	if len(cfg.Recipients) <= 0 {
 		problems["recipients"] = ErrNoRecipients.Error()
@@ -107,7 +109,7 @@ func validateConfig(cfg Config, cronFactory func(string) (Cron, error)) error {
 		problems["schedule"] = "invalid cron"
 	}
 	if cfg.Request == "" {
-		problems["request"] = "must be not empty"
+		problems["request"] = Required
 	}
 	if len(problems) > 0 {
 		return types.NewValidationError(problems)

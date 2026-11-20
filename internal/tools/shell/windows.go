@@ -12,7 +12,7 @@ import (
 
 const defaultShell = "powershell.exe"
 
-var defaultShellAttributes = []string{"-NoProfile", "-NonInteractive", "-Command"}
+var defaultShellAttributes = []string{"-NoProfile", "-NonInteractive", "-Command"} // nolint: gochecknoglobals
 
 type processGroup struct {
 	jobHandle     windows.Handle

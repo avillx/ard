@@ -16,11 +16,11 @@ import (
 )
 
 var (
-	readToolName     = (&fstools.ReadTool{}).Name()
-	editToolName     = (&fstools.EditTool{}).Name()
-	moveToolName     = (&fstools.MoveTool{}).Name()
-	writeToolName    = (&fstools.WriteTool{}).Name()
-	errIsNotFileTool = errors.New("is not file tools")
+	readToolName     = (&fstools.ReadTool{}).Name()    // nolint: gochecknoglobals
+	editToolName     = (&fstools.EditTool{}).Name()    // nolint: gochecknoglobals
+	moveToolName     = (&fstools.MoveTool{}).Name()    // nolint: gochecknoglobals
+	writeToolName    = (&fstools.WriteTool{}).Name()   // nolint: gochecknoglobals
+	errIsNotFileTool = errors.New("is not file tools") // nolint: gochecknoglobals
 )
 
 type Access int

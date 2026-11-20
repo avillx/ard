@@ -56,7 +56,7 @@ const (
 	# After edit, ensure file consistency and comment integrity`
 )
 
-var ModelsConfigFilePath = filepath.Join(ConfigDir, ModelsConfigFile)
+var ModelsConfigFilePath = filepath.Join(ConfigDir, ModelsConfigFile) // nolint: gochecknoglobals
 
 var _ model.ProviderConfigRepo = (*ProviderFiles)(nil)
 

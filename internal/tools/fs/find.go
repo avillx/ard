@@ -16,7 +16,7 @@ import (
 	"github.com/bmatcuk/doublestar/v4"
 )
 
-var lineBreaker = []byte("\n")
+var lineBreaker = []byte("\n") // nolint: gochecknoglobals
 
 type FindTool struct {
 	storage      files.FileStorage
