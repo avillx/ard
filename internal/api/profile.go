@@ -36,12 +36,12 @@ func (h *profileHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 		return NewInternalError(err)
 	}
 
-	dtos := []ProfileDTO{}
+	dto := map[profile.ID]ProfileDTO{}
 	for _, p := range profiles {
-		dtos = append(dtos, profileToDTO(p))
+		dto[p.ID()] = profileToDTO(p)
 	}
 
-	return NewJSONResponse(http.StatusOK, dtos)
+	return NewJSONResponse(http.StatusOK, dto)
 }
 
 // POST /profile/{id} DTO.
