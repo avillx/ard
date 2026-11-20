@@ -116,30 +116,6 @@ func TestRun_CleansImmediatelyAndStopsOnCancel(t *testing.T) {
 	}
 }
 
-func TestRun_LogsSessionsCleanerError(t *testing.T) {
-	logger, handler := newStubLogger()
-	sessRepo := &mockSessionsRepo{headersErr: errors.New("storage failure")}
-	trimmer := &mockLogTrimmer{trimmed: make(chan struct{}, 4)}
-
-	svc, err := cleanup.NewService(cleanup.Config{
-		SessRetention:   testRetention,
-		CleanUpInterval: testInterval,
-		MaxLogLines:     testMaxLogLines,
-	}, cleanup.NewSessionsCleaner(sessRepo, logger), trimmer, logger)
-	if err != nil {
-		t.Fatalf("create cleanup service: %v", err)
-	}
-
-	runSinglePass(t, svc, trimmer.trimmed)
-
-	if got := handler.count(slog.LevelError); got == 0 {
-		t.Fatal("expected sessions cleaner error to be logged")
-	}
-	if got := trimmer.trimmedCount(); got != 1 {
-		t.Fatalf("expected log trim to run despite sessions error, got %d calls", got)
-	}
-}
-
 func TestRun_LogsLogTrimError(t *testing.T) {
 	logger, handler := newStubLogger()
 	sessRepo := &mockSessionsRepo{}

@@ -33,6 +33,7 @@ func (c *SessionsCleaner) Clean(retention time.Duration) error {
 	headers, err := c.sessRepo.Headers()
 	if err != nil {
 		if brokenHeadersErr, ok := errors.AsType[*session.BrokenHeadersError](err); ok {
+			c.logger.Info("broken sessions finded")
 			c.handleBrokenSessions(brokenHeadersErr)
 		}
 	}
