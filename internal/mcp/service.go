@@ -143,8 +143,8 @@ func (s *Service) connectServer(ctx context.Context, id MCPServerID, cfg ServerG
 
 	go func() {
 		logger := s.logger.With("server", srv.ID())
-		// blocking
-		if err := srv.Run(context.Background()); err != nil {
+		// this stuff use separated context cause it works in separated goroutine
+		if err := srv.Run(context.Background()); err != nil { // nolint: gosec
 			logger.ErrorContext(ctx, "bad connection", "error", err)
 			srv.setErr(err)
 		}

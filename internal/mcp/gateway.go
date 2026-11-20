@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"ard/internal/types"
 	"context"
 	"errors"
 	"fmt"
@@ -10,12 +9,15 @@ import (
 	"os/exec"
 	"sync"
 
+	"ard/internal/types"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/oauth2"
 )
 
-var _ gateway = (*httpGateway)(nil)
-var _ gateway = (*processGateway)(nil)
+var (
+	_ gateway = (*httpGateway)(nil)
+	_ gateway = (*processGateway)(nil)
+)
 
 type httpGateway struct {
 	url       string
@@ -95,7 +97,8 @@ func (g *processGateway) createSession(ctx context.Context) (*mcp.ClientSession,
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	cmd := exec.Command(g.command, g.args...)
+	// TODO: Technically agent with mcp config edit premissions can execute any command
+	cmd := exec.Command(g.command, g.args...) // nolint: gosec
 	cmd.Env = append(os.Environ(), envToSlice(g.env)...)
 
 	client := newClient()

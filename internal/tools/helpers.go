@@ -1,16 +1,17 @@
 package tools
 
 import (
-	"ard/internal/agent"
-	"ard/internal/chat"
-	"ard/internal/session"
-	"ard/internal/types"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
+
+	"ard/internal/agent"
+	"ard/internal/chat"
+	"ard/internal/session"
+	"ard/internal/types"
 )
 
 var _ agent.ToolServer = (*BuildInToolServer)(nil)
@@ -43,8 +44,7 @@ func UnwrapValidArgs[T types.Validator](ctx context.Context, raw agent.ToolArgum
 		return args, types.NewAgentMistakeError(err.Error())
 	}
 	if err := args.Validate(ctx); err != nil {
-		var validationError *types.ValidationError
-		if errors.As(err, &validationError) {
+		if validationError, ok := errors.AsType[*types.ValidationError](err); ok {
 			var sb strings.Builder
 			for k, v := range validationError.Problems() {
 				fmt.Fprintf(&sb, "problem with %s - %s", k, v)

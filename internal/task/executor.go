@@ -1,13 +1,14 @@
 package task
 
 import (
+	"context"
+	"log/slog"
+
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/prompt"
 	"ard/internal/runtime"
 	"ard/internal/session"
-	"context"
-	"log/slog"
 )
 
 var _ TaskExecutor = (*executor)(nil)
@@ -37,7 +38,7 @@ func (s *executor) Execute(ctx context.Context, t TaskConfig) {
 		logger := logger.With("agent", r)
 
 		logger.InfoContext(ctx, "processing started")
-		if err := s.processRecipientTask(ctx, agent.ID(r), t.Request); err != nil {
+		if err := s.processRecipientTask(ctx, r, t.Request); err != nil {
 			logger.ErrorContext(ctx, "processing", "error", err)
 		}
 	}

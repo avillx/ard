@@ -1,14 +1,15 @@
 package api
 
 import (
-	"ard/internal/agent"
-	"ard/internal/memory"
-	"ard/internal/runtime"
-	"ard/internal/types"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+
+	"ard/internal/agent"
+	"ard/internal/memory"
+	"ard/internal/runtime"
+	"ard/internal/types"
 )
 
 type memoryHandler struct {

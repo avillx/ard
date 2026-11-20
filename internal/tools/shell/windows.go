@@ -43,7 +43,11 @@ func createProcessGroup(proc *os.Process) (*processGroup, error) {
 		return nil, err
 	}
 
-	handle, err := windows.OpenProcess(windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE, false, uint32(proc.Pid))
+	handle, err := windows.OpenProcess(
+		windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE,
+		false,
+		uint32(proc.Pid), // nolint: gosec
+	)
 	if err != nil {
 		_ = windows.CloseHandle(job)
 		return nil, err

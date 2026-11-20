@@ -1,6 +1,11 @@
 package hooks
 
 import (
+	"context"
+	"fmt"
+	"strings"
+	"sync"
+
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/prompt"
@@ -8,10 +13,6 @@ import (
 	"ard/internal/session"
 	"ard/internal/tools/todo"
 	"ard/internal/types"
-	"context"
-	"fmt"
-	"strings"
-	"sync"
 )
 
 // ensure valid memory front matter.
@@ -149,10 +150,7 @@ func (h *UndoneTodoHook) isAgentCantHandle(sessID session.ID) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if h.attemptCounter[sessID] >= maxIncomplitedTodoAttempts {
-		return true
-	}
-	return false
+	return h.attemptCounter[sessID] >= maxIncomplitedTodoAttempts
 }
 
 func todoToList(todoItems []todo.TodoItem) string {

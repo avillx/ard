@@ -1,15 +1,16 @@
 package api
 
 import (
-	"ard/internal/agent"
-	"ard/internal/chat"
-	"ard/internal/types"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/chat"
+	"ard/internal/types"
 )
 
 type ProvidedToolResultDTO struct {
@@ -125,9 +126,7 @@ func newProvidedToolServer(dto ProvidedToolServerDTO) agent.ToolServer {
 	}
 
 	return &ProvidedToolServerInstructed{
-		ProvidedToolServer: ProvidedToolServer{
-			tools: tools,
-		},
+		tools: tools,
 	}
 }
 
@@ -203,9 +202,7 @@ func (t *ProvidedTool) Call(ctx context.Context, args agent.ToolArguments) ([]ag
 	}
 
 	t.stream.send(ProvidedToolCallDTO{
-		EventTypeDTO: EventTypeDTO{
-			Type: ProvidedCall,
-		},
+		Type:      ProvidedCall,
 		Name:      t.name,
 		Args:      parsedArgs,
 		ResultID:  t.id,

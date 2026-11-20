@@ -1,13 +1,14 @@
 package api
 
 import (
+	"encoding/json"
+	"log/slog"
+	"net/http"
+
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/runtime"
 	"ard/internal/session"
-	"encoding/json"
-	"log/slog"
-	"net/http"
 )
 
 type EventType string
@@ -165,9 +166,7 @@ func forwardEventsToStream(evCh chan runtime.Event, stream *Stream) {
 				cause = err.Error()
 			}
 			data := LoopExitDTO{
-				EventTypeDTO: EventTypeDTO{
-					Type: LoopExit,
-				},
+				Type:  LoopExit,
 				Cause: cause,
 			}
 			stream.send(data)
@@ -175,9 +174,7 @@ func forwardEventsToStream(evCh chan runtime.Event, stream *Stream) {
 		// compaction event
 		case *runtime.CompactionEvent:
 			data := CompactionDTO{
-				EventTypeDTO: EventTypeDTO{
-					Type: Compaction,
-				},
+				Type: Compaction,
 				// TODO: eliminate this shit
 				Message: "compaction has been proceed",
 				Result:  ev.Summary(),
@@ -188,9 +185,7 @@ func forwardEventsToStream(evCh chan runtime.Event, stream *Stream) {
 		case *runtime.CompleteEvent:
 			c := ev.Complete()
 			data := CompletionDTO{
-				EventTypeDTO: EventTypeDTO{
-					Type: Complete,
-				},
+				Type:      Complete,
 				Done:      c.Done,
 				Content:   c.Content,
 				ToolCalls: toolCallsToDTO(c.ToolCalls),
@@ -200,9 +195,7 @@ func forwardEventsToStream(evCh chan runtime.Event, stream *Stream) {
 		// completion mistake
 		case *runtime.CompletionMistakeEvent:
 			data := CompletionMistakeDTO{
-				EventTypeDTO: EventTypeDTO{
-					Type: CompleteMistake,
-				},
+				Type:  CompleteMistake,
 				Cause: ev.Err().Error(),
 			}
 			stream.send(data)
@@ -211,9 +204,7 @@ func forwardEventsToStream(evCh chan runtime.Event, stream *Stream) {
 		case *runtime.ToolResultEvent:
 			tr := ev.Result()
 			data := ToolResultDTO{
-				EventTypeDTO: EventTypeDTO{
-					Type: ToolResult,
-				},
+				Type:   ToolResult,
 				ID:     tr.ID,
 				Result: tr.Result,
 			}
@@ -222,9 +213,7 @@ func forwardEventsToStream(evCh chan runtime.Event, stream *Stream) {
 		// tool call error
 		case *runtime.ToolCallErrEvent:
 			data := ToolErrorDTO{
-				EventTypeDTO: EventTypeDTO{
-					Type: ToolError,
-				},
+				Type:     ToolError,
 				Cause:    ev.Err().Error(),
 				ToolName: ev.ToolName(),
 				Args:     ev.ToolArgs(),

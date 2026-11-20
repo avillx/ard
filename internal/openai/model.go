@@ -1,11 +1,11 @@
 package openai
 
 import (
-	"ard/internal/agent"
 	"context"
 	"slices"
 	"sync"
 
+	"ard/internal/agent"
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/shared"
 )
@@ -95,7 +95,7 @@ func (r *OpenAIModel) buildCompletionParams(
 		Messages: messages,
 	}
 
-	completionParams.Model = shared.ChatModel(r.modelName)
+	completionParams.Model = r.modelName
 
 	if agentTools != nil {
 		completionParams.Tools = agentTools

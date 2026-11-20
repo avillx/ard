@@ -1,8 +1,6 @@
 package mcp
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"context"
 	"fmt"
 	"maps"
@@ -10,7 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"ard/internal/agent"
+	"ard/internal/types"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -18,7 +17,7 @@ const healthInterval = 30 * time.Second
 
 type MCPServerID string
 
-var _ agent.ToolServer = (MCPServer)(nil)
+var _ agent.ToolServer = MCPServer(nil)
 
 var _ types.Validator = (*ServerGatewayConfig)(nil)
 
@@ -109,7 +108,7 @@ func validateConfig(cfg ServerGatewayConfig) error {
 
 type gateway interface {
 	Type() string
-	createSession(context.Context) (*mcp.ClientSession, error)
+	createSession(context.Context) (*mcpsdk.ClientSession, error)
 }
 
 type MCPServer interface {
@@ -220,7 +219,7 @@ func (s *mcpServer) Run(ctx context.Context) error {
 	// shutdowner
 	go func() {
 		<-s.shutdownCh
-		sess.Close()
+		sess.Close() // nolint: gosec
 	}()
 
 	return sess.Wait()
@@ -232,7 +231,7 @@ func (s *mcpServer) Shutdown() {
 	})
 }
 
-func monitorSession(ctx context.Context, sess *mcp.ClientSession) {
+func monitorSession(ctx context.Context, sess *mcpsdk.ClientSession) {
 	ticker := time.NewTicker(healthInterval)
 	defer ticker.Stop()
 	defer sess.Close()

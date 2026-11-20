@@ -139,7 +139,7 @@ func (t *ShellTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]ag
 	envs = append(envs, secrets...)
 	envs = append(envs, metadataToEnv(ctx)...)
 
-	cmd := exec.Command(t.shell, append(t.shellAttributes, args.Command)...)
+	cmd := exec.Command(t.shell, append(t.shellAttributes, args.Command)...) // nolint: gosec
 	cmd.Dir = t.cwd
 	if args.Cwd != "" {
 		cmd.Dir = args.Cwd

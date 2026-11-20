@@ -124,7 +124,7 @@ func (h *agentHandler) Delete(w http.ResponseWriter, r *http.Request) Response {
 
 func agentToDTO(agt agent.Agent) AgentDTO {
 	return AgentDTO{
-		Model:        string(agt.Model()),
+		Model:        agt.Model(),
 		Memory:       agt.HasMemory(),
 		Description:  agt.Description(),
 		ToolServers:  agt.ToolServers(),

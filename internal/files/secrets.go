@@ -1,20 +1,21 @@
 package files
 
 import (
-	"ard/internal/secrets"
-	"ard/internal/sentinel"
 	"bytes"
 	"context"
 	"path/filepath"
 
+	"ard/internal/secrets"
+	"ard/internal/sentinel"
 	"github.com/fsnotify/fsnotify"
 	toml "github.com/pelletier/go-toml/v2"
 )
 
 const (
-	SecretsConfigFileMode = 0700
+	SecretsConfigFileMode = 0o700
 	SecretsConfigFile     = "secrets.toml"
-	secretsFileDoc        = `# Secrets storage
+	// nolint: gosec
+	secretsFileDoc = `# Secrets storage
 
 	# Key names should prefer upper snake case (e.g. SOME_VARIABLE)
 	# Variables must be unique, file format is toml, one variable per line

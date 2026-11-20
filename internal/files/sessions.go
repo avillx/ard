@@ -80,8 +80,8 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.SessionHeader, error
 	headers := []session.SessionHeader{}
 	for _, file := range files {
 		fileName := file.Name()
-		rawId := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-		sessID := session.ID(rawId)
+		rawID := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+		sessID := session.ID(rawID)
 
 		pathToFile := filepath.Join(sessionDir, fileName)
 		f, err := r.storage.OpenFile(pathToFile, os.O_RDONLY, 0)
@@ -95,7 +95,11 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.SessionHeader, error
 		scanner := bufio.NewScanner(f)
 		scanner.Scan()
 		data := scanner.Bytes()
-		f.Close()
+		if err := f.Close(); err != nil {
+			brokenHeader := session.NewBrokenHeaderError(sessID, agentID, err)
+			brokenHeaders = append(brokenHeaders, brokenHeader)
+			continue
+		}
 
 		var header SessionHeaderDTO
 		dec := json.NewDecoder(bytes.NewReader(data))

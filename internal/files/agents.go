@@ -1,8 +1,6 @@
 package files
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"bytes"
 	"errors"
 	"fmt"
@@ -13,6 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	"ard/internal/agent"
+	"ard/internal/types"
 	"gopkg.in/yaml.v3"
 )
 
@@ -59,12 +59,7 @@ func (s *AgentFiles) All() ([]agent.Agent, error) {
 		dtos = append(dtos, dto)
 	}
 
-	agts, err := s.fromDTO(dtos...)
-	if err != nil {
-		return nil, err
-	}
-
-	return agts, nil
+	return s.fromDTO(dtos...), nil
 }
 
 func (s *AgentFiles) Get(id agent.ID) (agent.Agent, error) {
@@ -79,10 +74,7 @@ func (s *AgentFiles) Get(id agent.ID) (agent.Agent, error) {
 		return nil, err
 	}
 
-	agts, err := s.fromDTO(dto)
-	if err != nil {
-		return nil, err
-	}
+	agts := s.fromDTO(dto)
 
 	if len(agts) > 0 {
 		return agts[0], nil
@@ -142,7 +134,7 @@ func (s *AgentFiles) readConfig(id agent.ID) (AgentDTO, error) {
 	return parseAgentFile(data)
 }
 
-func (s *AgentFiles) fromDTO(dtos ...AgentDTO) ([]agent.Agent, error) {
+func (s *AgentFiles) fromDTO(dtos ...AgentDTO) []agent.Agent {
 	agents := []agent.Agent{}
 
 	for _, dto := range dtos {
@@ -156,7 +148,7 @@ func (s *AgentFiles) fromDTO(dtos ...AgentDTO) ([]agent.Agent, error) {
 		))
 	}
 
-	return agents, nil
+	return agents
 }
 
 // DTO.
