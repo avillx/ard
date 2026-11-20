@@ -1,12 +1,13 @@
 package runtime_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/runtime"
 	"context"
 	"sync"
 	"testing"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/runtime"
 )
 
 type mockCompletion struct {

@@ -29,7 +29,10 @@ const (
 	# After edit, ensure file consistency and comment integrity`
 )
 
-var SecretsConfigFilePath = filepath.Join(ConfigDir, SecretsConfigFile) //nolint: gochecknoglobals
+var SecretsConfigFilePath = filepath.Join(
+	ConfigDir,
+	SecretsConfigFile,
+) //nolint: gochecknoglobals // for os independet path
 
 var _ secrets.Repo = (*SecretsFiles)(nil)
 

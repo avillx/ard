@@ -1,14 +1,15 @@
 package runtime_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/prompt"
-	"ard/internal/runtime"
-	"ard/internal/types"
 	"context"
 	"errors"
 	"strings"
 	"testing"
+
+	"ard/internal/agent"
+	"ard/internal/prompt"
+	"ard/internal/runtime"
+	"ard/internal/types"
 )
 
 func TestRunAgentLoop_ExitsOnDone(t *testing.T) {

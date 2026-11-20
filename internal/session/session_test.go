@@ -1,11 +1,12 @@
 package session_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/session"
 	"reflect"
 	"testing"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/session"
 )
 
 func newSession(t *testing.T, msgs ...agent.Message) session.Session {

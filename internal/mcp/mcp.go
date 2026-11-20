@@ -200,6 +200,9 @@ func (s *mcpServer) Tools() []agent.Tool { return s.tools }
 
 // blocking.
 func (s *mcpServer) Run(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	sess, err := s.gateway.createSession(ctx)
 	if err != nil {
 		return err
@@ -211,9 +214,6 @@ func (s *mcpServer) Run(ctx context.Context) error {
 	}
 	s.tools = t
 
-	// observer
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 	go monitorSession(ctx, sess)
 
 	// shutdowner

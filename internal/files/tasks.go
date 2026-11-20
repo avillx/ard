@@ -58,7 +58,7 @@ const (
 	# After edit, ensure file consistency and comment integrity`
 )
 
-var ConfigFilePath = filepath.Join(ConfigDir, ConfigFile) //nolint: gochecknoglobals
+var ConfigFilePath = filepath.Join(ConfigDir, ConfigFile) //nolint: gochecknoglobals // for os independet path
 
 type TaskFiles struct {
 	mu      sync.RWMutex

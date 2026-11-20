@@ -1,14 +1,15 @@
 package hooks_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/hooks"
-	fstools "ard/internal/tools/fs"
 	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"ard/internal/agent"
+	"ard/internal/hooks"
+	fstools "ard/internal/tools/fs"
 )
 
 type pathArgs struct {

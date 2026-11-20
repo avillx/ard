@@ -136,7 +136,7 @@ func (t *ReadTool) ReadDir(p string) (string, error) {
 		// Should skip by pattern
 		for _, pattern := range t.skipPatterns {
 			if doublestar.PathMatchUnvalidated(pattern, path) {
-				return nil
+				return fs.SkipDir
 			}
 		}
 
@@ -145,7 +145,7 @@ func (t *ReadTool) ReadDir(p string) (string, error) {
 		fmt.Fprintf(&sb, "%s %s\n", path, strings.Join(labels, " "))
 
 		if err != nil {
-			return nil
+			return fs.SkipDir
 		}
 
 		// Skip if depth limit reached

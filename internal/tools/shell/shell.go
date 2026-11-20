@@ -16,7 +16,7 @@ import (
 	"ard/internal/tools"
 )
 
-var defaultTimeout = 30 * time.Second //nolint: gochecknoglobals
+const defaultTimeout = 30 * time.Second
 
 const (
 	// edge timeout of the shell tool, set in runtime.
@@ -146,7 +146,7 @@ func (t *Tool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.C
 	envs = append(envs, secrets...)
 	envs = append(envs, metadataToEnv(ctx)...)
 
-	cmd := exec.Command(t.shell, append(t.shellAttributes, args.Command)...) //nolint: gosec
+	cmd := exec.CommandContext(ctx, t.shell, append(t.shellAttributes, args.Command)...) //nolint: gosec
 	cmd.Dir = t.cwd
 	if args.Cwd != "" {
 		cmd.Dir = args.Cwd

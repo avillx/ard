@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"ard/internal/agent"
-
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

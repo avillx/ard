@@ -1,11 +1,12 @@
 package runtime_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/runtime"
 	"context"
 	"errors"
 	"testing"
+
+	"ard/internal/agent"
+	"ard/internal/runtime"
 )
 
 func TestApplyHooks_AppliesInOrder(t *testing.T) {

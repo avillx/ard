@@ -52,7 +52,10 @@ const (
 	# After edit, ensure file consistency and comment integrity`
 )
 
-var MemoryConfigFilePath = filepath.Join(ConfigDir, MemoryConfigFile) //nolint: gochecknoglobals
+var MemoryConfigFilePath = filepath.Join(
+	ConfigDir,
+	MemoryConfigFile,
+) //nolint: gochecknoglobals // for os independet path
 
 type MemoryFile struct {
 	storage FileStorage
