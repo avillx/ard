@@ -2,6 +2,7 @@ package task
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/types"
 	"context"
 	"errors"
@@ -28,7 +29,7 @@ type Service struct {
 	runtimes    map[string]*taskRuntime
 	executor    Executor
 	cronFactory func(string) (Cron, error)
-	agentRepo   agent.Repo
+	agentRepo   profile.Repo
 	logger      *slog.Logger
 }
 
@@ -36,7 +37,7 @@ func NewService(
 	repo Repo,
 	executor Executor,
 	cronFactory func(string) (Cron, error),
-	agentRepo agent.Repo,
+	agentRepo profile.Repo,
 	logger *slog.Logger,
 ) (*Service, error) {
 	svc := &Service{

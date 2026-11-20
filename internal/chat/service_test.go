@@ -3,6 +3,7 @@ package chat_test
 import (
 	"ard/internal/agent"
 	"ard/internal/chat"
+	"ard/internal/profile"
 	"ard/internal/runtime"
 	"ard/internal/session"
 	"context"
@@ -218,7 +219,7 @@ func newMockAgent(id agent.ID, toolServers ...string) agent.Agent {
 
 func newTestService(
 	t *testing.T,
-	agentRepo agent.Repo,
+	agentRepo profile.Repo,
 	sessionRepo session.SessionsRepo,
 	modelRepo agent.ModelRegistry,
 	toolRegistry agent.ToolRegistry,

@@ -2,15 +2,6 @@ package agent
 
 type ID string
 
-type Repo interface {
-	All() ([]Agent, error)
-	Get(ID) (Agent, error)
-	Save(Agent) error
-
-	// TODO: tasks is not updating automaticly
-	Delete(ID) error
-}
-
 var _ Agent = (*agent)(nil)
 
 type Agent interface {

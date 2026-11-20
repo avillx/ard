@@ -2,6 +2,7 @@ package files
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/types"
 	"path/filepath"
 	"sync"
@@ -16,7 +17,7 @@ const (
 
 var AgentFilePath = filepath.Join(ConfigDir, AgentFile) //nolint: gochecknoglobals // os safe path
 
-var _ agent.Repo = (*AgentFiles)(nil)
+var _ profile.Repo = (*AgentFiles)(nil)
 
 type AgentFiles struct {
 	storage FileStorage

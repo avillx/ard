@@ -1,14 +1,14 @@
-package agent_test
+package profile_test
 
 import (
+	"ard/internal/agent"
+	"ard/internal/profile"
+	"ard/internal/types"
 	"context"
 	"errors"
 	"slices"
 	"sync"
 	"testing"
-
-	"ard/internal/agent"
-	"ard/internal/types"
 )
 
 type mockModel struct{}
@@ -169,7 +169,7 @@ type mockSync struct {
 	calls []agent.ID
 }
 
-func (s *mockSync) DeleteAgent(id agent.ID) error {
+func (s *mockSync) DeleteProfile(id agent.ID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -189,11 +189,11 @@ func newTestService(
 	storage *mockRepo,
 	models *mockModelRegistry,
 	tools *mockToolRegistry,
-	syncs ...agent.Sync,
-) *agent.Service {
+	syncs ...profile.Sync,
+) *profile.Service {
 	t.Helper()
 
-	svc, err := agent.NewService(tools, models, storage, syncs)
+	svc, err := profile.NewService(tools, models, storage, syncs)
 	if err != nil {
 		t.Fatalf("NewService() error = %v", err)
 	}
@@ -206,7 +206,7 @@ func newAgent(id agent.ID) agent.Agent {
 
 func TestNewService_CreatesDefaultAgentWhenEmpty(t *testing.T) {
 	storage := newMockRepo()
-	svc, err := agent.NewService(
+	svc, err := profile.NewService(
 		newMockToolRegistry("filesystem"),
 		newMockModelRegistry("model-a"),
 		storage,
@@ -237,7 +237,7 @@ func TestNewService_KeepsExistingAgents(t *testing.T) {
 	storage := newMockRepo()
 	storage.seed(newAgent("existing"))
 
-	svc, err := agent.NewService(
+	svc, err := profile.NewService(
 		newMockToolRegistry("filesystem"),
 		newMockModelRegistry("model-a"),
 		storage,
@@ -265,7 +265,7 @@ func TestNewService_FailsWhenListingAgentsFails(t *testing.T) {
 	storage := newMockRepo()
 	storage.allErr = wantErr
 
-	_, err := agent.NewService(
+	_, err := profile.NewService(
 		newMockToolRegistry("filesystem"),
 		newMockModelRegistry("model-a"),
 		storage,
@@ -281,7 +281,7 @@ func TestNewService_FailsWhenDefaultAgentSaveFails(t *testing.T) {
 	storage := newMockRepo()
 	storage.saveErr = wantErr
 
-	_, err := agent.NewService(
+	_, err := profile.NewService(
 		newMockToolRegistry("filesystem"),
 		newMockModelRegistry("model-a"),
 		storage,

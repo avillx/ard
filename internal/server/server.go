@@ -13,6 +13,7 @@ import (
 	"ard/internal/migrations"
 	"ard/internal/model"
 	"ard/internal/openai"
+	"ard/internal/profile"
 	"ard/internal/secrets"
 	"ard/internal/sentinel"
 	"ard/internal/session"
@@ -38,7 +39,7 @@ type Server struct {
 	ModelsSvc              *model.Service
 	ProviderSvc            *model.ProviderService
 	ToolSvc                *tools.Service
-	AgentSvc               *agent.Service
+	ProfileSvc             *profile.Service
 	SessSvc                *session.Service
 	CleanupSvc             *cleanup.Service
 	MCPSvc                 *mcp.Service
@@ -120,7 +121,7 @@ func New(
 	toolSvc := tools.NewService()
 
 	// TODO: expose syncers
-	agentSvc, err := agent.NewService(toolSvc, modelsSvc, agentRepo, []agent.Sync{})
+	profileSvc, err := profile.NewService(toolSvc, modelsSvc, agentRepo, []profile.Sync{})
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +238,7 @@ func New(
 		ModelsSvc:              modelsSvc,
 		ProviderSvc:            providerSvc,
 		ToolSvc:                toolSvc,
-		AgentSvc:               agentSvc,
+		ProfileSvc:             profileSvc,
 		SessSvc:                sessSvc,
 		CleanupSvc:             cleanupSvc,
 		MCPSvc:                 mcpSvc,
@@ -257,7 +258,7 @@ func buildTaskService(
 	storage files.FileStorage,
 	sessSvc *session.Service,
 	chatSvc *chat.Service,
-	agentRepo agent.Repo,
+	profileRepo profile.Repo,
 	logger *slog.Logger,
 ) (*task.Service, error) {
 	taskRepo, err := files.NewTaskFiles(storage)
@@ -275,7 +276,7 @@ func buildTaskService(
 		taskRepo,
 		executor,
 		func(s string) (task.Cron, error) { return cron.NewRobfigCron(s) },
-		agentRepo,
+		profileRepo,
 		logger,
 	)
 	if err != nil {
@@ -297,7 +298,7 @@ func attachBuildinToolServers(
 	chatExecutor chat.Executor,
 	sessSvc *session.Service,
 	logger *slog.Logger,
-	agentRepo agent.Repo,
+	profileRepo profile.Repo,
 ) error {
 	fsToolSrv, err := fstools.NewFileSystemToolServer(fileStorage, skipPatterns)
 	if err != nil {
@@ -311,7 +312,7 @@ func attachBuildinToolServers(
 	}
 	if err := toolSvc.Connect("agent", tools.NewCallAgentToolServer(
 		subagent.NewService(chatExecutor, sessSvc, logger),
-		agentRepo,
+		profileRepo,
 		logger,
 	)); err != nil {
 		return err

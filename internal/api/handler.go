@@ -6,6 +6,7 @@ import (
 	"ard/internal/mcp"
 	"ard/internal/memory"
 	"ard/internal/model"
+	"ard/internal/profile"
 	"ard/internal/server"
 	"ard/internal/session"
 	"ard/internal/task"
@@ -29,7 +30,7 @@ type HTTPHandler struct {
 	memoryRepo       agent.ConsolidatorRepo
 	memoryIndexer    agent.MemoryIndexer
 	activityStore    agent.ActivityRepo
-	agentRepo        agent.Repo
+	agentRepo        profile.Repo
 	idGen            IDGenerator
 }
 

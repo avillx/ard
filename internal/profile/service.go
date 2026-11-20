@@ -1,26 +1,36 @@
-package agent
+package profile
 
 import (
+	"ard/internal/agent"
 	"errors"
 	"fmt"
 )
 
+type Repo interface {
+	All() ([]agent.Agent, error)
+	Get(agent.ID) (agent.Agent, error)
+	Save(agent.Agent) error
+
+	// TODO: tasks is not updating automaticly
+	Delete(agent.ID) error
+}
+
 var _ Repo = (*Service)(nil)
 
 type Sync interface {
-	DeleteAgent(ID) error
+	DeleteProfile(agent.ID) error
 }
 
 type Service struct {
-	toolReg   ToolRegistry
-	modelRepo ModelRegistry
+	toolReg   agent.ToolRegistry
+	modelRepo agent.ModelRegistry
 	storage   Repo
 	syncs     []Sync
 }
 
 func NewService(
-	toolReg ToolRegistry,
-	modelRepo ModelRegistry,
+	toolReg agent.ToolRegistry,
+	modelRepo agent.ModelRegistry,
 	storage Repo,
 	syncs []Sync,
 ) (*Service, error) {
@@ -45,15 +55,15 @@ func NewService(
 	return svc, nil
 }
 
-func (s *Service) All() ([]Agent, error) {
+func (s *Service) All() ([]agent.Agent, error) {
 	return s.storage.All()
 }
 
-func (s *Service) Get(agentID ID) (Agent, error) {
+func (s *Service) Get(agentID agent.ID) (agent.Agent, error) {
 	return s.storage.Get(agentID)
 }
 
-func (s *Service) Save(agt Agent) error {
+func (s *Service) Save(agt agent.Agent) error {
 	// validate model existence
 	if _, err := s.modelRepo.Get(agt.Model()); err != nil {
 		return err
@@ -67,7 +77,7 @@ func (s *Service) Save(agt Agent) error {
 	return s.storage.Save(agt)
 }
 
-func (s *Service) Delete(agentID ID) error {
+func (s *Service) Delete(agentID agent.ID) error {
 	// validate agent existence
 	if _, err := s.storage.Get(agentID); err != nil {
 		return err
@@ -79,14 +89,14 @@ func (s *Service) Delete(agentID ID) error {
 
 	var errs []error
 	for _, syncr := range s.syncs {
-		err := syncr.DeleteAgent(agentID)
+		err := syncr.DeleteProfile(agentID)
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
 }
 
-func buildDefaultAgent() Agent {
-	return NewAgent(
+func buildDefaultAgent() agent.Agent {
+	return agent.NewAgent(
 		"default",
 		"agent placeholder",
 		"",

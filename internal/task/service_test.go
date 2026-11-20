@@ -2,6 +2,7 @@ package task_test
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/task"
 	"ard/internal/types"
 	"context"
@@ -229,7 +230,7 @@ func waitExecution(t *testing.T, exec *executorStub) task.Config {
 func newService(
 	t *testing.T,
 	repo task.Repo,
-	agentRepo agent.Repo,
+	agentRepo profile.Repo,
 	exec task.Executor,
 	cronFactory func(string) (task.Cron, error),
 ) *task.Service {

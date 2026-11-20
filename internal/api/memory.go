@@ -77,8 +77,6 @@ func (h *memoryHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 
 // POST /memory/{agent}/consolidate.
 func (h *memoryHandler) Consolidate(w http.ResponseWriter, r *http.Request) Response {
-	agentID := agent.ID(r.PathValue("agent"))
-
 	stream := newStream(w)
 	defer stream.close()
 
@@ -99,7 +97,7 @@ func (h *memoryHandler) Consolidate(w http.ResponseWriter, r *http.Request) Resp
 		}
 	}()
 
-	if err := h.consolidationSvc.ConsolidateImmidate(r.Context(), agentID, evCh); err != nil {
+	if err := h.consolidationSvc.ConsolidateImmidate(r.Context(), evCh); err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			stream.sendError(http.StatusNotFound, err)
 			return nil

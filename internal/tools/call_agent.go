@@ -2,6 +2,7 @@ package tools
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/subagent"
 	"ard/internal/types"
 	"context"
@@ -15,14 +16,14 @@ import (
 type CallAgentToolServer struct {
 	*BuildInToolServer
 
-	logger    *slog.Logger
-	agentRepo agent.Repo
+	logger       *slog.Logger
+	profilesRepo profile.Repo
 }
 
-func NewCallAgentToolServer(s *subagent.Service, agentRepo agent.Repo, logger *slog.Logger) *CallAgentToolServer {
+func NewCallAgentToolServer(s *subagent.Service, profilesRepo profile.Repo, logger *slog.Logger) *CallAgentToolServer {
 	return &CallAgentToolServer{
-		agentRepo: agentRepo,
-		logger:    logger.WithGroup("call_agent_tool"),
+		profilesRepo: profilesRepo,
+		logger:       logger.WithGroup("call_agent_tool"),
 		BuildInToolServer: NewBuildInToolServer(
 			&CallAgentTool{
 				subagentSvc: s,
@@ -33,16 +34,15 @@ func NewCallAgentToolServer(s *subagent.Service, agentRepo agent.Repo, logger *s
 
 func (t *CallAgentToolServer) AgentInstruction(agt agent.Agent) string {
 	const instruction = `## Call Agents:
-You can call another agent as sub agent for delegateing task
-to other agent with diffirent capabilities.
-Also can call another yourself instance for keep context clean,
-do it when operation too complex (5+ toolcalls).
+You can call sub agent for delegateing task. To agent with diffirent capabilities.
+Sub agents is your side instance with clean context,
+Do it when operation too complex (5+ toolcalls).
 Request should be exhaustive: e.g. task, details, context and expected result.
-Called agent is stateless. If agent clarify something
-then agent need full request with clarificaton again.
+Called sub agent is stateless. If sub agent clarify something
+then sub agent need full request with clarificaton again.
 `
 
-	agents, err := t.agentRepo.All()
+	agents, err := t.profilesRepo.All()
 	if err != nil {
 		t.logger.Error("call agent tool", "error", "can't gather agents")
 		return ""
@@ -51,7 +51,7 @@ then agent need full request with clarificaton again.
 	var sb strings.Builder
 
 	sb.WriteString(instruction + "\n")
-	sb.WriteString("Agents:\n")
+	sb.WriteString("Profiles:\n")
 	for _, a := range agents {
 		isYouLabel := ""
 		if a.ID() == agt.ID() {
@@ -77,7 +77,7 @@ func (t *CallAgentTool) Name() agent.ToolName {
 }
 
 func (t *CallAgentTool) Description() string {
-	return "Ask question or delegate a task to another agent"
+	return "Ask question or delegate a task to sub agent"
 }
 
 func (t *CallAgentTool) TimeOut() time.Duration {

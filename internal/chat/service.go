@@ -2,6 +2,7 @@ package chat
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/runtime"
 	"ard/internal/session"
 	"ard/internal/types"
@@ -74,7 +75,7 @@ type SystemMessageBuilder interface {
 }
 
 type Service struct {
-	agentRepo            agent.Repo
+	agentRepo            profile.Repo
 	sessionRepo          session.SessionsRepo
 	modelRepo            agent.ModelRegistry
 	toolRegistry         agent.ToolRegistry
@@ -85,7 +86,7 @@ type Service struct {
 }
 
 func NewService(
-	agentRepo agent.Repo,
+	agentRepo profile.Repo,
 	sessionRepo session.SessionsRepo,
 	modelRepo agent.ModelRegistry,
 	toolRegistry agent.ToolRegistry,

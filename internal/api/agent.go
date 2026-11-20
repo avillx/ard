@@ -2,6 +2,7 @@ package api
 
 import (
 	"ard/internal/agent"
+	"ard/internal/profile"
 	"ard/internal/types"
 	"context"
 	"errors"
@@ -26,7 +27,7 @@ func (d AgentDTO) Validate(_ context.Context) error {
 }
 
 type agentHandler struct {
-	repo agent.Repo
+	repo profile.Repo
 }
 
 // GET /agent.
