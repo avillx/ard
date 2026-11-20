@@ -1,12 +1,14 @@
 package fstools
 
 import (
+	"bytes"
+	"errors"
+
 	"ard/internal/agent"
 	"ard/internal/files"
 	"ard/internal/prompt"
 	"ard/internal/tools"
 	"ard/internal/types"
-	"errors"
 )
 
 type ConsolidationInstuctFS struct {
@@ -77,4 +79,8 @@ func mapErrs(err error) error {
 		return types.NewAgentMistakeError("path is not found, ensure path existence")
 	}
 	return err
+}
+
+func isBinary(data []byte) bool {
+	return bytes.IndexByte(data, 0x00) != -1
 }

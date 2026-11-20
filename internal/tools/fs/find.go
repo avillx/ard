@@ -1,10 +1,6 @@
 package fstools
 
 import (
-	"ard/internal/agent"
-	"ard/internal/files"
-	"ard/internal/tools"
-	"ard/internal/types"
 	"bytes"
 	"context"
 	"fmt"
@@ -13,6 +9,10 @@ import (
 	"regexp"
 	"strings"
 
+	"ard/internal/agent"
+	"ard/internal/files"
+	"ard/internal/tools"
+	"ard/internal/types"
 	"github.com/bmatcuk/doublestar/v4"
 )
 
@@ -70,16 +70,63 @@ func (t *FindTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]age
 		return nil, err
 	}
 
-	var regex *regexp.Regexp
-	if args.Regex != nil {
-		regex, err = regexp.Compile(*args.Regex)
-		if err != nil {
-			return nil, types.NewAgentMistakeError("bad regex, allowed only Golang regexp syntax")
-		}
+	globResult, err := t.glob(args.Glob)
+	if err != nil {
+		// may be return anything?
+		return nil, mapErrs(err)
+	}
+
+	if args.Regex == nil {
+		repr := strings.Join(globResult, "\n")
+		return tools.Result(repr), nil
+	}
+
+	regex, err := regexp.Compile(*args.Regex)
+	if err != nil {
+		return nil, types.NewAgentMistakeError("bad regex, allowed only Golang regexp syntax")
 	}
 
 	var sb strings.Builder
-	err = doublestar.GlobWalk(t.storage.FS(), filepath.ToSlash(args.Glob), func(path string, d fs.DirEntry) error {
+	for _, path := range globResult {
+		matchedLines, err := t.regexMatchedLines(path, regex)
+		if err != nil {
+			matchedLines = []string{fmt.Sprintf("Can't read file: %v", err)}
+		}
+		if len(matchedLines) <= 0 {
+			// skip when has no matches
+			continue
+		}
+		fileRepr := strings.Join(append([]string{path}, matchedLines...), "\n")
+		fmt.Fprintf(&sb, "%s\n", fileRepr)
+	}
+
+	return tools.Result(sb.String()), nil
+}
+
+func (t *FindTool) regexMatchedLines(path string, regex *regexp.Regexp) ([]string, error) {
+	matchedLines := []string{}
+	data, err := t.storage.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// is not an actually error, just no need to check binaries
+	if isBinary(data) {
+		return matchedLines, nil
+	}
+
+	for _, match := range regex.FindAllIndex(data, -1) {
+		lineNumber, lineContent := lineAt(data, match[0])
+		lineRepr := fmt.Sprintf("line: %d | %s", lineNumber, lineContent)
+		matchedLines = append(matchedLines, lineRepr)
+	}
+
+	return matchedLines, nil
+}
+
+func (t *FindTool) glob(glob string) ([]string, error) {
+	matches := []string{}
+	err := doublestar.GlobWalk(t.storage.FS(), filepath.ToSlash(glob), func(path string, d fs.DirEntry) error {
 		if d.IsDir() {
 			return nil
 		}
@@ -91,37 +138,15 @@ func (t *FindTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]age
 			}
 		}
 
-		if regex != nil {
-			data, err := t.storage.ReadFile(path)
-			if err != nil {
-				fmt.Fprintf(&sb, "%s err: %v", path, err)
-				return nil
-			}
-
-			matches := regex.FindAllIndex(data, -1)
-			if len(matches) <= 0 {
-				return nil
-			}
-
-			fmt.Fprintf(&sb, "%s\n", path)
-			for _, match := range regex.FindAllIndex(data, -1) {
-				lineNumber, lineContent := lineAt(data, match[0])
-				fmt.Fprintf(&sb, "line: %d | %s\n", lineNumber, lineContent)
-			}
-			sb.WriteString("\n")
-			return nil
-		}
-
-		fmt.Fprintf(&sb, "%s\n", path)
+		matches = append(matches, path)
 
 		return nil
 	}, doublestar.WithCaseInsensitive())
-
 	if err != nil {
-		return nil, mapErrs(err)
+		return nil, err
 	}
 
-	return tools.Result(sb.String()), nil
+	return matches, nil
 }
 
 func lineAt(data []byte, idx int) (int, string) {
@@ -141,7 +166,7 @@ func lineAt(data []byte, idx int) (int, string) {
 		end += start
 	}
 
-	lineNumber := bytes.Count(data[:idx], lineBreaker)
+	lineNumber := bytes.Count(data[:idx], lineBreaker) + 1
 	lineContent := string(data[start:end])
 
 	return lineNumber, lineContent

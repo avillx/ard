@@ -227,10 +227,6 @@ func detectImageType(p string) agent.AllowedMIME {
 	}
 }
 
-func isBinary(data []byte) bool {
-	return bytes.IndexByte(data, 0x00) != -1
-}
-
 func extractLines(data []byte, from, to *int) string {
 	lines := strings.Split(string(data), "\n")
 	total := len(lines)
