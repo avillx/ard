@@ -1,14 +1,17 @@
 package model
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"context"
 	"errors"
+
+	"ard/internal/agent"
+	"ard/internal/types"
 )
 
-type APIType string
-type ModelID string
+type (
+	APIType string
+	ModelID string
+)
 
 const APITypeOpenAI APIType = "openai"
 
@@ -32,16 +35,16 @@ type ModelFactory interface {
 
 type ProviderID string
 
-type ModelConfig map[string]any
+type Config map[string]any
 
 var _ types.Validator = ProviderConfig{}
 
 type ProviderConfig struct {
-	Name         ProviderID             `json:"name"`
-	BaseURL      string                 `json:"base_url"`
-	KeyReference string                 `json:"key_ref"`
-	APIType      APIType                `json:"api_type"`
-	Models       map[string]ModelConfig `json:"models"`
+	Name         ProviderID        `json:"name"`
+	BaseURL      string            `json:"base_url"`
+	KeyReference string            `json:"key_ref"`
+	APIType      APIType           `json:"api_type"`
+	Models       map[string]Config `json:"models"`
 }
 
 func (c ProviderConfig) Validate(_ context.Context) error {

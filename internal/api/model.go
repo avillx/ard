@@ -92,7 +92,7 @@ func (h *providerHandler) SetModel(_ http.ResponseWriter, r *http.Request) Respo
 		return NewBadRequest("'model' path value bad encoding")
 	}
 
-	modelCfg, err := decode[model.ModelConfig](r)
+	modelCfg, err := decode[model.Config](r)
 	if err != nil {
 		return NewInvalidRequest(err)
 	}

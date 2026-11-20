@@ -163,7 +163,7 @@ func (s *ProviderService) DeleteModel(providerID ProviderID, modelName string) e
 	return nil
 }
 
-func (s *ProviderService) SetModel(providerID ProviderID, modelName string, modelCfg ModelConfig) error {
+func (s *ProviderService) SetModel(providerID ProviderID, modelName string, modelCfg Config) error {
 	// base validation
 	if modelName == "" {
 		return ErrEmptyModelName
@@ -234,7 +234,7 @@ func resolveModelID(providerName ProviderID, modelName string) ModelID {
 	return ModelID(path.Join(string(providerName), modelName))
 }
 
-func newModelSettings(modelName string, cfg ModelConfig) agent.ModelSettings {
+func newModelSettings(modelName string, cfg Config) agent.ModelSettings {
 	modelSettings := agent.ModelSettings(cfg)
 	modelSettings["model"] = modelName
 

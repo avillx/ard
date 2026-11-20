@@ -266,7 +266,7 @@ Not the app's runtime — the core of the agent's reasoning engine.
 ## [model service](./internal/model)
 - [model](./internal/model/model.go) — `ModelService`, the runtime registry of live `agent.Model` instances keyed by model id.
 - [provider](./internal/model/provider.go) — `ProviderService`, API providers and their models; loads models into `ModelService` on config changes.
-- [types](./internal/model/types.go) — provider/model config types (`ProviderConfig`, `ModelConfig`, `APIType`, `ProviderConfigRepo`).
+- [types](./internal/model/types.go) — provider/model config types (`ProviderConfig`, `Config`, `APIType`, `ProviderConfigRepo`).
 
 ## [tools](./internal/tools)
 Tools for the agent, plus the tool registry `ToolService`.

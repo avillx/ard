@@ -63,10 +63,10 @@ var _ model.ProviderConfigRepo = (*ProviderFiles)(nil)
 type modelsConfigDTO map[model.ProviderID]providerDTO
 
 type providerDTO struct {
-	BaseURL      string                       `toml:"base_url"`
-	KeyReference string                       `toml:"key_ref"`
-	APIType      model.APIType                `toml:"api_type"`
-	Models       map[string]model.ModelConfig `toml:"models"`
+	BaseURL      string                  `toml:"base_url"`
+	KeyReference string                  `toml:"key_ref"`
+	APIType      model.APIType           `toml:"api_type"`
+	Models       map[string]model.Config `toml:"models"`
 }
 
 type ProviderFiles struct {
