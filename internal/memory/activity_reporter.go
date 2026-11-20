@@ -128,13 +128,13 @@ func (s *ActivityService) Commit(agentID agent.ID, sessID session.ID, msgs []age
 		SessionID: sessID,
 	}
 
-	buf := o.getBuffer(key)
+	buf := s.getBuffer(key)
 	buf.append(msgs)
 }
 
-func (o *ActivityService) releaseBuffer(key sessionKey) (*messageBuffer, error) {
+func (s *ActivityService) releaseBuffer(key sessionKey) (*messageBuffer, error) {
 	s.mu.Lock()
-	defer o.mu.Unlock()
+	defer s.mu.Unlock()
 
 	buf, ok := s.messageBuffers[key]
 	if !ok {
@@ -199,7 +199,7 @@ func (s *ActivityService) flush(ctx context.Context, key sessionKey) error {
 
 func (s *ActivityService) extractActivity(ctx context.Context, buf *messageBuffer) (string, error) {
 	s.cfgMu.RLock()
-	model := r.model
+	model := s.model
 	s.cfgMu.RUnlock()
 
 	if model == nil {
