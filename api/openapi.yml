@@ -1,6 +1,6 @@
 openapi: "3.0.3"
 info:
-  title: Arch Agent API
+  title: Agent Runtime Daemon API
   description: REST API for managing profiles, sessions, tasks, MCP servers, memory, activity, providers, and streaming chat completions.
   version: "1.2.0"
 
