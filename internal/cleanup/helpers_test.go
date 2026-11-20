@@ -1,105 +1,61 @@
 package cleanup_test
 
 import (
+	"ard/internal/session"
 	"context"
 	"errors"
 	"log/slog"
 	"sync"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/session"
 )
 
 const (
 	testRetention   = 10 * time.Hour
 	testInterval    = 5 * time.Hour
 	testMaxLogLines = 5
-	testAgentID     = agent.ID("agi-1")
 )
 
 var errNotImplemented = errors.New("not implemented in test")
 
-type mockAgentRepo struct {
-	agents []agent.Agent
-	allErr error
-}
-
-func newMockAgentRepo(agents ...agent.Agent) *mockAgentRepo {
-	return &mockAgentRepo{agents: agents}
-}
-
-func (m *mockAgentRepo) All() ([]agent.Agent, error) {
-	return m.agents, m.allErr
-}
-
-func (m *mockAgentRepo) Get(agent.ID) (agent.Agent, error) {
-	return nil, errNotImplemented
-}
-
-func (m *mockAgentRepo) Save(agent.Agent) error {
-	return errNotImplemented
-}
-
-func (m *mockAgentRepo) Delete(agent.ID) error {
-	return errNotImplemented
-}
-
-type deletedSession struct {
-	agentID agent.ID
-	sessID  session.ID
-}
-
 type mockSessionsRepo struct {
-	headersByAgent map[agent.ID][]session.Header
-	headersErr     map[agent.ID]error
-	deleteErr      error
+	headers    []session.Header
+	headersErr error
+	deleteErr  error
 
 	mu                sync.Mutex
-	deleteAttempts    []deletedSession
-	deleted           []deletedSession
-	headersCallsCount map[agent.ID]int
+	deleteAttempts    []session.ID
+	deleted           []session.ID
+	headersCallsCount int
 }
 
-func (m *mockSessionsRepo) Session(agent.ID, session.ID) (session.Session, error) {
+func (m *mockSessionsRepo) Session(session.ID) (session.Session, error) {
 	return nil, errNotImplemented
 }
 
-func (m *mockSessionsRepo) Save(agent.ID, session.Session) error {
+func (m *mockSessionsRepo) Save(session.Session) error {
 	return errNotImplemented
 }
 
-func (m *mockSessionsRepo) Delete(agentID agent.ID, sessID session.ID) error {
+func (m *mockSessionsRepo) Delete(sessID session.ID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.deleteAttempts = append(m.deleteAttempts, deletedSession{agentID: agentID, sessID: sessID})
+	m.deleteAttempts = append(m.deleteAttempts, sessID)
 	if m.deleteErr != nil {
 		return m.deleteErr
 	}
 
-	m.deleted = append(m.deleted, deletedSession{agentID: agentID, sessID: sessID})
+	m.deleted = append(m.deleted, sessID)
 	return nil
 }
 
-func (m *mockSessionsRepo) Headers(agentID agent.ID) ([]session.Header, error) {
+func (m *mockSessionsRepo) Headers() ([]session.Header, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.headersCallsCount == nil {
-		m.headersCallsCount = map[agent.ID]int{}
-	}
-	m.headersCallsCount[agentID]++
+	m.headersCallsCount++
 
-	if err, ok := m.headersErr[agentID]; ok && err != nil {
-		return nil, err
-	}
-
-	headers, ok := m.headersByAgent[agentID]
-	if !ok {
-		return nil, nil
-	}
-	return headers, nil
+	return m.headers, m.headersErr
 }
 
 func (m *mockSessionsRepo) deleteAttemptCount() int {
@@ -109,15 +65,11 @@ func (m *mockSessionsRepo) deleteAttemptCount() int {
 	return len(m.deleteAttempts)
 }
 
-func (m *mockSessionsRepo) headersCalls(agentID agent.ID) int {
+func (m *mockSessionsRepo) headersCalls() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	count, ok := m.headersCallsCount[agentID]
-	if !ok {
-		return 0
-	}
-	return count
+	return m.headersCallsCount
 }
 
 func oldHeader(id session.ID, updatedAt time.Time) session.Header {

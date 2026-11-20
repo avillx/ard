@@ -51,10 +51,9 @@ type sessionHandler struct {
 }
 
 func (h *sessionHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
-	agentID := agent.ID(r.PathValue("agent"))
 	sessID := session.ID(r.PathValue("session"))
 
-	sess, err := h.sessSvc.Session(agentID, sessID)
+	sess, err := h.sessSvc.Session(sessID)
 	if err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			return NewBadRequest("session is not exist")
@@ -71,11 +70,9 @@ func (h *sessionHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 }
 
 func (h *sessionHandler) Sessions(_ http.ResponseWriter, r *http.Request) Response {
-	agentID := agent.ID(r.PathValue("agent"))
-
 	dtos := []HeaderDTO{}
 
-	sessions, err := h.sessSvc.Headers(agentID)
+	sessions, err := h.sessSvc.Headers()
 	if err != nil {
 		// this route reaches only on agent is not exist
 		if errors.Is(err, types.ErrIsNotExist) {
@@ -109,14 +106,12 @@ func (h *sessionHandler) Create(_ http.ResponseWriter, r *http.Request) Response
 		Instructon string `json:"instruction,omitempty"`
 	}
 
-	agentID := agent.ID(r.PathValue("agent"))
-
 	requestDTO, err := decode[SessionCreateDTO](r)
 	if err != nil {
 		return NewInvalidRequest(err)
 	}
 
-	sessID, err := h.sessSvc.Create(agentID, requestDTO.Instructon)
+	sessID, err := h.sessSvc.Create(requestDTO.Instructon)
 	if err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			return NewBadRequest("agent is not exist")
@@ -132,10 +127,9 @@ func (h *sessionHandler) Create(_ http.ResponseWriter, r *http.Request) Response
 }
 
 func (h *sessionHandler) Delete(_ http.ResponseWriter, r *http.Request) Response {
-	agentID := agent.ID(r.PathValue("agent"))
 	sessID := session.ID(r.PathValue("session"))
 
-	if err := h.sessSvc.Delete(agentID, sessID); err != nil {
+	if err := h.sessSvc.Delete(sessID); err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {
 			return NewBadRequest("session is not exist")
 		}

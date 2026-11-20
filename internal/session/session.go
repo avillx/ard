@@ -29,20 +29,17 @@ func (e *BrokenHeadersError) Error() string {
 var _ error = (*BrokenHeaderError)(nil)
 
 type BrokenHeaderError struct {
-	SessID  ID
-	AgentID agent.ID
-	cause   error
+	SessID ID
+	cause  error
 }
 
 func NewBrokenHeaderError(
 	sessID ID,
-	agentID agent.ID,
 	cause error,
 ) *BrokenHeaderError {
 	return &BrokenHeaderError{
-		SessID:  sessID,
-		AgentID: agentID,
-		cause:   cause,
+		SessID: sessID,
+		cause:  cause,
 	}
 }
 
@@ -51,7 +48,7 @@ func (e *BrokenHeaderError) Unwrap() error {
 }
 
 func (e *BrokenHeaderError) Error() string {
-	return fmt.Sprintf("session header is borken. agent: %s, session: %s", e.AgentID, e.SessID)
+	return fmt.Sprintf("session header is borken. session: %s", e.SessID)
 }
 
 type ID string

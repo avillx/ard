@@ -44,7 +44,8 @@ func (s *executor) Execute(ctx context.Context, t Config) {
 }
 
 func (s *executor) processRecipientTask(ctx context.Context, agentID agent.ID, request string) error {
-	sessID, err := s.sessionSvc.Create(agentID, prompt.GetAutonomusGuidance())
+	// TODO: just a user message over session instruction
+	sessID, err := s.sessionSvc.Create(prompt.GetAutonomusGuidance())
 	if err != nil {
 		return err
 	}

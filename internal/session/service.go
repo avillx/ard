@@ -1,17 +1,16 @@
 package session
 
 import (
-	"ard/internal/agent"
 	"log/slog"
 )
 
 var _ SessionsRepo = (*Service)(nil)
 
 type SessionsRepo interface {
-	Session(agentID agent.ID, SessionID ID) (Session, error)
-	Save(agentID agent.ID, Session Session) error
-	Delete(agentID agent.ID, SessionID ID) error
-	Headers(agentID agent.ID) ([]Header, error)
+	Session(SessionID ID) (Session, error)
+	Save(Session Session) error
+	Delete(SessionID ID) error
+	Headers() ([]Header, error)
 }
 
 type UUIDGenerator interface {
@@ -36,7 +35,7 @@ func NewService(
 	}
 }
 
-func (s *Service) Create(agentID agent.ID, instruction string) (ID, error) {
+func (s *Service) Create(instruction string) (ID, error) {
 	newSessionID := ID(s.uuid.New())
 	newSession := NewSession(newSessionID)
 
@@ -50,27 +49,27 @@ func (s *Service) Create(agentID agent.ID, instruction string) (ID, error) {
 	// TODO: is agent is not exist expecting err not exist
 	// on other storage not existence path expect path was created and return no errors
 	// other problems is other problems
-	if err := s.repo.Save(agentID, newSession); err != nil {
+	if err := s.repo.Save(newSession); err != nil {
 		return "", err
 	}
 
-	s.logger.Info("created new", "agent", agentID, "session_id", newSession.ID())
+	s.logger.Info("created new", "session_id", newSession.ID())
 
 	return newSession.ID(), nil
 }
 
-func (s *Service) Session(agentID agent.ID, id ID) (Session, error) {
-	return s.repo.Session(agentID, id)
+func (s *Service) Session(id ID) (Session, error) {
+	return s.repo.Session(id)
 }
 
-func (s *Service) Save(agentID agent.ID, sess Session) error {
-	return s.repo.Save(agentID, sess)
+func (s *Service) Save(sess Session) error {
+	return s.repo.Save(sess)
 }
 
-func (s *Service) Delete(agentID agent.ID, sessionID ID) error {
-	return s.repo.Delete(agentID, sessionID)
+func (s *Service) Delete(id ID) error {
+	return s.repo.Delete(id)
 }
 
-func (s *Service) Headers(agentID agent.ID) ([]Header, error) {
-	return s.repo.Headers(agentID)
+func (s *Service) Headers() ([]Header, error) {
+	return s.repo.Headers()
 }

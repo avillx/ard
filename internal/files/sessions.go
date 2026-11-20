@@ -1,7 +1,6 @@
 package files
 
 import (
-	"ard/internal/agent"
 	"ard/internal/session"
 	"ard/internal/types"
 	"bufio"
@@ -31,8 +30,8 @@ func NewSessionFiles(storage FileStorage) *SessionFiles {
 	}
 }
 
-func (r *SessionFiles) Session(agentID agent.ID, sessionID session.ID) (session.Session, error) {
-	sessionFilePath := resolveSessionPath(agentID, sessionID)
+func (r *SessionFiles) Session(sessionID session.ID) (session.Session, error) {
+	sessionFilePath := resolveSessionPath(sessionID)
 
 	data, err := r.storage.ReadFile(sessionFilePath)
 	if err != nil {
@@ -42,31 +41,28 @@ func (r *SessionFiles) Session(agentID agent.ID, sessionID session.ID) (session.
 	return unmarshalSession(sessionID, data)
 }
 
-func (r *SessionFiles) Save(agentID agent.ID, s session.Session) error {
+func (r *SessionFiles) Save(s session.Session) error {
 	data, err := marshalSession(s)
 	if err != nil {
 		return err
 	}
 
-	sessionFolderPath := filepath.Join(string(agentID), SessionsFolder)
-	if err := r.storage.MkdirAll(sessionFolderPath, ModeDirPerm); err != nil {
+	if err := r.storage.MkdirAll(SessionsFolder, ModeDirPerm); err != nil {
 		return err
 	}
 
-	sessionFilePath := resolveSessionPath(agentID, s.ID())
+	sessionFilePath := resolveSessionPath(s.ID())
 	return r.storage.WriteFile(sessionFilePath, data, ModeFilePerm)
 }
 
-func (r *SessionFiles) Delete(agentID agent.ID, sessionID session.ID) error {
-	sessionFilePath := resolveSessionPath(agentID, sessionID)
+func (r *SessionFiles) Delete(sessionID session.ID) error {
+	sessionFilePath := resolveSessionPath(sessionID)
 
 	return r.storage.Remove(sessionFilePath)
 }
 
-func (r *SessionFiles) Headers(agentID agent.ID) ([]session.Header, error) {
-	sessionDir := resolveSessionFolderPath(agentID)
-	sessionDir = filepath.ToSlash(sessionDir)
-	files, err := fs.ReadDir(r.storage.FS(), sessionDir)
+func (r *SessionFiles) Headers() ([]session.Header, error) {
+	files, err := fs.ReadDir(r.storage.FS(), SessionsFolder)
 	if err != nil {
 		// if session folder or agent is not exist well it nil count of headers
 		if errors.Is(err, types.ErrIsNotExist) {
@@ -82,10 +78,10 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.Header, error) {
 		rawID := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 		sessID := session.ID(rawID)
 
-		pathToFile := filepath.Join(sessionDir, fileName)
+		pathToFile := filepath.Join(SessionsFolder, fileName)
 		f, err := r.storage.OpenFile(pathToFile, os.O_RDONLY, 0)
 		if err != nil {
-			brokenHeader := session.NewBrokenHeaderError(sessID, agentID, err)
+			brokenHeader := session.NewBrokenHeaderError(sessID, err)
 			brokenHeaders = append(brokenHeaders, brokenHeader)
 			continue
 		}
@@ -95,7 +91,7 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.Header, error) {
 		scanner.Scan()
 		data := scanner.Bytes()
 		if err := f.Close(); err != nil {
-			brokenHeader := session.NewBrokenHeaderError(sessID, agentID, err)
+			brokenHeader := session.NewBrokenHeaderError(sessID, err)
 			brokenHeaders = append(brokenHeaders, brokenHeader)
 			continue
 		}
@@ -103,7 +99,7 @@ func (r *SessionFiles) Headers(agentID agent.ID) ([]session.Header, error) {
 		var header HeaderDTO
 		dec := json.NewDecoder(bytes.NewReader(data))
 		if err := dec.Decode(&header); err != nil {
-			brokenHeader := session.NewBrokenHeaderError(sessID, agentID, err)
+			brokenHeader := session.NewBrokenHeaderError(sessID, err)
 			brokenHeaders = append(brokenHeaders, brokenHeader)
 			continue
 		}
@@ -199,10 +195,6 @@ func dtoToSession(sessionID session.ID, headerDTO HeaderDTO, messagesDTO []Messa
 	), nil
 }
 
-func resolveSessionPath(agentID agent.ID, sessionID session.ID) string {
-	return filepath.Join(resolveSessionFolderPath(agentID), fmt.Sprintf("%s.jsonl", sessionID))
-}
-
-func resolveSessionFolderPath(agentID agent.ID) string {
-	return filepath.Join(string(agentID), SessionsFolder)
+func resolveSessionPath(sessionID session.ID) string {
+	return filepath.Join(SessionsFolder, fmt.Sprintf("%s.jsonl", sessionID))
 }

@@ -21,7 +21,7 @@ type EventHandler interface {
 }
 
 type SessionSaveSink interface {
-	Save(agent.ID, session.Session) error
+	Save(session.Session) error
 }
 
 type ChatEventHandler struct { //nolint: revive // EventHandler is interface, so this is chat impl of EventHandler
@@ -64,7 +64,7 @@ func (h *ChatEventHandler) HandleLoopExitEvent(ctx context.Context, ev *runtime.
 		h.logger.ErrorContext(ctx, "loop exit with error", "error", err)
 	}
 
-	if err := h.sessSink.Save(h.agentID, h.sess); err != nil {
+	if err := h.sessSink.Save(h.sess); err != nil {
 		h.logger.ErrorContext(ctx, "save session", "error", err)
 	}
 	return nil

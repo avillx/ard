@@ -1,7 +1,6 @@
 package cleanup
 
 import (
-	"ard/internal/agent"
 	"ard/internal/session"
 	"errors"
 	"log/slog"
@@ -10,23 +9,20 @@ import (
 )
 
 type SessionsCleaner struct {
-	agentRepo agent.Repo
-	sessRepo  session.SessionsRepo
-	logger    *slog.Logger
+	sessRepo session.SessionsRepo
+	logger   *slog.Logger
 
 	mu sync.Mutex
 }
 
 func NewSessionsCleaner(
-	agentRepo agent.Repo,
 	sessRepo session.SessionsRepo,
 
 	logger *slog.Logger,
 ) *SessionsCleaner {
 	return &SessionsCleaner{
-		agentRepo: agentRepo,
-		sessRepo:  sessRepo,
-		logger:    logger.WithGroup("session_cleaner"),
+		sessRepo: sessRepo,
+		logger:   logger.WithGroup("session_cleaner"),
 	}
 }
 
@@ -34,25 +30,14 @@ func (c *SessionsCleaner) Clean(retention time.Duration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	agents, err := c.agentRepo.All()
+	headers, err := c.sessRepo.Headers()
 	if err != nil {
-		return err
-	}
-
-	for _, agt := range agents {
-		headers, err := c.sessRepo.Headers(agt.ID())
-		if err != nil {
-			var brokenHeadersErr *session.BrokenHeadersError
-			if !errors.As(err, &brokenHeadersErr) {
-				c.logger.Error("read session headers", "agent", agt.ID(), "error", err)
-				continue
-			}
-
+		if brokenHeadersErr, ok := errors.AsType[*session.BrokenHeadersError](err); ok {
 			c.handleBrokenSessions(brokenHeadersErr)
 		}
-
-		c.eliminateDepricatedSessions(retention, agt.ID(), headers)
 	}
+
+	c.eliminateDepricatedSessions(retention, headers)
 
 	return nil
 }
@@ -60,12 +45,11 @@ func (c *SessionsCleaner) Clean(retention time.Duration) error {
 func (c *SessionsCleaner) handleBrokenSessions(brokenHeadersErr *session.BrokenHeadersError) {
 	for _, brokenHeaderErr := range brokenHeadersErr.Errors {
 		logger := c.logger.With(
-			"agent", brokenHeaderErr.AgentID,
 			"session", brokenHeaderErr.SessID,
 			"cause", brokenHeaderErr.Unwrap(),
 		)
 
-		if err := c.sessRepo.Delete(brokenHeaderErr.AgentID, brokenHeaderErr.SessID); err != nil {
+		if err := c.sessRepo.Delete(brokenHeaderErr.SessID); err != nil {
 			logger.Error("deletion broken session", "error", err)
 			continue
 		}
@@ -76,7 +60,6 @@ func (c *SessionsCleaner) handleBrokenSessions(brokenHeadersErr *session.BrokenH
 
 func (c *SessionsCleaner) eliminateDepricatedSessions(
 	retention time.Duration,
-	agentID agent.ID,
 	headers []session.Header,
 ) {
 	cutDate := time.Now().Add(-retention)
@@ -85,9 +68,9 @@ func (c *SessionsCleaner) eliminateDepricatedSessions(
 			continue
 		}
 
-		logger := c.logger.With("agent", agentID, "session", h.ID())
+		logger := c.logger.With("session", h.ID())
 
-		if err := c.sessRepo.Delete(agentID, h.ID()); err != nil {
+		if err := c.sessRepo.Delete(h.ID()); err != nil {
 			logger.Error("deletion deprecated session", "error", err)
 			continue
 		}

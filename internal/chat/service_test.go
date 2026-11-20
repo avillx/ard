@@ -1,6 +1,10 @@
 package chat_test
 
 import (
+	"ard/internal/agent"
+	"ard/internal/chat"
+	"ard/internal/runtime"
+	"ard/internal/session"
 	"context"
 	"errors"
 	"fmt"
@@ -10,11 +14,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/chat"
-	"ard/internal/runtime"
-	"ard/internal/session"
 )
 
 // mockAgentRepo implements agent.Repo.
@@ -36,29 +35,27 @@ func (m *mockAgentRepo) Delete(agent.ID) error  { return nil }
 type mockSessionsRepo struct {
 	sess    session.Session
 	sessErr error
-	saveFn  func(agent.ID, session.Session) error
+	saveFn  func(session.Session) error
 
 	saved        bool
-	savedAgentID agent.ID
 	savedSession session.Session
 }
 
-func (m *mockSessionsRepo) Session(agent.ID, session.ID) (session.Session, error) {
+func (m *mockSessionsRepo) Session(session.ID) (session.Session, error) {
 	return m.sess, m.sessErr
 }
 
-func (m *mockSessionsRepo) Save(agentID agent.ID, s session.Session) error {
+func (m *mockSessionsRepo) Save(s session.Session) error {
 	m.saved = true
-	m.savedAgentID = agentID
 	m.savedSession = s
 	if m.saveFn != nil {
-		return m.saveFn(agentID, s)
+		return m.saveFn(s)
 	}
 	return nil
 }
 
-func (m *mockSessionsRepo) Delete(agent.ID, session.ID) error          { return nil }
-func (m *mockSessionsRepo) Headers(agent.ID) ([]session.Header, error) { return nil, nil }
+func (m *mockSessionsRepo) Delete(session.ID) error            { return nil }
+func (m *mockSessionsRepo) Headers() ([]session.Header, error) { return nil, nil }
 
 // mockModelRegistry implements agent.ModelRegistry.
 type mockModelRegistry struct {

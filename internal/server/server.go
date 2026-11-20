@@ -136,7 +136,7 @@ func New(
 			SessRetention:   sessRetention,
 			CleanUpInterval: cleanUpInterval,
 		},
-		cleanup.NewSessionsCleaner(agentSvc, sessFiles, logger),
+		cleanup.NewSessionsCleaner(sessFiles, logger),
 		logFile,
 		logger,
 	)

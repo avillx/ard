@@ -134,7 +134,7 @@ func (s *Service) Chat(
 	}
 
 	// session
-	sess, err := s.sessionRepo.Session(agt.ID(), r.SessionID)
+	sess, err := s.sessionRepo.Session(r.SessionID)
 	if err != nil {
 		return err
 	}

@@ -1,16 +1,14 @@
 package cleanup_test
 
 import (
+	"ard/internal/cleanup"
+	"ard/internal/session"
 	"context"
 	"errors"
 	"log/slog"
 	"reflect"
 	"testing"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/cleanup"
-	"ard/internal/session"
 )
 
 func runSinglePass(t *testing.T, svc *cleanup.Service, signal <-chan struct{}) {
@@ -53,7 +51,6 @@ func newService(
 		CleanUpInterval: testInterval,
 		MaxLogLines:     testMaxLogLines,
 	}, cleanup.NewSessionsCleaner(
-		newMockAgentRepo(agent.NewAgent(testAgentID, "", "", "", nil, false)),
 		sessRepo,
 		logger,
 	), logFile, logger)
@@ -90,11 +87,9 @@ func TestNewCleanUpService_RejectsShortInterval(t *testing.T) {
 func TestRun_CleansImmediatelyAndStopsOnCancel(t *testing.T) {
 	old := time.Now().Add(-24 * time.Hour)
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.Header{
-			testAgentID: {
-				oldHeader("sess-old", old),
-				oldHeader("sess-new", time.Now()),
-			},
+		headers: []session.Header{
+			oldHeader("sess-old", old),
+			oldHeader("sess-new", time.Now()),
 		},
 	}
 	trimmer := &mockLogTrimmer{trimmed: make(chan struct{}, 4)}
@@ -103,11 +98,11 @@ func TestRun_CleansImmediatelyAndStopsOnCancel(t *testing.T) {
 
 	runSinglePass(t, svc, trimmer.trimmed)
 
-	wantDeleted := []deletedSession{{agentID: testAgentID, sessID: "sess-old"}}
+	wantDeleted := []session.ID{"sess-old"}
 	if !reflect.DeepEqual(sessRepo.deleted, wantDeleted) {
 		t.Fatalf("deleted sessions %v, want %v", sessRepo.deleted, wantDeleted)
 	}
-	if got := sessRepo.headersCalls(testAgentID); got != 1 {
+	if got := sessRepo.headersCalls(); got != 1 {
 		t.Fatalf("expected a single cleanup pass, got %d", got)
 	}
 	if got := handler.count(slog.LevelError); got != 0 {
@@ -123,15 +118,14 @@ func TestRun_CleansImmediatelyAndStopsOnCancel(t *testing.T) {
 
 func TestRun_LogsSessionsCleanerError(t *testing.T) {
 	logger, handler := newStubLogger()
-	agentRepo := newMockAgentRepo()
-	agentRepo.allErr = errors.New("storage failure")
+	sessRepo := &mockSessionsRepo{headersErr: errors.New("storage failure")}
 	trimmer := &mockLogTrimmer{trimmed: make(chan struct{}, 4)}
 
 	svc, err := cleanup.NewService(cleanup.Config{
 		SessRetention:   testRetention,
 		CleanUpInterval: testInterval,
 		MaxLogLines:     testMaxLogLines,
-	}, cleanup.NewSessionsCleaner(agentRepo, &mockSessionsRepo{}, logger), trimmer, logger)
+	}, cleanup.NewSessionsCleaner(sessRepo, logger), trimmer, logger)
 	if err != nil {
 		t.Fatalf("create cleanup service: %v", err)
 	}
@@ -156,7 +150,6 @@ func TestRun_LogsLogTrimError(t *testing.T) {
 		CleanUpInterval: testInterval,
 		MaxLogLines:     testMaxLogLines,
 	}, cleanup.NewSessionsCleaner(
-		newMockAgentRepo(agent.NewAgent(testAgentID, "", "", "", nil, false)),
 		sessRepo,
 		logger,
 	), trimmer, logger)
@@ -169,7 +162,7 @@ func TestRun_LogsLogTrimError(t *testing.T) {
 	if got := handler.count(slog.LevelError); got == 0 {
 		t.Fatal("expected log trim error to be logged")
 	}
-	if got := sessRepo.headersCalls(testAgentID); got != 1 {
+	if got := sessRepo.headersCalls(); got != 1 {
 		t.Fatalf("expected sessions cleaner to run despite trim error, got %d calls", got)
 	}
 }

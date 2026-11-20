@@ -1,41 +1,34 @@
 package cleanup_test
 
 import (
+	"ard/internal/cleanup"
+	"ard/internal/session"
 	"errors"
 	"log/slog"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
-
-	"ard/internal/agent"
-	"ard/internal/cleanup"
-	"ard/internal/session"
 )
 
-func newCleaner(sessRepo *mockSessionsRepo, agentRepo agent.Repo) *cleanup.SessionsCleaner {
-	if agentRepo == nil {
-		agentRepo = newMockAgentRepo(agent.NewAgent(testAgentID, "", "", "", nil, false))
-	}
-	return cleanup.NewSessionsCleaner(agentRepo, sessRepo, slog.New(slog.DiscardHandler))
+func newCleaner(sessRepo *mockSessionsRepo) *cleanup.SessionsCleaner {
+	return cleanup.NewSessionsCleaner(sessRepo, slog.New(slog.DiscardHandler))
 }
 
 func TestClean_DeletesDeprecatedSessions(t *testing.T) {
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.Header{
-			testAgentID: {
-				oldHeader("sess-old", time.Now().Add(-24*time.Hour)),
-				oldHeader("sess-new", time.Now()),
-			},
+		headers: []session.Header{
+			oldHeader("sess-old", time.Now().Add(-24*time.Hour)),
+			oldHeader("sess-new", time.Now()),
 		},
 	}
-	cleaner := newCleaner(sessRepo, nil)
+	cleaner := newCleaner(sessRepo)
 
 	if err := cleaner.Clean(testRetention); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	want := []deletedSession{{agentID: testAgentID, sessID: "sess-old"}}
+	want := []session.ID{"sess-old"}
 	if !reflect.DeepEqual(sessRepo.deleted, want) {
 		t.Fatalf("deleted sessions %v, want %v", sessRepo.deleted, want)
 	}
@@ -43,14 +36,12 @@ func TestClean_DeletesDeprecatedSessions(t *testing.T) {
 
 func TestClean_KeepsRecentSessions(t *testing.T) {
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.Header{
-			testAgentID: {
-				oldHeader("s1", time.Now()),
-				oldHeader("s2", time.Now().Add(-time.Hour)),
-			},
+		headers: []session.Header{
+			oldHeader("s1", time.Now()),
+			oldHeader("s2", time.Now().Add(-time.Hour)),
 		},
 	}
-	cleaner := newCleaner(sessRepo, nil)
+	cleaner := newCleaner(sessRepo)
 
 	if err := cleaner.Clean(testRetention); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -63,33 +54,49 @@ func TestClean_KeepsRecentSessions(t *testing.T) {
 
 func TestClean_DeletesBrokenSessions(t *testing.T) {
 	sessRepo := &mockSessionsRepo{
-		headersErr: map[agent.ID]error{
-			testAgentID: session.NewBrokenHeadersError(
-				session.NewBrokenHeaderError("broken-1", testAgentID, errors.New("cause")),
-				session.NewBrokenHeaderError("broken-2", testAgentID, errors.New("cause")),
-			),
-		},
+		headersErr: session.NewBrokenHeadersError(
+			session.NewBrokenHeaderError("broken-1", errors.New("cause")),
+			session.NewBrokenHeaderError("broken-2", errors.New("cause")),
+		),
 	}
-	cleaner := newCleaner(sessRepo, nil)
+	cleaner := newCleaner(sessRepo)
 
 	if err := cleaner.Clean(testRetention); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	want := []deletedSession{
-		{agentID: testAgentID, sessID: "broken-1"},
-		{agentID: testAgentID, sessID: "broken-2"},
-	}
+	want := []session.ID{"broken-1", "broken-2"}
 	if !reflect.DeepEqual(sessRepo.deleted, want) {
 		t.Fatalf("deleted sessions %v, want %v", sessRepo.deleted, want)
 	}
 }
 
-func TestClean_SkipsAgentOnHeadersError(t *testing.T) {
+func TestClean_DeletesBrokenAndDeprecatedSessions(t *testing.T) {
 	sessRepo := &mockSessionsRepo{
-		headersErr: map[agent.ID]error{testAgentID: errors.New("read failure")},
+		headers: []session.Header{
+			oldHeader("sess-old", time.Now().Add(-24*time.Hour)),
+		},
+		headersErr: session.NewBrokenHeadersError(
+			session.NewBrokenHeaderError("broken-1", errors.New("cause")),
+		),
 	}
-	cleaner := newCleaner(sessRepo, nil)
+	cleaner := newCleaner(sessRepo)
+
+	if err := cleaner.Clean(testRetention); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := []session.ID{"broken-1", "sess-old"}
+	if !reflect.DeepEqual(sessRepo.deleted, want) {
+		t.Fatalf("deleted sessions %v, want %v", sessRepo.deleted, want)
+	}
+}
+
+func TestClean_IgnoresHeadersError(t *testing.T) {
+	sessRepo := &mockSessionsRepo{
+		headersErr: errors.New("read failure"),
+	}
+	cleaner := newCleaner(sessRepo)
 
 	if err := cleaner.Clean(testRetention); err != nil {
 		t.Fatalf("headers error must not fail cleanup: %v", err)
@@ -100,32 +107,16 @@ func TestClean_SkipsAgentOnHeadersError(t *testing.T) {
 	}
 }
 
-func TestClean_PropagatesAgentRepoError(t *testing.T) {
-	agentRepo := newMockAgentRepo()
-	agentRepo.allErr = errors.New("storage failure")
-	cleaner := cleanup.NewSessionsCleaner(agentRepo, &mockSessionsRepo{}, slog.New(slog.DiscardHandler))
-
-	err := cleaner.Clean(testRetention)
-	if err == nil {
-		t.Fatal("expected error from agent repo")
-	}
-	if !errors.Is(err, agentRepo.allErr) {
-		t.Fatalf("expected original error, got %v", err)
-	}
-}
-
 func TestClean_ContinuesOnDeleteError(t *testing.T) {
 	old := time.Now().Add(-24 * time.Hour)
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.Header{
-			testAgentID: {
-				oldHeader("s1", old),
-				oldHeader("s2", old),
-			},
+		headers: []session.Header{
+			oldHeader("s1", old),
+			oldHeader("s2", old),
 		},
 		deleteErr: errors.New("disk full"),
 	}
-	cleaner := newCleaner(sessRepo, nil)
+	cleaner := newCleaner(sessRepo)
 
 	if err := cleaner.Clean(testRetention); err != nil {
 		t.Fatalf("delete error must not abort cleanup: %v", err)
@@ -139,43 +130,15 @@ func TestClean_ContinuesOnDeleteError(t *testing.T) {
 	}
 }
 
-func TestClean_ProcessesAllAgents(t *testing.T) {
-	agent2 := agent.ID("0")
-	old := time.Now().Add(-24 * time.Hour)
-	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.Header{
-			testAgentID: {oldHeader("a1", old)},
-			agent2:      {oldHeader("b1", old), oldHeader("b2", old)},
-		},
-	}
-	agents := []agent.Agent{
-		agent.NewAgent(testAgentID, "", "", "", nil, false),
-		agent.NewAgent(agent2, "", "", "", nil, false),
-	}
-	cleaner := cleanup.NewSessionsCleaner(newMockAgentRepo(agents...), sessRepo, slog.New(slog.DiscardHandler))
-
-	if err := cleaner.Clean(testRetention); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	want := []deletedSession{
-		{agentID: testAgentID, sessID: "a1"},
-		{agentID: agent2, sessID: "b1"},
-		{agentID: agent2, sessID: "b2"},
-	}
-	if !reflect.DeepEqual(sessRepo.deleted, want) {
-		t.Fatalf("deleted sessions %v, want %v", sessRepo.deleted, want)
-	}
-}
-
 func TestClean_IsConcurrencySafe(t *testing.T) {
 	old := time.Now().Add(-24 * time.Hour)
 	sessRepo := &mockSessionsRepo{
-		headersByAgent: map[agent.ID][]session.Header{
-			testAgentID: {oldHeader("s1", old), oldHeader("s2", old)},
+		headers: []session.Header{
+			oldHeader("s1", old),
+			oldHeader("s2", old),
 		},
 	}
-	cleaner := newCleaner(sessRepo, nil)
+	cleaner := newCleaner(sessRepo)
 
 	var wg sync.WaitGroup
 	for range 2 {

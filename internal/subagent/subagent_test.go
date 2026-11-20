@@ -1,15 +1,14 @@
 package subagent
 
 import (
-	"context"
-	"errors"
-	"log/slog"
-	"testing"
-
 	"ard/internal/agent"
 	"ard/internal/chat"
 	"ard/internal/runtime"
 	"ard/internal/session"
+	"context"
+	"errors"
+	"log/slog"
+	"testing"
 )
 
 type stubExecutor struct {
@@ -24,24 +23,21 @@ func (e *stubExecutor) Chat(_ context.Context, r chat.Request) error {
 	return nil
 }
 
-type stubSessionsRepo struct {
-	savedAgentIDs []agent.ID
-}
+type stubSessionsRepo struct{}
 
-func (r *stubSessionsRepo) Session(agent.ID, session.ID) (session.Session, error) {
+func (r *stubSessionsRepo) Session(session.ID) (session.Session, error) {
 	return nil, nil
 }
 
-func (r *stubSessionsRepo) Save(agentID agent.ID, _ session.Session) error {
-	r.savedAgentIDs = append(r.savedAgentIDs, agentID)
+func (r *stubSessionsRepo) Save(_ session.Session) error {
 	return nil
 }
 
-func (r *stubSessionsRepo) Delete(agent.ID, session.ID) error {
+func (r *stubSessionsRepo) Delete(session.ID) error {
 	return nil
 }
 
-func (r *stubSessionsRepo) Headers(agent.ID) ([]session.Header, error) {
+func (r *stubSessionsRepo) Headers() ([]session.Header, error) {
 	return nil, nil
 }
 
@@ -86,9 +82,6 @@ func TestCall_HappyPath(t *testing.T) {
 	if got != "done" {
 		t.Fatalf("Call() = %q, want %q", got, "done")
 	}
-	if len(repo.savedAgentIDs) != 1 || repo.savedAgentIDs[0] != agent.ID("sub-agent") {
-		t.Fatalf("expected one session for sub-agent, got %v", repo.savedAgentIDs)
-	}
 }
 
 func TestCall_CallStackOverflow(t *testing.T) {
@@ -106,8 +99,5 @@ func TestCall_CallStackOverflow(t *testing.T) {
 	}
 	if got != "" {
 		t.Fatalf("Call() = %q, want empty result", got)
-	}
-	if len(repo.savedAgentIDs) != 0 {
-		t.Fatalf("expected no session created, got %v", repo.savedAgentIDs)
 	}
 }

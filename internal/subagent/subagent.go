@@ -48,7 +48,7 @@ func (s *Service) Call(
 	}
 
 	// create session
-	sessID, err := s.sessService.Create(subAgentID, prompt.SubAgentGuidance())
+	sessID, err := s.sessService.Create(prompt.SubAgentGuidance())
 	if err != nil {
 		return "", err
 	}
