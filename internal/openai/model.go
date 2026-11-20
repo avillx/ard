@@ -10,33 +10,33 @@ import (
 	"github.com/openai/openai-go/v3/shared"
 )
 
-var _ agent.Model = (*OpenAIModel)(nil)
+var _ agent.Model = (*Model)(nil)
 
 const defaultContextLimit = 100_000
 
-type OpenAIModel struct {
+type Model struct {
 	client     *openai.Client
 	modelName  string
-	settings   OpenAIModelSettings
+	settings   ModelSettings
 	settingsMu sync.RWMutex
 }
 
-func NewOpenAIModel(client *openai.Client, modelName string, settings OpenAIModelSettings) *OpenAIModel {
-	return &OpenAIModel{
+func NewModel(client *openai.Client, modelName string, settings ModelSettings) *Model {
+	return &Model{
 		client:    client,
 		modelName: modelName,
 		settings:  settings,
 	}
 }
 
-func (r *OpenAIModel) ContextLimit() int64 {
+func (r *Model) ContextLimit() int64 {
 	if r.settings.ContextLimit != nil {
 		return *r.settings.ContextLimit
 	}
 	return defaultContextLimit
 }
 
-func (r *OpenAIModel) Settings() agent.ModelSettings {
+func (r *Model) Settings() agent.ModelSettings {
 	r.settingsMu.RLock()
 	defer r.settingsMu.RUnlock()
 
@@ -54,7 +54,7 @@ func (r *OpenAIModel) Settings() agent.ModelSettings {
 	}
 }
 
-func (r *OpenAIModel) SupportedModalities() []agent.Modality {
+func (r *Model) SupportedModalities() []agent.Modality {
 	modalities := r.settings.Modalities
 	if modalities == nil {
 		return []agent.Modality{agent.TextModality}
@@ -67,7 +67,7 @@ func (r *OpenAIModel) SupportedModalities() []agent.Modality {
 	return modalities
 }
 
-func (r *OpenAIModel) Complete(
+func (r *Model) Complete(
 	ctx context.Context,
 	tools []agent.Tool,
 	internalMsgs []agent.Message,
@@ -82,10 +82,10 @@ func (r *OpenAIModel) Complete(
 		return nil, err
 	}
 
-	return OpenAICompletionToReasonResult(res)
+	return CompletionToReasonResult(res)
 }
 
-func (r *OpenAIModel) buildCompletionParams(
+func (r *Model) buildCompletionParams(
 	messages []openai.ChatCompletionMessageParamUnion,
 	agentTools []openai.ChatCompletionToolUnionParam,
 ) openai.ChatCompletionNewParams {
@@ -114,7 +114,7 @@ func (r *OpenAIModel) buildCompletionParams(
 	}
 
 	if s.ToolChoice != nil {
-		completionParams.ToolChoice = OpenAIToolChoice(*s.ToolChoice)
+		completionParams.ToolChoice = ToolChoice(*s.ToolChoice)
 	}
 
 	if s.TopP != nil {

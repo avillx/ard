@@ -19,7 +19,6 @@ func newBaseEvent() baseEvent {
 	}
 }
 
-// compaction event.
 type CompactionEvent struct {
 	baseEvent
 

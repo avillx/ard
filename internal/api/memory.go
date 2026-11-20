@@ -34,7 +34,7 @@ func NewMemoryHandler(
 }
 
 // GET /memory/{agent}.
-func (h *memoryHandler) List(w http.ResponseWriter, r *http.Request) Response {
+func (h *memoryHandler) List(_ http.ResponseWriter, r *http.Request) Response {
 	type MemoryRecordDTO map[string]string
 
 	agentID := agent.ID(r.PathValue("agent"))
@@ -51,7 +51,7 @@ func (h *memoryHandler) List(w http.ResponseWriter, r *http.Request) Response {
 }
 
 // GET /memory/{agent}/{memory_name}.
-func (h *memoryHandler) Get(w http.ResponseWriter, r *http.Request) Response {
+func (h *memoryHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 	type MemoryDTO struct {
 		Agent   agent.ID `json:"agent"`
 		Name    string   `json:"memory_name"`
@@ -122,13 +122,13 @@ func (h *memoryHandler) Consolidate(w http.ResponseWriter, r *http.Request) Resp
 }
 
 // GET /memory/config.
-func (h *memoryHandler) GetConfig(w http.ResponseWriter, r *http.Request) Response {
+func (h *memoryHandler) GetConfig(_ http.ResponseWriter, _ *http.Request) Response {
 	cfg := h.consolidationSvc.Config()
 	return NewJSONResponse(http.StatusOK, cfg)
 }
 
 // POST /memory/config.
-func (h *memoryHandler) SetConfig(w http.ResponseWriter, r *http.Request) Response {
+func (h *memoryHandler) SetConfig(_ http.ResponseWriter, r *http.Request) Response {
 	newCfg, err := decode[memory.ConsolidatorConfig](r)
 	if err != nil {
 		return NewInvalidRequest(err)

@@ -31,7 +31,7 @@ type agentHandler struct {
 }
 
 // GET /agent.
-func (h *agentHandler) List(w http.ResponseWriter, r *http.Request) Response {
+func (h *agentHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 	agents, err := h.repo.All()
 	if err != nil {
 		return NewInternalError(err)
@@ -46,7 +46,7 @@ func (h *agentHandler) List(w http.ResponseWriter, r *http.Request) Response {
 }
 
 // POST /agent/{id} DTO.
-func (h *agentHandler) Create(w http.ResponseWriter, r *http.Request) Response {
+func (h *agentHandler) Create(_ http.ResponseWriter, r *http.Request) Response {
 	id := agent.ID(r.PathValue("id"))
 
 	_, err := h.repo.Get(id)
@@ -61,7 +61,7 @@ func (h *agentHandler) Create(w http.ResponseWriter, r *http.Request) Response {
 }
 
 // PUT /agent/{id}.
-func (h *agentHandler) Update(w http.ResponseWriter, r *http.Request) Response {
+func (h *agentHandler) Update(_ http.ResponseWriter, r *http.Request) Response {
 	id := agent.ID(r.PathValue("id"))
 
 	// To ensure existence
@@ -95,7 +95,7 @@ func (h *agentHandler) saveAgt(agentID agent.ID, r *http.Request) Response {
 }
 
 // GET /agent/{id} // DTO.
-func (h *agentHandler) Read(w http.ResponseWriter, r *http.Request) Response {
+func (h *agentHandler) Read(_ http.ResponseWriter, r *http.Request) Response {
 	id := agent.ID(r.PathValue("id"))
 	agt, err := h.repo.Get(id)
 	if err != nil {
@@ -109,7 +109,7 @@ func (h *agentHandler) Read(w http.ResponseWriter, r *http.Request) Response {
 }
 
 // DELETE /agent/{id}.
-func (h *agentHandler) Delete(w http.ResponseWriter, r *http.Request) Response {
+func (h *agentHandler) Delete(_ http.ResponseWriter, r *http.Request) Response {
 	id := agent.ID(r.PathValue("id"))
 
 	if err := h.repo.Delete(id); err != nil {

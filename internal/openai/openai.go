@@ -204,7 +204,7 @@ func generateScheme[T any]() *jsonschema.Schema {
 	return scheme
 }
 
-func OpenAIToolChoice(tc string) openai.ChatCompletionToolChoiceOptionUnionParam {
+func ToolChoice(tc string) openai.ChatCompletionToolChoiceOptionUnionParam {
 	return openai.ChatCompletionToolChoiceOptionUnionParam{
 		OfAuto: openai.String(tc),
 	}
@@ -216,14 +216,14 @@ func builtMessages(conversation []agent.Message, prompt string) []openai.ChatCom
 		messagesToOpenAI(conversation)...)
 }
 
-func OpenAICompletionToContent(completion *openai.ChatCompletion) (string, error) {
+func CompletionToContent(completion *openai.ChatCompletion) (string, error) {
 	if len(completion.Choices) == 0 {
 		return "", errors.New("empty choices")
 	}
 	return completion.Choices[0].Message.Content, nil
 }
 
-func OpenAICompletionToReasonResult(completion *openai.ChatCompletion) (*agent.Completion, error) {
+func CompletionToReasonResult(completion *openai.ChatCompletion) (*agent.Completion, error) {
 	if len(completion.Choices) == 0 {
 		return nil, errors.New("empty choices")
 	}

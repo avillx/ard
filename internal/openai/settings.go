@@ -2,7 +2,7 @@ package openai
 
 import "ard/internal/agent"
 
-type OpenAIModelSettings struct {
+type ModelSettings struct {
 	Model               *string          `json:"model"`
 	ToolChoice          *string          `json:"tool_choice,omitempty"`
 	ReasoningEffort     *string          `json:"reasoning_effort,omitempty"`

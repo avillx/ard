@@ -12,7 +12,7 @@ const (
 	minCleanUpInterval = 5 * time.Hour
 )
 
-type CleanUpConfig struct {
+type Config struct {
 	SessRetention   time.Duration
 	MaxLogLines     int
 	CleanUpInterval time.Duration
@@ -22,20 +22,20 @@ type LogTrimmer interface {
 	Trim(maxLines int) error
 }
 
-type CleanUpService struct {
+type Service struct {
 	sessionsCleaner *SessionsCleaner
 	logTrimmer      LogTrimmer
 	logger          *slog.Logger
 
-	cfg CleanUpConfig
+	cfg Config
 }
 
-func NewCleanUpService(
-	cfg CleanUpConfig,
+func NewService(
+	cfg Config,
 	sessionsCleaner *SessionsCleaner,
 	logTrimmer LogTrimmer,
 	logger *slog.Logger,
-) (*CleanUpService, error) {
+) (*Service, error) {
 	if cfg.SessRetention < minSessRetention {
 		return nil, fmt.Errorf("too short session retention, must be greather than 24h")
 	}
@@ -44,7 +44,7 @@ func NewCleanUpService(
 		return nil, fmt.Errorf("too short cleanup interval, must be greather than 5h")
 	}
 
-	return &CleanUpService{
+	return &Service{
 		cfg:             cfg,
 		sessionsCleaner: sessionsCleaner,
 		logTrimmer:      logTrimmer,
@@ -52,7 +52,7 @@ func NewCleanUpService(
 	}, nil
 }
 
-func (s *CleanUpService) Run(ctx context.Context) {
+func (s *Service) Run(ctx context.Context) {
 	ticker := time.NewTicker(s.cfg.CleanUpInterval)
 	defer ticker.Stop()
 
@@ -69,7 +69,7 @@ func (s *CleanUpService) Run(ctx context.Context) {
 	}
 }
 
-func (s *CleanUpService) doCleanUp() {
+func (s *Service) doCleanUp() {
 	s.logger.Info("invoke")
 
 	s.logger.Info("cleaning sessions")

@@ -51,7 +51,7 @@ type sessionHandler struct {
 	sessSvc *session.Service
 }
 
-func (h *sessionHandler) Get(w http.ResponseWriter, r *http.Request) Response {
+func (h *sessionHandler) Get(_ http.ResponseWriter, r *http.Request) Response {
 	agentID := agent.ID(r.PathValue("agent"))
 	sessID := session.ID(r.PathValue("session"))
 
@@ -71,7 +71,7 @@ func (h *sessionHandler) Get(w http.ResponseWriter, r *http.Request) Response {
 	return NewJSONResponse(http.StatusOK, dto)
 }
 
-func (h *sessionHandler) Sessions(w http.ResponseWriter, r *http.Request) Response {
+func (h *sessionHandler) Sessions(_ http.ResponseWriter, r *http.Request) Response {
 	agentID := agent.ID(r.PathValue("agent"))
 
 	dtos := []HeaderDTO{}
@@ -105,7 +105,7 @@ func (h *sessionHandler) Sessions(w http.ResponseWriter, r *http.Request) Respon
 	return NewJSONResponse(http.StatusOK, dtos)
 }
 
-func (h *sessionHandler) Create(w http.ResponseWriter, r *http.Request) Response {
+func (h *sessionHandler) Create(_ http.ResponseWriter, r *http.Request) Response {
 	type SessionCreateDTO struct {
 		Instructon string `json:"instruction,omitempty"`
 	}
@@ -132,7 +132,7 @@ func (h *sessionHandler) Create(w http.ResponseWriter, r *http.Request) Response
 	return NewJSONResponse(http.StatusOK, dto)
 }
 
-func (h *sessionHandler) Delete(w http.ResponseWriter, r *http.Request) Response {
+func (h *sessionHandler) Delete(_ http.ResponseWriter, r *http.Request) Response {
 	agentID := agent.ID(r.PathValue("agent"))
 	sessID := session.ID(r.PathValue("session"))
 

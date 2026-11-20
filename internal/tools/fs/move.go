@@ -1,11 +1,12 @@
 package fstools
 
 import (
+	"context"
+	"fmt"
+
 	"ard/internal/agent"
 	"ard/internal/files"
 	"ard/internal/tools"
-	"context"
-	"fmt"
 )
 
 type MoveTool struct {
@@ -34,7 +35,7 @@ func (t *MoveTool) Schema() map[string]any {
 	}
 }
 
-func (t *MoveTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
+func (t *MoveTool) Call(_ context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
 	args, err := tools.UnwrapArgs[struct {
 		Src string `json:"src"`
 		Dst string `json:"dst"`

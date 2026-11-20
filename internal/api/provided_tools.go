@@ -49,7 +49,7 @@ func NewProvidedToolsRouter(idGen IDGenerator) *providedToolsRouter {
 }
 
 // POST /toolresult/{id}.
-func (h *providedToolsRouter) ResolveCall(w http.ResponseWriter, r *http.Request) Response {
+func (h *providedToolsRouter) ResolveCall(_ http.ResponseWriter, r *http.Request) Response {
 	id := r.PathValue("id")
 
 	res, err := decode[ProvidedToolResultDTO](r)

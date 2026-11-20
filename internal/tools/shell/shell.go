@@ -28,9 +28,6 @@ type ToolServer struct {
 	instruction string
 }
 
-// NewToolServer
-// customShell is not required. leave it "" if you not need in it
-// customShellAttributes dosent apply if customShell is "".
 func NewToolServer(
 	cwd string,
 	secretsSource SecretsSource,

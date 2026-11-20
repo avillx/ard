@@ -39,7 +39,7 @@ type Server struct {
 	ToolSvc                *tools.Service
 	AgentSvc               *agent.Service
 	SessSvc                *session.Service
-	CleanupSvc             *cleanup.CleanUpService
+	CleanupSvc             *cleanup.Service
 	MCPSvc                 *mcp.Service
 	ActivitySvc            *memory.ActivityService
 	ChatSvc                *chat.Service
@@ -99,7 +99,7 @@ func New(
 		return nil, err
 	}
 
-	openaiFactory := openai.NewOpenAIModelFactory(secretSvc)
+	openaiFactory := openai.NewModelFactory(secretSvc)
 
 	modelsSvc := model.NewModelService(openaiFactory)
 
@@ -130,8 +130,8 @@ func New(
 		logger,
 	)
 
-	cleanupSvc, err := cleanup.NewCleanUpService(
-		cleanup.CleanUpConfig{
+	cleanupSvc, err := cleanup.NewService(
+		cleanup.Config{
 			MaxLogLines:     maxLogLines,
 			SessRetention:   sessRetention,
 			CleanUpInterval: cleanUpInterval,

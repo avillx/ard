@@ -17,7 +17,7 @@ type mcpHandler struct {
 }
 
 // GET /mcp.
-func (h *mcpHandler) List(w http.ResponseWriter, _ *http.Request) Response {
+func (h *mcpHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 	type MCPServerDTO struct {
 		Config mcp.ServerGatewayConfig `json:"config"`
 		Tools  ToolReprDTO             `json:"tools"`
@@ -42,7 +42,7 @@ func (h *mcpHandler) List(w http.ResponseWriter, _ *http.Request) Response {
 }
 
 // POST /mcp/{mcp}.
-func (h *mcpHandler) Connect(w http.ResponseWriter, r *http.Request) Response {
+func (h *mcpHandler) Connect(_ http.ResponseWriter, r *http.Request) Response {
 	mcpID := mcp.MCPServerID(r.PathValue("mcp"))
 
 	gatewayConfig, err := decode[mcp.ServerGatewayConfig](r)
@@ -60,7 +60,7 @@ func (h *mcpHandler) Connect(w http.ResponseWriter, r *http.Request) Response {
 }
 
 // DELETE /mcp/{mcp}.
-func (h *mcpHandler) Disconnect(w http.ResponseWriter, r *http.Request) Response {
+func (h *mcpHandler) Disconnect(_ http.ResponseWriter, r *http.Request) Response {
 	mcpID := mcp.MCPServerID(r.PathValue("mcp"))
 	if err := h.mcpSvc.DeleteServer(mcpID); err != nil {
 		if errors.Is(err, types.ErrIsNotExist) {

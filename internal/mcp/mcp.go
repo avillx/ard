@@ -54,9 +54,9 @@ func (c ServerGatewayConfig) Validate(_ context.Context) error {
 	return nil
 }
 
-func (s ServerGatewayConfig) Equals(other ServerGatewayConfig) bool {
-	return s.HTTPGateway.Equals(other.HTTPGateway) &&
-		s.CommandGateway.Equals(other.CommandGateway)
+func (c ServerGatewayConfig) Equals(other ServerGatewayConfig) bool {
+	return c.HTTPGateway.Equals(other.HTTPGateway) &&
+		c.CommandGateway.Equals(other.CommandGateway)
 }
 
 type HTTPGatewayConfig struct {

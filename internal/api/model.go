@@ -1,11 +1,12 @@
 package api
 
 import (
-	"ard/internal/model"
-	"ard/internal/types"
 	"encoding/base64"
 	"errors"
 	"net/http"
+
+	"ard/internal/model"
+	"ard/internal/types"
 )
 
 // handler.
@@ -13,7 +14,7 @@ type providerHandler struct {
 	providerSvc *model.ProviderService
 }
 
-func (h *providerHandler) AddProvider(w http.ResponseWriter, r *http.Request) Response {
+func (h *providerHandler) AddProvider(_ http.ResponseWriter, r *http.Request) Response {
 	cfg, err := decode[model.ProviderConfig](r)
 	if err != nil {
 		return NewInvalidRequest(err)
@@ -29,7 +30,7 @@ func (h *providerHandler) AddProvider(w http.ResponseWriter, r *http.Request) Re
 	return NewResponse(http.StatusOK)
 }
 
-func (h *providerHandler) DeleteProvider(w http.ResponseWriter, r *http.Request) Response {
+func (h *providerHandler) DeleteProvider(_ http.ResponseWriter, r *http.Request) Response {
 	providerID := model.ProviderID(r.PathValue("name"))
 
 	if err := h.providerSvc.DeleteProvider(providerID); err != nil {
@@ -41,7 +42,7 @@ func (h *providerHandler) DeleteProvider(w http.ResponseWriter, r *http.Request)
 	return NewResponse(http.StatusOK)
 }
 
-func (h *providerHandler) GetProvider(w http.ResponseWriter, r *http.Request) Response {
+func (h *providerHandler) GetProvider(_ http.ResponseWriter, r *http.Request) Response {
 	providerID := model.ProviderID(r.PathValue("name"))
 
 	cfg, err := h.providerSvc.GetProvider(providerID)
@@ -55,7 +56,7 @@ func (h *providerHandler) GetProvider(w http.ResponseWriter, r *http.Request) Re
 	return NewJSONResponse(http.StatusOK, cfg)
 }
 
-func (h *providerHandler) UpdateProvider(w http.ResponseWriter, r *http.Request) Response {
+func (h *providerHandler) UpdateProvider(_ http.ResponseWriter, r *http.Request) Response {
 	providerID := model.ProviderID(r.PathValue("name"))
 
 	patch, err := decode[model.ProviderConfigPatch](r)
@@ -73,7 +74,7 @@ func (h *providerHandler) UpdateProvider(w http.ResponseWriter, r *http.Request)
 	return NewResponse(http.StatusOK)
 }
 
-func (h *providerHandler) GetAll(w http.ResponseWriter, r *http.Request) Response {
+func (h *providerHandler) GetAll(_ http.ResponseWriter, _ *http.Request) Response {
 	all, err := h.providerSvc.GetAll()
 	if err != nil {
 		return NewInternalError(err)
@@ -82,7 +83,7 @@ func (h *providerHandler) GetAll(w http.ResponseWriter, r *http.Request) Respons
 	return NewJSONResponse(http.StatusOK, all)
 }
 
-func (h *providerHandler) SetModel(w http.ResponseWriter, r *http.Request) Response {
+func (h *providerHandler) SetModel(_ http.ResponseWriter, r *http.Request) Response {
 	providerID := model.ProviderID(r.PathValue("name"))
 	encodedModelName := r.PathValue("model")
 
@@ -112,7 +113,7 @@ func (h *providerHandler) SetModel(w http.ResponseWriter, r *http.Request) Respo
 	return NewResponse(http.StatusOK)
 }
 
-func (h *providerHandler) DeleteModel(w http.ResponseWriter, r *http.Request) Response {
+func (h *providerHandler) DeleteModel(_ http.ResponseWriter, r *http.Request) Response {
 	providerID := model.ProviderID(r.PathValue("name"))
 	encodedModelName := r.PathValue("model")
 

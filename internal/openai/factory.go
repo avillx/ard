@@ -1,34 +1,34 @@
 package openai
 
 import (
-	"ard/internal/agent"
-	"ard/internal/model"
 	"encoding/json"
 	"fmt"
 	"sync"
 
+	"ard/internal/agent"
+	"ard/internal/model"
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 )
 
-type OpenAIModelFactory struct {
+type ModelFactory struct {
 	secrets   SecretsRepo
 	clients   map[clientKey]*openai.Client
 	clientsMu sync.Mutex
 }
 
-func NewOpenAIModelFactory(secrets SecretsRepo) *OpenAIModelFactory {
-	return &OpenAIModelFactory{
+func NewModelFactory(secrets SecretsRepo) *ModelFactory {
+	return &ModelFactory{
 		secrets: secrets,
 		clients: map[clientKey]*openai.Client{},
 	}
 }
 
-func (f *OpenAIModelFactory) APIType() model.APIType {
+func (f *ModelFactory) APIType() model.APIType {
 	return model.APITypeOpenAI
 }
 
-func (f *OpenAIModelFactory) CreateModel(
+func (f *ModelFactory) CreateModel(
 	baseURL string,
 	keyReference string,
 	modelSettings agent.ModelSettings,
@@ -47,15 +47,15 @@ func (f *OpenAIModelFactory) CreateModel(
 		return nil, fmt.Errorf("get client for provider %s: %w", baseURL, err)
 	}
 
-	return NewOpenAIModel(client, *settings.Model, settings), nil
+	return NewModel(client, *settings.Model, settings), nil
 }
 
 type clientKey struct {
-	Url    string
+	URL    string
 	KeyRef string
 }
 
-func (f *OpenAIModelFactory) getOrCreateClient(
+func (f *ModelFactory) getOrCreateClient(
 	BaseURL string,
 	KeyReference string,
 ) (*openai.Client, error) {
@@ -67,7 +67,7 @@ func (f *OpenAIModelFactory) getOrCreateClient(
 		return nil, fmt.Errorf("api key %s is not found in secrets", KeyReference)
 	}
 
-	cacheKey := clientKey{Url: BaseURL, KeyRef: KeyReference}
+	cacheKey := clientKey{URL: BaseURL, KeyRef: KeyReference}
 
 	if client, ok := f.clients[cacheKey]; ok {
 		return client, nil
@@ -82,21 +82,21 @@ func (f *OpenAIModelFactory) getOrCreateClient(
 	return &client, nil
 }
 
-func (f *OpenAIModelFactory) parseSettings(raw any) (OpenAIModelSettings, error) {
+func (f *ModelFactory) parseSettings(raw any) (ModelSettings, error) {
 	switch s := raw.(type) {
-	case OpenAIModelSettings:
+	case ModelSettings:
 		return s, nil
 	case agent.ModelSettings:
 		data, err := json.Marshal(s)
 		if err != nil {
-			return OpenAIModelSettings{}, err
+			return ModelSettings{}, err
 		}
-		var settings OpenAIModelSettings
+		var settings ModelSettings
 		if err := json.Unmarshal(data, &settings); err != nil {
-			return OpenAIModelSettings{}, err
+			return ModelSettings{}, err
 		}
 		return settings, nil
 	default:
-		return OpenAIModelSettings{}, fmt.Errorf("unexpected model settings type: %T", raw)
+		return ModelSettings{}, fmt.Errorf("unexpected model settings type: %T", raw)
 	}
 }

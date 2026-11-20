@@ -49,7 +49,7 @@ type activityHandler struct {
 	activitySvc *memory.ActivityService
 }
 
-func (h *activityHandler) Activity(w http.ResponseWriter, r *http.Request) Response {
+func (h *activityHandler) Activity(_ http.ResponseWriter, r *http.Request) Response {
 	type ActivityDTO struct {
 		Date    string `json:"date"`
 		Content string `json:"content"`
@@ -80,13 +80,13 @@ func (h *activityHandler) Activity(w http.ResponseWriter, r *http.Request) Respo
 }
 
 // GET /acivity/config.
-func (h *activityHandler) Config(w http.ResponseWriter, r *http.Request) Response {
+func (h *activityHandler) Config(_ http.ResponseWriter, _ *http.Request) Response {
 	cfg := h.activitySvc.Config()
 	return NewJSONResponse(http.StatusOK, cfg)
 }
 
 // POST /activity/config.
-func (h *activityHandler) SetConfig(w http.ResponseWriter, r *http.Request) Response {
+func (h *activityHandler) SetConfig(_ http.ResponseWriter, r *http.Request) Response {
 	newCfg, err := decode[memory.ActivityConfig](r)
 	if err != nil {
 		return NewInvalidRequest(err)

@@ -9,7 +9,6 @@ import (
 	"ard/internal/types"
 )
 
-// Wrapper for simple status code response.
 type Response interface {
 	StatusCode() int
 }
@@ -28,7 +27,6 @@ func (r response) StatusCode() int {
 	return r.statusCode
 }
 
-// Wrapper for json responses.
 type JSONResponse interface {
 	Response
 	Content() any
@@ -40,8 +38,6 @@ type jsonResponse struct {
 	content any
 }
 
-// content should be sended as response
-// string wrapped as { "message" : "..." }.
 func NewJSONResponse[T string | any](code int, msg T) *jsonResponse {
 	var s any
 	s = msg
@@ -68,7 +64,6 @@ type internalError struct {
 	cause error
 }
 
-// error shouldn't be sended. only logged. respond 500.
 func NewInternalError(cause error) Response {
 	return &internalError{
 		response: NewResponse(http.StatusInternalServerError),
@@ -84,10 +79,6 @@ func NewBadRequest[T string | map[string]any](msg T) Response {
 	return NewJSONResponse(http.StatusBadRequest, msg)
 }
 
-// send error as 400
-// error message will be sended as respond
-// unwrap validation error
-// e.g. { "problems" : "..." }.
 func NewInvalidRequest(err error) Response {
 	var r map[string]any
 

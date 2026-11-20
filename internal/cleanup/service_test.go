@@ -13,7 +13,7 @@ import (
 	"ard/internal/session"
 )
 
-func runSinglePass(t *testing.T, svc *cleanup.CleanUpService, signal <-chan struct{}) {
+func runSinglePass(t *testing.T, svc *cleanup.Service, signal <-chan struct{}) {
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -45,10 +45,10 @@ func newService(
 	sessRepo session.SessionsRepo,
 	logFile *mockLogTrimmer,
 	logger *slog.Logger,
-) *cleanup.CleanUpService {
+) *cleanup.Service {
 	t.Helper()
 
-	svc, err := cleanup.NewCleanUpService(cleanup.CleanUpConfig{
+	svc, err := cleanup.NewService(cleanup.Config{
 		SessRetention:   testRetention,
 		CleanUpInterval: testInterval,
 		MaxLogLines:     testMaxLogLines,
@@ -64,7 +64,7 @@ func newService(
 }
 
 func TestNewCleanUpService_RejectsShortRetention(t *testing.T) {
-	_, err := cleanup.NewCleanUpService(cleanup.CleanUpConfig{
+	_, err := cleanup.NewService(cleanup.Config{
 		SessRetention:   time.Hour,
 		CleanUpInterval: testInterval,
 		MaxLogLines:     testMaxLogLines,
@@ -76,7 +76,7 @@ func TestNewCleanUpService_RejectsShortRetention(t *testing.T) {
 }
 
 func TestNewCleanUpService_RejectsShortInterval(t *testing.T) {
-	_, err := cleanup.NewCleanUpService(cleanup.CleanUpConfig{
+	_, err := cleanup.NewService(cleanup.Config{
 		SessRetention:   testRetention,
 		CleanUpInterval: time.Hour,
 		MaxLogLines:     testMaxLogLines,
@@ -127,7 +127,7 @@ func TestRun_LogsSessionsCleanerError(t *testing.T) {
 	agentRepo.allErr = errors.New("storage failure")
 	trimmer := &mockLogTrimmer{trimmed: make(chan struct{}, 4)}
 
-	svc, err := cleanup.NewCleanUpService(cleanup.CleanUpConfig{
+	svc, err := cleanup.NewService(cleanup.Config{
 		SessRetention:   testRetention,
 		CleanUpInterval: testInterval,
 		MaxLogLines:     testMaxLogLines,
@@ -151,7 +151,7 @@ func TestRun_LogsLogTrimError(t *testing.T) {
 	sessRepo := &mockSessionsRepo{}
 	trimmer := &mockLogTrimmer{trimErr: errors.New("disk full"), trimmed: make(chan struct{}, 4)}
 
-	svc, err := cleanup.NewCleanUpService(cleanup.CleanUpConfig{
+	svc, err := cleanup.NewService(cleanup.Config{
 		SessRetention:   testRetention,
 		CleanUpInterval: testInterval,
 		MaxLogLines:     testMaxLogLines,

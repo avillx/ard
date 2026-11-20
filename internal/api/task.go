@@ -14,7 +14,7 @@ type taskHandler struct {
 }
 
 // GET /task.
-func (s *taskHandler) List(w http.ResponseWriter, _ *http.Request) Response {
+func (s *taskHandler) List(_ http.ResponseWriter, _ *http.Request) Response {
 	tasks, err := s.taskSvc.List()
 	if err != nil {
 		return NewInternalError(err)
@@ -24,7 +24,7 @@ func (s *taskHandler) List(w http.ResponseWriter, _ *http.Request) Response {
 }
 
 // POST /task/{name}.
-func (s *taskHandler) Create(w http.ResponseWriter, r *http.Request) Response {
+func (s *taskHandler) Create(_ http.ResponseWriter, r *http.Request) Response {
 	cfg, err := decode[task.Config](r)
 	if err != nil {
 		return NewInvalidRequest(err)
@@ -42,7 +42,7 @@ func (s *taskHandler) Create(w http.ResponseWriter, r *http.Request) Response {
 }
 
 // PATCH /task/{name}.
-func (s *taskHandler) Patch(w http.ResponseWriter, r *http.Request) Response {
+func (s *taskHandler) Patch(_ http.ResponseWriter, r *http.Request) Response {
 	taskName := r.PathValue("name")
 
 	patch, err := decode[task.Patch](r)
@@ -66,7 +66,7 @@ func (s *taskHandler) Patch(w http.ResponseWriter, r *http.Request) Response {
 }
 
 // DELETE /task/{name}.
-func (s *taskHandler) Delete(w http.ResponseWriter, r *http.Request) Response {
+func (s *taskHandler) Delete(_ http.ResponseWriter, r *http.Request) Response {
 	taskName := r.PathValue("name")
 	if err := s.taskSvc.Delete(taskName); err != nil {
 		if errors.Is(err, task.ErrIsNotExist) {
