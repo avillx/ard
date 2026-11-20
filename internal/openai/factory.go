@@ -11,24 +11,24 @@ import (
 	"github.com/openai/openai-go/v3/option"
 )
 
-type ModelFactory struct {
+type Factory struct {
 	secrets   SecretsRepo
 	clients   map[clientKey]*openai.Client
 	clientsMu sync.Mutex
 }
 
-func NewModelFactory(secrets SecretsRepo) *ModelFactory {
-	return &ModelFactory{
+func NewFactory(secrets SecretsRepo) *Factory {
+	return &Factory{
 		secrets: secrets,
 		clients: map[clientKey]*openai.Client{},
 	}
 }
 
-func (f *ModelFactory) APIType() model.APIType {
+func (f *Factory) APIType() model.APIType {
 	return model.APITypeOpenAI
 }
 
-func (f *ModelFactory) CreateModel(
+func (f *Factory) CreateModel(
 	baseURL string,
 	keyReference string,
 	modelSettings agent.ModelSettings,
@@ -55,7 +55,7 @@ type clientKey struct {
 	KeyRef string
 }
 
-func (f *ModelFactory) getOrCreateClient(
+func (f *Factory) getOrCreateClient(
 	BaseURL string,
 	KeyReference string,
 ) (*openai.Client, error) {
@@ -82,7 +82,7 @@ func (f *ModelFactory) getOrCreateClient(
 	return &client, nil
 }
 
-func (f *ModelFactory) parseSettings(raw any) (ModelSettings, error) {
+func (f *Factory) parseSettings(raw any) (ModelSettings, error) {
 	switch s := raw.(type) {
 	case ModelSettings:
 		return s, nil

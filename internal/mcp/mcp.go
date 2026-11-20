@@ -15,9 +15,9 @@ import (
 
 const healthInterval = 30 * time.Second
 
-type MCPServerID string
+type ServerID string
 
-var _ agent.ToolServer = MCPServer(nil)
+var _ agent.ToolServer = Server(nil)
 
 var _ types.Validator = (*ServerGatewayConfig)(nil)
 
@@ -111,8 +111,8 @@ type gateway interface {
 	createSession(context.Context) (*mcpsdk.ClientSession, error)
 }
 
-type MCPServer interface {
-	ID() MCPServerID
+type Server interface {
+	ID() ServerID
 	Gateway() gateway
 	Config() ServerGatewayConfig
 	Run(ctx context.Context) error
@@ -133,7 +133,7 @@ func (t *mcpServerInstructed) Instruction() string {
 }
 
 type mcpServer struct {
-	id          MCPServerID
+	id          ServerID
 	Instruction string
 
 	tools   []agent.Tool
@@ -146,11 +146,11 @@ type mcpServer struct {
 	mu            sync.Mutex
 }
 
-func (s *mcpServer) ID() MCPServerID             { return s.id }
+func (s *mcpServer) ID() ServerID                { return s.id }
 func (s *mcpServer) Gateway() gateway            { return s.gateway }
 func (s *mcpServer) Config() ServerGatewayConfig { return s.cfg }
 
-func NewMCPServer(ctx context.Context, id MCPServerID, cfg ServerGatewayConfig) (MCPServer, error) {
+func NewServer(ctx context.Context, id ServerID, cfg ServerGatewayConfig) (Server, error) {
 	if err := validateConfig(cfg); err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ import (
 
 type (
 	APIType string
-	ModelID string
+	ID      string
 )
 
 const APITypeOpenAI APIType = "openai"
@@ -20,12 +20,12 @@ var (
 	ErrEmptyModelName = errors.New("model name is required")
 )
 
-type TypedModelFactory interface {
+type TypedFactory interface {
 	APIType() APIType
-	ModelFactory
+	Factory
 }
 
-type ModelFactory interface {
+type Factory interface {
 	CreateModel(
 		BaseURL string,
 		KeyReference string,

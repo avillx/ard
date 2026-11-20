@@ -34,7 +34,7 @@ import (
 type Server struct {
 	TMPFiles               *files.TemporaryFiles
 	SecretSvc              *secrets.Service
-	ModelsSvc              *model.ModelService
+	ModelsSvc              *model.Service
 	ProviderSvc            *model.ProviderService
 	ToolSvc                *tools.Service
 	AgentSvc               *agent.Service
@@ -99,9 +99,9 @@ func New(
 		return nil, err
 	}
 
-	openaiFactory := openai.NewModelFactory(secretSvc)
+	openaiFactory := openai.NewFactory(secretSvc)
 
-	modelsSvc := model.NewModelService(openaiFactory)
+	modelsSvc := model.NewService(openaiFactory)
 
 	providerFiles, err := files.NewProviderFiles(fileStorage)
 	if err != nil {
@@ -117,7 +117,7 @@ func New(
 	toolSvc := tools.NewService()
 
 	// TODO: expose syncers
-	agentSvc, err := agent.NewService(toolSvc, modelsSvc, agentRepo, []agent.AgentSync{})
+	agentSvc, err := agent.NewService(toolSvc, modelsSvc, agentRepo, []agent.Sync{})
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +322,7 @@ func attachBuildinToolServers(
 
 func buildMemoryConsolidationService(
 	agentRepo agent.Repo,
-	modelsSvc *model.ModelService,
+	modelsSvc *model.Service,
 	memoryFiles *files.MemoryFiles,
 	memoryConfigFiles *files.MemoryFile,
 	fileStorage files.FileStorage,

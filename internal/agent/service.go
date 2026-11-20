@@ -16,7 +16,7 @@ var defaultAgent = NewAgent(
 	false,
 )
 
-type AgentSync interface {
+type Sync interface {
 	DeleteAgent(ID) error
 }
 
@@ -24,14 +24,14 @@ type Service struct {
 	toolReg   ToolRegistry
 	modelRepo ModelRegistry
 	storage   Repo
-	syncs     []AgentSync
+	syncs     []Sync
 }
 
 func NewService(
 	toolReg ToolRegistry,
 	modelRepo ModelRegistry,
 	storage Repo,
-	syncs []AgentSync,
+	syncs []Sync,
 ) (*Service, error) {
 	svc := &Service{
 		toolReg:   toolReg,

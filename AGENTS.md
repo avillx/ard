@@ -264,8 +264,8 @@ Not the app's runtime — the core of the agent's reasoning engine.
 - [consolidation](./internal/memory/consolidation.go) — `ConsolidationService`, invoked once every 24 hours (and on demand); runs its own agent loop with dedicated tools to consolidate the day's logs into memory files.
 
 ## [model service](./internal/model)
-- [model](./internal/model/model.go) — `ModelService`, the runtime registry of live `agent.Model` instances keyed by model id.
-- [provider](./internal/model/provider.go) — `ProviderService`, API providers and their models; loads models into `ModelService` on config changes.
+- [model](./internal/model/model.go) — `Service`, the runtime registry of live `agent.Model` instances keyed by model id.
+- [provider](./internal/model/provider.go) — `ProviderService`, API providers and their models; loads models into `Service` on config changes.
 - [types](./internal/model/types.go) — provider/model config types (`ProviderConfig`, `Config`, `APIType`, `ProviderConfigRepo`).
 
 ## [tools](./internal/tools)
@@ -335,7 +335,7 @@ Repositories and config files:
 ## [open ai](./internal/openai)
 Implementation of `agent.Model` using the OpenAI API, built on the `openai-go` SDK. Works with any OpenAI-compatible endpoint.
 
-- [factory](./internal/openai/factory.go) — `OpenAIModelFactory`; builds `agent.Model` instances for the model service.
+- [factory](./internal/openai/factory.go) — `OpenAIFactory`; builds `agent.Model` instances for the model service.
 - [openai](./internal/openai/openai.go) — converters `internal <-> OpenAI`.
 - [reasoner](./internal/openai/reasoner.go) — `OpenAIReasoner`, the `agent.Model` implementation.
 - [settings](./internal/openai/settings.go) — model settings parsing.

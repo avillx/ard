@@ -119,7 +119,7 @@ func providerConfig(name model.ProviderID, models map[string]model.Config) model
 	}
 }
 
-func newProviderService(t *testing.T, modelSvc *model.ModelService, repo *mockRepo) *model.ProviderService {
+func newProviderService(t *testing.T, modelSvc *model.Service, repo *mockRepo) *model.ProviderService {
 	t.Helper()
 
 	svc, err := model.NewProviderService(modelSvc, repo, slog.New(slog.DiscardHandler))
@@ -129,10 +129,10 @@ func newProviderService(t *testing.T, modelSvc *model.ModelService, repo *mockRe
 	return svc
 }
 
-func newModelServiceWithModel(t *testing.T, providerID model.ProviderID, modelName string) *model.ModelService {
+func newServiceWithModel(t *testing.T, providerID model.ProviderID, modelName string) *model.Service {
 	t.Helper()
 
-	modelSvc := model.NewModelService(&mockFactory{apiType: model.APITypeOpenAI})
+	modelSvc := model.NewService(&mockFactory{apiType: model.APITypeOpenAI})
 	repo := newMockRepo(providerConfig(providerID, map[string]model.Config{}))
 	svc := newProviderService(t, modelSvc, repo)
 
@@ -143,7 +143,7 @@ func newModelServiceWithModel(t *testing.T, providerID model.ProviderID, modelNa
 }
 
 func TestGet_EmptyStringReturnsModel(t *testing.T) {
-	modelSvc := newModelServiceWithModel(t, "p", "m")
+	modelSvc := newServiceWithModel(t, "p", "m")
 
 	got, err := modelSvc.Get("")
 	if err != nil {
@@ -155,7 +155,7 @@ func TestGet_EmptyStringReturnsModel(t *testing.T) {
 }
 
 func TestGet_SuffixReturnsModel(t *testing.T) {
-	modelSvc := newModelServiceWithModel(t, "p", "m")
+	modelSvc := newServiceWithModel(t, "p", "m")
 
 	got, err := modelSvc.Get("m")
 	if err != nil {
@@ -167,7 +167,7 @@ func TestGet_SuffixReturnsModel(t *testing.T) {
 }
 
 func TestGet_UnknownModelReturnsNotExist(t *testing.T) {
-	modelSvc := newModelServiceWithModel(t, "p", "m")
+	modelSvc := newServiceWithModel(t, "p", "m")
 
 	_, err := modelSvc.Get("ghost")
 	if !errors.Is(err, types.ErrIsNotExist) {
@@ -177,7 +177,7 @@ func TestGet_UnknownModelReturnsNotExist(t *testing.T) {
 
 func TestSetModel_UnsupportedAPI(t *testing.T) {
 	factory := &mockFactory{apiType: model.APITypeOpenAI}
-	modelSvc := model.NewModelService(factory)
+	modelSvc := model.NewService(factory)
 	repo := newMockRepo(model.ProviderConfig{
 		Name:    "p",
 		BaseURL: "http://example.com",
@@ -197,7 +197,7 @@ func TestSetModel_UnsupportedAPI(t *testing.T) {
 
 func TestSetModel_RegistersWithProviderPrefixAndPlainSettings(t *testing.T) {
 	factory := &mockFactory{apiType: model.APITypeOpenAI}
-	modelSvc := model.NewModelService(factory)
+	modelSvc := model.NewService(factory)
 	repo := newMockRepo(providerConfig("provider-a", map[string]model.Config{}))
 	svc := newProviderService(t, modelSvc, repo)
 
@@ -220,7 +220,7 @@ func TestSetModel_RegistersWithProviderPrefixAndPlainSettings(t *testing.T) {
 }
 
 func TestReload_LoadsModelsFromRepo(t *testing.T) {
-	modelSvc := model.NewModelService(&mockFactory{apiType: model.APITypeOpenAI})
+	modelSvc := model.NewService(&mockFactory{apiType: model.APITypeOpenAI})
 	repo := newMockRepo(providerConfig("p", map[string]model.Config{
 		"a": {},
 		"b": {},
@@ -236,7 +236,7 @@ func TestReload_LoadsModelsFromRepo(t *testing.T) {
 }
 
 func TestSetModel_AddsModelToRegistry(t *testing.T) {
-	modelSvc := model.NewModelService(&mockFactory{apiType: model.APITypeOpenAI})
+	modelSvc := model.NewService(&mockFactory{apiType: model.APITypeOpenAI})
 	repo := newMockRepo(providerConfig("p", map[string]model.Config{}))
 	svc := newProviderService(t, modelSvc, repo)
 
@@ -250,7 +250,7 @@ func TestSetModel_AddsModelToRegistry(t *testing.T) {
 }
 
 func TestDeleteModel_RemovesModelFromRegistry(t *testing.T) {
-	modelSvc := model.NewModelService(&mockFactory{apiType: model.APITypeOpenAI})
+	modelSvc := model.NewService(&mockFactory{apiType: model.APITypeOpenAI})
 	repo := newMockRepo(providerConfig("p", map[string]model.Config{
 		"a": {},
 	}))
@@ -266,7 +266,7 @@ func TestDeleteModel_RemovesModelFromRegistry(t *testing.T) {
 }
 
 func TestDeleteProvider_RemovesAllProviderModels(t *testing.T) {
-	modelSvc := model.NewModelService(&mockFactory{apiType: model.APITypeOpenAI})
+	modelSvc := model.NewService(&mockFactory{apiType: model.APITypeOpenAI})
 	repo := newMockRepo(providerConfig("p", map[string]model.Config{
 		"a": {},
 		"b": {},
@@ -285,7 +285,7 @@ func TestDeleteProvider_RemovesAllProviderModels(t *testing.T) {
 }
 
 func TestUpdateProvider_RemovesProviderModels(t *testing.T) {
-	modelSvc := model.NewModelService(&mockFactory{apiType: model.APITypeOpenAI})
+	modelSvc := model.NewService(&mockFactory{apiType: model.APITypeOpenAI})
 	repo := newMockRepo(providerConfig("p", map[string]model.Config{
 		"a": {},
 	}))

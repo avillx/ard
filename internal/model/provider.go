@@ -12,7 +12,7 @@ import (
 )
 
 type ProviderService struct {
-	modelSvc *ModelService
+	modelSvc *Service
 	repo     ProviderConfigRepo
 	logger   *slog.Logger
 
@@ -23,7 +23,7 @@ type ProviderService struct {
 }
 
 func NewProviderService(
-	modelSvc *ModelService,
+	modelSvc *Service,
 	repo ProviderConfigRepo,
 	logger *slog.Logger,
 ) (*ProviderService, error) {
@@ -100,7 +100,7 @@ func (s *ProviderService) UpdateProvider(id ProviderID, patch ProviderConfigPatc
 	}
 
 	for modelName := range cfg.Models {
-		s.modelSvc.delete(resolveModelID(id, modelName))
+		s.modelSvc.delete(resolveID(id, modelName))
 	}
 
 	// patching
@@ -137,7 +137,7 @@ func (s *ProviderService) DeleteProvider(id ProviderID) error {
 	}
 
 	for modelName := range providerConf.Models {
-		s.modelSvc.delete(resolveModelID(id, modelName))
+		s.modelSvc.delete(resolveID(id, modelName))
 	}
 
 	return s.repo.Delete(id)
@@ -158,7 +158,7 @@ func (s *ProviderService) DeleteModel(providerID ProviderID, modelName string) e
 		return err
 	}
 
-	s.modelSvc.delete(resolveModelID(providerID, modelName))
+	s.modelSvc.delete(resolveID(providerID, modelName))
 
 	return nil
 }
@@ -181,7 +181,7 @@ func (s *ProviderService) SetModel(providerID ProviderID, modelName string, mode
 		providerConf.APIType,
 		providerConf.BaseURL,
 		providerConf.KeyReference,
-		resolveModelID(providerID, modelName),
+		resolveID(providerID, modelName),
 		newModelSettings(modelName, modelCfg),
 	); err != nil {
 		return err
@@ -192,17 +192,17 @@ func (s *ProviderService) SetModel(providerID ProviderID, modelName string, mode
 	return s.repo.Save(providerConf)
 }
 
-type ModelLoadError struct {
+type LoadError struct {
 	Provider  string
 	ModelName string
 	err       error
 }
 
-func (e *ModelLoadError) Unwrap() error {
+func (e *LoadError) Unwrap() error {
 	return e.err
 }
 
-func (e *ModelLoadError) Error() string {
+func (e *LoadError) Error() string {
 	return fmt.Sprintf(
 		"model '%s' of '%s' provider is not loaded",
 		e.ModelName,
@@ -210,17 +210,17 @@ func (e *ModelLoadError) Error() string {
 	)
 }
 
-func (s *ProviderService) loadModels(cfg ProviderConfig) []*ModelLoadError {
-	loadErrs := []*ModelLoadError{}
+func (s *ProviderService) loadModels(cfg ProviderConfig) []*LoadError {
+	loadErrs := []*LoadError{}
 	for modelName, modelCfg := range cfg.Models {
 		if err := s.modelSvc.add(
 			cfg.APIType,
 			cfg.BaseURL,
 			cfg.KeyReference,
-			resolveModelID(cfg.Name, modelName),
+			resolveID(cfg.Name, modelName),
 			newModelSettings(modelName, modelCfg),
 		); err != nil {
-			loadErrs = append(loadErrs, &ModelLoadError{
+			loadErrs = append(loadErrs, &LoadError{
 				Provider:  string(cfg.Name),
 				ModelName: modelName,
 				err:       err,
@@ -230,8 +230,8 @@ func (s *ProviderService) loadModels(cfg ProviderConfig) []*ModelLoadError {
 	return loadErrs
 }
 
-func resolveModelID(providerName ProviderID, modelName string) ModelID {
-	return ModelID(path.Join(string(providerName), modelName))
+func resolveID(providerName ProviderID, modelName string) ID {
+	return ID(path.Join(string(providerName), modelName))
 }
 
 func newModelSettings(modelName string, cfg Config) agent.ModelSettings {

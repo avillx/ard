@@ -199,7 +199,7 @@ func (f *ProviderFiles) saveConfig(dto modelsConfigDTO) error {
 }
 
 func NewModelsReloader(modelsSvc *model.ProviderService) sentinel.Action {
-	return func(ctx context.Context, _ fsnotify.Event) error {
+	return func(_ context.Context, _ fsnotify.Event) error {
 		return modelsSvc.Reload()
 	}
 }

@@ -13,18 +13,18 @@ import (
 )
 
 type ConfigRepo interface {
-	Load() (map[MCPServerID]ServerGatewayConfig, error)
-	Save(MCPServerID, ServerGatewayConfig) error
-	Delete(MCPServerID) error
+	Load() (map[ServerID]ServerGatewayConfig, error)
+	Save(ServerID, ServerGatewayConfig) error
+	Delete(ServerID) error
 }
 
 type Service struct {
 	toolSvc       *tools.Service
 	configRepo    ConfigRepo
 	logger        *slog.Logger
-	serverFactory func(context.Context, MCPServerID, ServerGatewayConfig) (MCPServer, error)
+	serverFactory func(context.Context, ServerID, ServerGatewayConfig) (Server, error)
 
-	servers map[MCPServerID]MCPServer
+	servers map[ServerID]Server
 	mu      sync.RWMutex
 }
 
@@ -38,8 +38,8 @@ func NewService(
 		toolSvc:       toolSvc,
 		configRepo:    repo,
 		logger:        logger.WithGroup("mcp"),
-		serverFactory: NewMCPServer,
-		servers:       make(map[MCPServerID]MCPServer),
+		serverFactory: NewServer,
+		servers:       make(map[ServerID]Server),
 	}
 
 	if err := svc.load(ctx); err != nil {
@@ -49,7 +49,7 @@ func NewService(
 	return svc, nil
 }
 
-func (s *Service) List() []MCPServer {
+func (s *Service) List() []Server {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -62,7 +62,7 @@ func (s *Service) Reload(ctx context.Context) error {
 		return err
 	}
 
-	loadCandidates := map[MCPServerID]ServerGatewayConfig{}
+	loadCandidates := map[ServerID]ServerGatewayConfig{}
 
 	func() {
 		s.mu.Lock()
@@ -109,7 +109,7 @@ func (s *Service) load(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) connectServers(ctx context.Context, cfgs map[MCPServerID]ServerGatewayConfig) {
+func (s *Service) connectServers(ctx context.Context, cfgs map[ServerID]ServerGatewayConfig) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
@@ -126,7 +126,7 @@ func (s *Service) connectServers(ctx context.Context, cfgs map[MCPServerID]Serve
 	wg.Wait()
 }
 
-func (s *Service) connectServer(ctx context.Context, id MCPServerID, cfg ServerGatewayConfig) error {
+func (s *Service) connectServer(ctx context.Context, id ServerID, cfg ServerGatewayConfig) error {
 	srv, err := s.serverFactory(ctx, id, cfg)
 	if err != nil {
 		return fmt.Errorf("mcp: server initialization: %w", err)
@@ -159,12 +159,12 @@ func (s *Service) connectServer(ctx context.Context, id MCPServerID, cfg ServerG
 	return nil
 }
 
-func (s *Service) DeleteServer(id MCPServerID) error {
+func (s *Service) DeleteServer(id ServerID) error {
 	return s.configRepo.Delete(id)
 }
 
-func (s *Service) SetServer(ctx context.Context, id MCPServerID, cfg ServerGatewayConfig) error {
-	var depricatedSrv MCPServer
+func (s *Service) SetServer(ctx context.Context, id ServerID, cfg ServerGatewayConfig) error {
+	var depricatedSrv Server
 	func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()

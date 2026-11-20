@@ -8,18 +8,18 @@ import (
 	"ard/internal/types"
 )
 
-var _ agent.ModelRegistry = (*ModelService)(nil)
+var _ agent.ModelRegistry = (*Service)(nil)
 
-type ModelService struct {
-	factories map[APIType]ModelFactory
-	models    map[ModelID]agent.Model
+type Service struct {
+	factories map[APIType]Factory
+	models    map[ID]agent.Model
 	mu        sync.RWMutex
 }
 
-func NewModelService(factories ...TypedModelFactory) *ModelService {
-	svc := &ModelService{
-		factories: make(map[APIType]ModelFactory),
-		models:    make(map[ModelID]agent.Model),
+func NewService(factories ...TypedFactory) *Service {
+	svc := &Service{
+		factories: make(map[APIType]Factory),
+		models:    make(map[ID]agent.Model),
 	}
 
 	for _, f := range factories {
@@ -29,7 +29,7 @@ func NewModelService(factories ...TypedModelFactory) *ModelService {
 	return svc
 }
 
-func (m *ModelService) Get(modelName string) (agent.Model, error) {
+func (m *Service) Get(modelName string) (agent.Model, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -42,18 +42,18 @@ func (m *ModelService) Get(modelName string) (agent.Model, error) {
 	return nil, types.ErrIsNotExist
 }
 
-func (m *ModelService) delete(modelName ModelID) {
+func (m *Service) delete(modelName ID) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	delete(m.models, modelName)
 }
 
-func (m *ModelService) add(
+func (m *Service) add(
 	apiType APIType,
 	baseURL string,
 	keyReference string,
-	modelID ModelID,
+	modelID ID,
 	modelSettings agent.ModelSettings,
 ) error {
 	m.mu.Lock()

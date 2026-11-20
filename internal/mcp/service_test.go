@@ -15,30 +15,30 @@ import (
 
 type mockConfigRepo struct {
 	mu      sync.Mutex
-	cfgs    map[MCPServerID]ServerGatewayConfig
+	cfgs    map[ServerID]ServerGatewayConfig
 	loadErr error
 
-	saveCalls   map[MCPServerID]ServerGatewayConfig
+	saveCalls   map[ServerID]ServerGatewayConfig
 	saveErr     error
-	deleteCalls []MCPServerID
+	deleteCalls []ServerID
 	deleteErr   error
 }
 
-func newMockConfigRepo(cfgs map[MCPServerID]ServerGatewayConfig) *mockConfigRepo {
+func newMockConfigRepo(cfgs map[ServerID]ServerGatewayConfig) *mockConfigRepo {
 	return &mockConfigRepo{
 		cfgs:      cfgs,
-		saveCalls: make(map[MCPServerID]ServerGatewayConfig),
+		saveCalls: make(map[ServerID]ServerGatewayConfig),
 	}
 }
 
-func (r *mockConfigRepo) Load() (map[MCPServerID]ServerGatewayConfig, error) {
+func (r *mockConfigRepo) Load() (map[ServerID]ServerGatewayConfig, error) {
 	if r.loadErr != nil {
 		return nil, r.loadErr
 	}
 	return r.cfgs, nil
 }
 
-func (r *mockConfigRepo) Save(id MCPServerID, cfg ServerGatewayConfig) error {
+func (r *mockConfigRepo) Save(id ServerID, cfg ServerGatewayConfig) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -50,7 +50,7 @@ func (r *mockConfigRepo) Save(id MCPServerID, cfg ServerGatewayConfig) error {
 	return nil
 }
 
-func (r *mockConfigRepo) Delete(id MCPServerID) error {
+func (r *mockConfigRepo) Delete(id ServerID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -76,8 +76,8 @@ func (r *mockConfigRepo) deletedCount() int {
 	return len(r.deleteCalls)
 }
 
-type mockMCPServer struct {
-	id  MCPServerID
+type mockServer struct {
+	id  ServerID
 	cfg ServerGatewayConfig
 
 	runStop      chan struct{}
@@ -89,20 +89,20 @@ type mockMCPServer struct {
 	err           error
 }
 
-func newMockMCPServer(id MCPServerID, cfg ServerGatewayConfig) *mockMCPServer {
-	return &mockMCPServer{
+func newMockServer(id ServerID, cfg ServerGatewayConfig) *mockServer {
+	return &mockServer{
 		id:      id,
 		cfg:     cfg,
 		runStop: make(chan struct{}),
 	}
 }
 
-func (m *mockMCPServer) ID() MCPServerID             { return m.id }
-func (m *mockMCPServer) Config() ServerGatewayConfig { return m.cfg }
-func (m *mockMCPServer) Gateway() gateway            { return nil }
-func (m *mockMCPServer) Tools() []agent.Tool         { return nil }
+func (m *mockServer) ID() ServerID                { return m.id }
+func (m *mockServer) Config() ServerGatewayConfig { return m.cfg }
+func (m *mockServer) Gateway() gateway            { return nil }
+func (m *mockServer) Tools() []agent.Tool         { return nil }
 
-func (m *mockMCPServer) Run(ctx context.Context) error {
+func (m *mockServer) Run(ctx context.Context) error {
 	<-m.runStop
 
 	m.mu.Lock()
@@ -110,7 +110,7 @@ func (m *mockMCPServer) Run(ctx context.Context) error {
 	return m.runErr
 }
 
-func (m *mockMCPServer) Shutdown() {
+func (m *mockServer) Shutdown() {
 	m.shutdownOnce.Do(func() {
 		m.mu.Lock()
 		m.shutdownCalls++
@@ -119,19 +119,19 @@ func (m *mockMCPServer) Shutdown() {
 	})
 }
 
-func (m *mockMCPServer) Err() error {
+func (m *mockServer) Err() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.err
 }
 
-func (m *mockMCPServer) setErr(err error) {
+func (m *mockServer) setErr(err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.err = err
 }
 
-func (m *mockMCPServer) shutdownCount() int {
+func (m *mockServer) shutdownCount() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.shutdownCalls
@@ -140,15 +140,15 @@ func (m *mockMCPServer) shutdownCount() int {
 type mockServerFactory struct {
 	mu    sync.Mutex
 	calls int
-	byID  map[MCPServerID]MCPServer
+	byID  map[ServerID]Server
 	err   error
 }
 
 func newMockServerFactory() *mockServerFactory {
-	return &mockServerFactory{byID: make(map[MCPServerID]MCPServer)}
+	return &mockServerFactory{byID: make(map[ServerID]Server)}
 }
 
-func (f *mockServerFactory) newServer(ctx context.Context, id MCPServerID, cfg ServerGatewayConfig) (MCPServer, error) {
+func (f *mockServerFactory) newServer(ctx context.Context, id ServerID, cfg ServerGatewayConfig) (Server, error) {
 	f.mu.Lock()
 	f.calls++
 	f.mu.Unlock()
@@ -176,7 +176,7 @@ func newTestService(repo ConfigRepo, factory *mockServerFactory) *Service {
 		configRepo:    repo,
 		logger:        slog.New(slog.DiscardHandler),
 		serverFactory: factory.newServer,
-		servers:       make(map[MCPServerID]MCPServer),
+		servers:       make(map[ServerID]Server),
 	}
 }
 
@@ -184,11 +184,11 @@ func httpConfig(url string) ServerGatewayConfig {
 	return ServerGatewayConfig{HTTPGateway: &HTTPGatewayConfig{URL: url}}
 }
 
-func containsServer(servers []MCPServer, want MCPServer) bool {
+func containsServer(servers []Server, want Server) bool {
 	return slices.Contains(servers, want)
 }
 
-func serverConnected(t *testing.T, toolSvc *tools.Service, id MCPServerID) bool {
+func serverConnected(t *testing.T, toolSvc *tools.Service, id ServerID) bool {
 	t.Helper()
 
 	_, err := toolSvc.ToolServers(string(id))
@@ -212,7 +212,7 @@ func TestNewServiceEmptyRepo(t *testing.T) {
 	svc, err := NewService(
 		context.Background(),
 		tools.NewService(),
-		newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{}),
+		newMockConfigRepo(map[ServerID]ServerGatewayConfig{}),
 		slog.New(slog.DiscardHandler),
 	)
 	if err != nil {
@@ -240,9 +240,9 @@ func TestNewServiceLoadError(t *testing.T) {
 }
 
 func TestConnectServerRegistersAndDisconnects(t *testing.T) {
-	svc := newTestService(newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{}), newMockServerFactory())
-	srv := newMockMCPServer("srv", httpConfig("http://example.com"))
-	svc.serverFactory = func(context.Context, MCPServerID, ServerGatewayConfig) (MCPServer, error) {
+	svc := newTestService(newMockConfigRepo(map[ServerID]ServerGatewayConfig{}), newMockServerFactory())
+	srv := newMockServer("srv", httpConfig("http://example.com"))
+	svc.serverFactory = func(context.Context, ServerID, ServerGatewayConfig) (Server, error) {
 		return srv, nil
 	}
 
@@ -267,7 +267,7 @@ func TestConnectServerInitError(t *testing.T) {
 	factory := newMockServerFactory()
 	factory.err = wantErr
 
-	svc := newTestService(newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{}), factory)
+	svc := newTestService(newMockConfigRepo(map[ServerID]ServerGatewayConfig{}), factory)
 
 	err := svc.connectServer(context.Background(), "srv", httpConfig("http://example.com"))
 	if !errors.Is(err, wantErr) {
@@ -279,14 +279,14 @@ func TestConnectServerInitError(t *testing.T) {
 }
 
 func TestConnectServerToolServiceConflict(t *testing.T) {
-	svc := newTestService(newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{}), newMockServerFactory())
-	existing := newMockMCPServer("srv", httpConfig("http://example.com"))
+	svc := newTestService(newMockConfigRepo(map[ServerID]ServerGatewayConfig{}), newMockServerFactory())
+	existing := newMockServer("srv", httpConfig("http://example.com"))
 	if err := svc.toolSvc.Connect("srv", existing); err != nil {
 		t.Fatalf("prepare tool service: %v", err)
 	}
 
 	factory := newMockServerFactory()
-	factory.byID["srv"] = newMockMCPServer("srv", httpConfig("http://example.com"))
+	factory.byID["srv"] = newMockServer("srv", httpConfig("http://example.com"))
 	svc.serverFactory = factory.newServer
 
 	err := svc.connectServer(context.Background(), "srv", httpConfig("http://example.com"))
@@ -300,10 +300,10 @@ func TestConnectServerToolServiceConflict(t *testing.T) {
 
 func TestReloadAddsNewServers(t *testing.T) {
 	factory := newMockServerFactory()
-	srv := newMockMCPServer("srv", httpConfig("http://example.com"))
+	srv := newMockServer("srv", httpConfig("http://example.com"))
 	factory.byID["srv"] = srv
 
-	svc := newTestService(newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{
+	svc := newTestService(newMockConfigRepo(map[ServerID]ServerGatewayConfig{
 		"srv": httpConfig("http://example.com"),
 	}), factory)
 
@@ -325,9 +325,9 @@ func TestReloadAddsNewServers(t *testing.T) {
 
 func TestReloadRemovesDeletedServers(t *testing.T) {
 	factory := newMockServerFactory()
-	oldSrv := newMockMCPServer("srv", httpConfig("http://example.com"))
+	oldSrv := newMockServer("srv", httpConfig("http://example.com"))
 
-	svc := newTestService(newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{}), factory)
+	svc := newTestService(newMockConfigRepo(map[ServerID]ServerGatewayConfig{}), factory)
 	svc.servers["srv"] = oldSrv
 
 	if err := svc.Reload(context.Background()); err != nil {
@@ -349,13 +349,13 @@ func TestReloadUpdatesChangedConfig(t *testing.T) {
 	oldCfg := httpConfig("http://old")
 	newCfg := httpConfig("http://new")
 
-	oldSrv := newMockMCPServer("srv", oldCfg)
-	newSrv := newMockMCPServer("srv", newCfg)
+	oldSrv := newMockServer("srv", oldCfg)
+	newSrv := newMockServer("srv", newCfg)
 
 	factory := newMockServerFactory()
 	factory.byID["srv"] = newSrv
 
-	svc := newTestService(newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{
+	svc := newTestService(newMockConfigRepo(map[ServerID]ServerGatewayConfig{
 		"srv": newCfg,
 	}), factory)
 	svc.servers["srv"] = oldSrv
@@ -381,11 +381,11 @@ func TestReloadUpdatesChangedConfig(t *testing.T) {
 
 func TestReloadKeepsUnchangedConfig(t *testing.T) {
 	cfg := httpConfig("http://example.com")
-	srv := newMockMCPServer("srv", cfg)
+	srv := newMockServer("srv", cfg)
 
 	factory := newMockServerFactory()
 
-	svc := newTestService(newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{
+	svc := newTestService(newMockConfigRepo(map[ServerID]ServerGatewayConfig{
 		"srv": cfg,
 	}), factory)
 	svc.servers["srv"] = srv
@@ -408,7 +408,7 @@ func TestReloadKeepsUnchangedConfig(t *testing.T) {
 
 func TestReloadLoadError(t *testing.T) {
 	wantErr := errors.New("load failed")
-	repo := newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{
+	repo := newMockConfigRepo(map[ServerID]ServerGatewayConfig{
 		"srv": httpConfig("http://example.com"),
 	})
 	repo.loadErr = wantErr
@@ -426,12 +426,12 @@ func TestReloadLoadError(t *testing.T) {
 
 func TestLoadConnectsAllServers(t *testing.T) {
 	factory := newMockServerFactory()
-	srvA := newMockMCPServer("a", httpConfig("http://a"))
-	srvB := newMockMCPServer("b", httpConfig("http://b"))
+	srvA := newMockServer("a", httpConfig("http://a"))
+	srvB := newMockServer("b", httpConfig("http://b"))
 	factory.byID["a"] = srvA
 	factory.byID["b"] = srvB
 
-	svc := newTestService(newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{
+	svc := newTestService(newMockConfigRepo(map[ServerID]ServerGatewayConfig{
 		"a": httpConfig("http://a"),
 		"b": httpConfig("http://b"),
 	}), factory)
@@ -451,13 +451,13 @@ func TestSetServerReplacesExisting(t *testing.T) {
 	oldCfg := httpConfig("http://old")
 	newCfg := httpConfig("http://new")
 
-	oldSrv := newMockMCPServer("srv", oldCfg)
-	newSrv := newMockMCPServer("srv", newCfg)
+	oldSrv := newMockServer("srv", oldCfg)
+	newSrv := newMockServer("srv", newCfg)
 
 	factory := newMockServerFactory()
 	factory.byID["srv"] = newSrv
 
-	repo := newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{})
+	repo := newMockConfigRepo(map[ServerID]ServerGatewayConfig{})
 	svc := newTestService(repo, factory)
 	svc.servers["srv"] = oldSrv
 
@@ -482,12 +482,12 @@ func TestSetServerReplacesExisting(t *testing.T) {
 
 func TestSetServerAddsNew(t *testing.T) {
 	cfg := httpConfig("http://example.com")
-	srv := newMockMCPServer("srv", cfg)
+	srv := newMockServer("srv", cfg)
 
 	factory := newMockServerFactory()
 	factory.byID["srv"] = srv
 
-	repo := newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{})
+	repo := newMockConfigRepo(map[ServerID]ServerGatewayConfig{})
 	svc := newTestService(repo, factory)
 
 	if err := svc.SetServer(context.Background(), "srv", cfg); err != nil {
@@ -508,9 +508,9 @@ func TestSetServerInitError(t *testing.T) {
 	factory := newMockServerFactory()
 	factory.err = wantErr
 
-	oldSrv := newMockMCPServer("srv", httpConfig("http://old"))
+	oldSrv := newMockServer("srv", httpConfig("http://old"))
 
-	repo := newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{})
+	repo := newMockConfigRepo(map[ServerID]ServerGatewayConfig{})
 	svc := newTestService(repo, factory)
 	svc.servers["srv"] = oldSrv
 
@@ -532,7 +532,7 @@ func TestSetServerInitError(t *testing.T) {
 }
 
 func TestDeleteServer(t *testing.T) {
-	repo := newMockConfigRepo(map[MCPServerID]ServerGatewayConfig{
+	repo := newMockConfigRepo(map[ServerID]ServerGatewayConfig{
 		"srv": httpConfig("http://example.com"),
 	})
 	svc := newTestService(repo, newMockServerFactory())

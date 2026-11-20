@@ -70,7 +70,7 @@ func NewMCPFiles(storage FileStorage) (*MCPFiles, error) {
 	return &MCPFiles{storage: storage}, nil
 }
 
-func (f *MCPFiles) Save(id mcp.MCPServerID, cfg mcp.ServerGatewayConfig) error {
+func (f *MCPFiles) Save(id mcp.ServerID, cfg mcp.ServerGatewayConfig) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -89,7 +89,7 @@ func (f *MCPFiles) Save(id mcp.MCPServerID, cfg mcp.ServerGatewayConfig) error {
 	return f.storage.WriteFile(MCPConfigFilePath, data, ModeFilePerm)
 }
 
-func (f *MCPFiles) Load() (map[mcp.MCPServerID]mcp.ServerGatewayConfig, error) {
+func (f *MCPFiles) Load() (map[mcp.ServerID]mcp.ServerGatewayConfig, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -101,7 +101,7 @@ func (f *MCPFiles) Load() (map[mcp.MCPServerID]mcp.ServerGatewayConfig, error) {
 	return dto, nil
 }
 
-func (f *MCPFiles) LoadDTO() (map[mcp.MCPServerID]mcp.ServerGatewayConfig, error) {
+func (f *MCPFiles) LoadDTO() (map[mcp.ServerID]mcp.ServerGatewayConfig, error) {
 	data, err := f.storage.ReadFile(MCPConfigFilePath)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (f *MCPFiles) LoadDTO() (map[mcp.MCPServerID]mcp.ServerGatewayConfig, error
 	return UnmarshalMCPConfig(data)
 }
 
-func (f *MCPFiles) Delete(mcpServerID mcp.MCPServerID) error {
+func (f *MCPFiles) Delete(mcpServerID mcp.ServerID) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -129,7 +129,7 @@ func (f *MCPFiles) Delete(mcpServerID mcp.MCPServerID) error {
 	return f.storage.WriteFile(MCPConfigFilePath, data, ModeFilePerm)
 }
 
-type MCPServerConfigDTO struct {
+type ServerConfigDTO struct {
 	URL     string            `json:"url"             toml:"url,omitempty"`
 	Token   string            `json:"token,omitempty" toml:"token,omitempty"`
 	Command string            `json:"command"         toml:"command,omitempty"`
@@ -137,8 +137,8 @@ type MCPServerConfigDTO struct {
 	Env     map[string]string `json:"env,omitempty"   toml:"env,omitempty"`
 }
 
-func ValidateMCPServerConfigDTO(data []byte) error {
-	var cfg map[mcp.MCPServerID]MCPServerConfigDTO
+func ValidateServerConfigDTO(data []byte) error {
+	var cfg map[mcp.ServerID]ServerConfigDTO
 	dec := toml.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 
@@ -178,8 +178,8 @@ func ValidateMCPServerConfigDTO(data []byte) error {
 	return nil
 }
 
-func MarshalMCPConfig(config map[mcp.MCPServerID]mcp.ServerGatewayConfig) ([]byte, error) {
-	newMCPConfig := map[mcp.MCPServerID]MCPServerConfigDTO{}
+func MarshalMCPConfig(config map[mcp.ServerID]mcp.ServerGatewayConfig) ([]byte, error) {
+	newMCPConfig := map[mcp.ServerID]ServerConfigDTO{}
 	for k, v := range config {
 		if v.CommandGateway == nil {
 			v.CommandGateway = &mcp.CommandGatewayConfig{}
@@ -189,7 +189,7 @@ func MarshalMCPConfig(config map[mcp.MCPServerID]mcp.ServerGatewayConfig) ([]byt
 			v.HTTPGateway = &mcp.HTTPGatewayConfig{}
 		}
 
-		newMCPConfig[k] = MCPServerConfigDTO{
+		newMCPConfig[k] = ServerConfigDTO{
 			URL:     v.HTTPGateway.URL,
 			Token:   v.HTTPGateway.Token,
 			Command: v.CommandGateway.Command,
@@ -209,13 +209,13 @@ func MarshalMCPConfig(config map[mcp.MCPServerID]mcp.ServerGatewayConfig) ([]byt
 	), nil
 }
 
-func UnmarshalMCPConfig(data []byte) (map[mcp.MCPServerID]mcp.ServerGatewayConfig, error) {
-	var dto map[mcp.MCPServerID]MCPServerConfigDTO
+func UnmarshalMCPConfig(data []byte) (map[mcp.ServerID]mcp.ServerGatewayConfig, error) {
+	var dto map[mcp.ServerID]ServerConfigDTO
 	if err := toml.Unmarshal(data, &dto); err != nil {
 		return nil, err
 	}
 
-	config := map[mcp.MCPServerID]mcp.ServerGatewayConfig{}
+	config := map[mcp.ServerID]mcp.ServerGatewayConfig{}
 	for k, v := range dto {
 		var commandGateway *mcp.CommandGatewayConfig
 		if v.Command != "" {
