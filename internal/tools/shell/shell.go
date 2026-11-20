@@ -1,8 +1,6 @@
 package shell
 
 import (
-	"ard/internal/agent"
-	"ard/internal/tools"
 	"bytes"
 	"cmp"
 	"context"
@@ -13,6 +11,9 @@ import (
 	rt "runtime"
 	"strings"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/tools"
 )
 
 var defaultTimeout = 30 * time.Second
@@ -120,9 +121,9 @@ const waitDelayAfterShellExit = 5 * time.Second
 
 func (t *ShellTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.ContentPart, error) {
 	args, err := tools.UnwrapArgs[struct {
-		Command string        `json:"command"`
-		Timeout time.Duration `json:"timeout,omitempty"`
-		Cwd     string        `json:"cwd,omitempty"`
+		Command string `json:"command"`
+		Timeout int    `json:"timeout,omitempty"`
+		Cwd     string `json:"cwd,omitempty"`
 	}](rawArgs)
 	if err != nil {
 		return nil, err
@@ -172,7 +173,7 @@ func (t *ShellTool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]ag
 	// timeout
 	to := defaultTimeout
 	if args.Timeout > 0 {
-		to = args.Timeout * time.Second
+		to = time.Duration(args.Timeout) * time.Second
 	}
 
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(to))
