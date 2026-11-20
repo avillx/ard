@@ -18,6 +18,15 @@ import (
 
 var defaultTimeout = 30 * time.Second
 
+const (
+	// edge timeout of the shell tool, set in runtime.
+	shellToolTimeout = 15 * time.Minute
+	// how long to wait for the child to exit after the process group kill.
+	processGroupKillGracePeriod = 3 * time.Second
+	// how long to wait for a spawned orphan to be reaped.
+	orphanReapGracePeriod = 2 * time.Second
+)
+
 type SecretsSource interface {
 	All() map[string]string
 }
@@ -87,7 +96,7 @@ func (t *Tool) Name() agent.ToolName {
 
 // TimeOut this is edge timeout, sets in runtime.
 func (t *Tool) TimeOut() time.Duration {
-	return 15 * time.Minute
+	return shellToolTimeout
 }
 
 func (t *Tool) Description() string {
@@ -185,7 +194,7 @@ func (t *Tool) Call(ctx context.Context, rawArgs agent.ToolArguments) ([]agent.C
 
 		select {
 		case cmdErr = <-done:
-		case <-time.After(3 * time.Second):
+		case <-time.After(processGroupKillGracePeriod):
 			_ = cmd.Process.Kill()
 			cmdErr = <-done
 		}
@@ -231,7 +240,7 @@ func reapSpawnedChild(cmd *exec.Cmd, pg *processGroup) {
 	}()
 	select {
 	case <-done:
-	case <-time.After(2 * time.Second):
+	case <-time.After(orphanReapGracePeriod):
 		_ = cmd.Process.Kill()
 		<-done
 	}

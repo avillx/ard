@@ -1,18 +1,21 @@
 package files
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/types"
 )
 
 var _ agent.ActivityRepo = (*ActivityFiles)(nil)
 
 const ActivityFolder = "activity"
+
+const dayDuration = 24 * time.Hour
 
 type ActivityFiles struct {
 	storage FileStorage
@@ -91,7 +94,7 @@ func (a *ActivityFiles) GetRange(
 }
 
 func resolveActivityFilePath(agentID agent.ID, t time.Time) string {
-	d := t.UTC().Truncate(24 * time.Hour)
+	d := t.UTC().Truncate(dayDuration)
 	return filepath.Join(
 		resolveActivityFolderPath(agentID),
 		d.Format("2006"),

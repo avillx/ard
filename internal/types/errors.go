@@ -64,11 +64,11 @@ func ResovleValidationProblems(err error) map[string]string {
 	return nil
 }
 
-func DistillErrNotExist(msg string, err error) error {
+func DistillErrNotExist(msg string, err error, logger *slog.Logger) error {
 	errWrapper, ok := err.(interface{ Unwrap() []error })
 	if !ok {
 		if errors.Is(err, ErrIsNotExist) {
-			slog.Warn(msg, "error", err)
+			logger.Warn(msg, "error", err)
 			return nil
 		}
 		return err
@@ -77,7 +77,7 @@ func DistillErrNotExist(msg string, err error) error {
 	var unExpectedErrs []error
 	for _, werr := range errWrapper.Unwrap() {
 		if errors.Is(werr, ErrIsNotExist) {
-			slog.Warn(msg, "error", werr)
+			logger.Warn(msg, "error", werr)
 			continue
 		}
 

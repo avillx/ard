@@ -14,6 +14,9 @@ type Replacer struct {
 	mu sync.RWMutex
 }
 
+// every replacement pair is a secret followed by its placeholder.
+const stringsPerPair = 2
+
 func NewReplacer(s *Service) *Replacer {
 	r := &Replacer{
 		secretsSvc: s,
@@ -47,7 +50,7 @@ func (r *Replacer) Reload() {
 		return len(firstValue) > len(secondValue)
 	})
 
-	pairs := make([]string, 0, len(keys)*2)
+	pairs := make([]string, 0, len(keys)*stringsPerPair)
 	for _, k := range keys {
 		// suuuuper edge case
 		if all[k] == "" {

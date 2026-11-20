@@ -18,6 +18,9 @@ type ConfigRepo interface {
 	Delete(ServerID) error
 }
 
+// how long a single MCP server is given to establish a connection.
+const serverConnectTimeout = 10 * time.Minute
+
 type Service struct {
 	toolSvc       *tools.Service
 	configRepo    ConfigRepo
@@ -110,7 +113,7 @@ func (s *Service) load(ctx context.Context) error {
 }
 
 func (s *Service) connectServers(ctx context.Context, cfgs map[ServerID]ServerGatewayConfig) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, serverConnectTimeout)
 	defer cancel()
 
 	var wg sync.WaitGroup
@@ -174,7 +177,7 @@ func (s *Service) SetServer(ctx context.Context, id ServerID, cfg ServerGatewayC
 		}
 	}()
 
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, serverConnectTimeout)
 	defer cancel()
 
 	// NOTE: mcp service has detect of already connected servers

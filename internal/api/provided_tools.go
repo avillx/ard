@@ -13,6 +13,9 @@ import (
 	"ard/internal/types"
 )
 
+// how long the client has to answer a provided tool call.
+const providedToolResponseTimeout = 30 * time.Second
+
 type ProvidedToolResultDTO struct {
 	Result []agent.ContentPart `json:"result"`
 
@@ -194,7 +197,7 @@ func (t *ProvidedTool) Call(ctx context.Context, args agent.ToolArguments) ([]ag
 	agentID, _ := chat.AgentIDFromContext(ctx)
 	sessionID, _ := chat.SessionIDFromContext(ctx)
 
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, providedToolResponseTimeout)
 	defer cancel()
 
 	if t.stream == nil {

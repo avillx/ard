@@ -10,6 +10,11 @@ import (
 
 var _ runtime.ToolResultHook = (*ContentSizeLimitHook)(nil)
 
+const (
+	percentScale     = 100
+	bytesPerKilobyte = 1024
+)
+
 type ContentSizeLimitHook struct {
 	limitBytes int
 }
@@ -40,10 +45,10 @@ func (h *ContentSizeLimitHook) Apply(
 	tc.Result = append(truncatedContent, imagesContent...)
 
 	// representation
-	keptPercent := h.limitBytes * 100 / len(buf)
+	keptPercent := h.limitBytes * percentScale / len(buf)
 	err := types.NewAgentMistakeErrorf(
 		"result is over %d kb, and was truncated to %d%%",
-		h.limitBytes/1024, // repr in kilobites
+		h.limitBytes/bytesPerKilobyte, // repr in kilobites
 		keptPercent,
 	)
 

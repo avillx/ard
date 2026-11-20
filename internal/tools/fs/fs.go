@@ -82,5 +82,7 @@ func mapErrs(err error) error {
 }
 
 func isBinary(data []byte) bool {
-	return bytes.IndexByte(data, 0x00) != -1
+	return bytes.IndexByte(data, nullByte) != -1
 }
+
+const nullByte = 0x00

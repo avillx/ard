@@ -55,7 +55,7 @@ func (r *SessionFiles) Save(agentID agent.ID, s session.Session) error {
 	}
 
 	sessionFilePath := resolveSessionPath(agentID, s.ID())
-	return r.storage.WriteFile(sessionFilePath, data, 0o644)
+	return r.storage.WriteFile(sessionFilePath, data, ModeFilePerm)
 }
 
 func (r *SessionFiles) Delete(agentID agent.ID, sessionID session.ID) error {

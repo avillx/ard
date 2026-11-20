@@ -23,6 +23,9 @@ const (
 	LoopExit        EventType = "loop_exit"
 )
 
+// buffer of events emitted by a running agent loop.
+const runtimeEventBuffer = 16
+
 type EventTypeDTO struct {
 	Type EventType `json:"type"`
 }
@@ -102,7 +105,7 @@ func (h *chatHandler) Chat(w http.ResponseWriter, r *http.Request) Response {
 	)
 	defer unregisterProvidedTools()
 
-	evCh := make(chan runtime.Event, 16)
+	evCh := make(chan runtime.Event, runtimeEventBuffer)
 
 	go func() {
 		defer close(evCh)

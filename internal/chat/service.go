@@ -58,6 +58,9 @@ func (r Request) validate() error {
 
 var _ Executor = (*Service)(nil)
 
+// buffer of events emitted by a running agent loop.
+const runtimeEventBuffer = 16
+
 type Executor interface {
 	Chat(ctx context.Context, r Request) error
 }
@@ -126,7 +129,7 @@ func (s *Service) Chat(
 	}
 
 	// tools
-	toolServers, err := resolveToolServers(s.toolRegistry, agt, r.ProvidedToolServers)
+	toolServers, err := resolveToolServers(s.toolRegistry, agt, r.ProvidedToolServers, s.logger)
 	if err != nil {
 		return err
 	}
@@ -194,7 +197,7 @@ func runAgentLoopWithHandlers(
 	logger *slog.Logger,
 ) {
 	// sink
-	evCh := make(chan runtime.Event, 16)
+	evCh := make(chan runtime.Event, runtimeEventBuffer)
 
 	go func() {
 		defer close(evCh)
@@ -259,10 +262,11 @@ func resolveToolServers(
 	reg agent.ToolRegistry,
 	agt agent.Agent,
 	provided []agent.ToolServer,
+	logger *slog.Logger,
 ) ([]agent.ToolServer, error) {
 	toolServers, err := reg.ToolServers(agt.ToolServers()...)
 	if err != nil {
-		if err := types.DistillErrNotExist(fmt.Sprintf("agent %s", err), err); err != nil {
+		if err := types.DistillErrNotExist(fmt.Sprintf("agent %s", err), err, logger); err != nil {
 			return nil, err
 		}
 	}

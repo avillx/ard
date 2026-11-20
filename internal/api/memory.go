@@ -85,7 +85,7 @@ func (h *memoryHandler) Consolidate(w http.ResponseWriter, r *http.Request) Resp
 	stream := newStream(w)
 	defer stream.close()
 
-	evCh := make(chan runtime.Event, 16)
+	evCh := make(chan runtime.Event, runtimeEventBuffer)
 	defer close(evCh)
 
 	// stream completion events

@@ -1,13 +1,14 @@
 package agent_test
 
 import (
-	"ard/internal/agent"
-	"ard/internal/types"
 	"context"
 	"errors"
 	"slices"
 	"sync"
 	"testing"
+
+	"ard/internal/agent"
+	"ard/internal/types"
 )
 
 type mockModel struct{}
@@ -188,7 +189,7 @@ func newTestService(
 	storage *mockRepo,
 	models *mockModelRegistry,
 	tools *mockToolRegistry,
-	syncs ...agent.AgentSync,
+	syncs ...agent.Sync,
 ) *agent.Service {
 	t.Helper()
 

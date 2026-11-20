@@ -1,15 +1,16 @@
 package tools
 
 import (
-	"ard/internal/agent"
-	"ard/internal/subagent"
-	"ard/internal/types"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
+
+	"ard/internal/agent"
+	"ard/internal/subagent"
+	"ard/internal/types"
 )
 
 type CallAgentToolServer struct {
@@ -67,6 +68,9 @@ type CallAgentTool struct {
 	subagentSvc *subagent.Service
 }
 
+// a sub agent works autonomously, so it gets a generous deadline.
+const subAgentCallTimeout = 10 * time.Minute
+
 func (t *CallAgentTool) Name() agent.ToolName {
 	return "call_agent"
 }
@@ -76,7 +80,7 @@ func (t *CallAgentTool) Description() string {
 }
 
 func (t *CallAgentTool) TimeOut() time.Duration {
-	return 10 * time.Minute
+	return subAgentCallTimeout
 }
 
 func (t *CallAgentTool) Schema() map[string]any {
@@ -110,7 +114,6 @@ func (t *CallAgentTool) Call(ctx context.Context, rawArgs agent.ToolArguments) (
 		args.Name,
 		args.Request,
 	)
-
 	if err != nil {
 		if errors.Is(err, subagent.ErrCallStackOverflow) {
 			msg := "You already called as sub agent, solove problem by youself"

@@ -21,6 +21,11 @@ import (
 const (
 	ShutdownTimeoutDuration = 10 * time.Second
 	ReadRequestTimeout      = 1 * time.Second
+
+	defaultPort             = 8080
+	defaultCleanupInterval  = 12 * time.Hour
+	defaultSessionRetention = 240 * time.Hour
+	defaultMaxLogLines      = 1000
 )
 
 func main() {
@@ -45,11 +50,11 @@ func run(ctx context.Context) error {
 	logJSON := getEnv("ARD_LOG_JSON", false, strconv.ParseBool)
 
 	// ENV server config
-	port := strconv.Itoa(getEnv("ARD_PORT", 8080, strconv.Atoi))
+	port := strconv.Itoa(getEnv("ARD_PORT", defaultPort, strconv.Atoi))
 	datapath := getEnv("ARD_DATAPATH", "./agent-data", parseString)
-	cleanupInterval := getEnv("ARD_CLEAN_UP_INTERVAL", 12*time.Hour, time.ParseDuration)
-	sessRetention := getEnv("ARD_SESSION_RETENTION", 240*time.Hour, time.ParseDuration)
-	maxLogLines := getEnv("ARD_MAX_LOGLINES", 1000, strconv.Atoi)
+	cleanupInterval := getEnv("ARD_CLEAN_UP_INTERVAL", defaultCleanupInterval, time.ParseDuration)
+	sessRetention := getEnv("ARD_SESSION_RETENTION", defaultSessionRetention, time.ParseDuration)
+	maxLogLines := getEnv("ARD_MAX_LOGLINES", defaultMaxLogLines, strconv.Atoi)
 	agentShell := getEnv("ARD_SHELL", "", parseString)
 	agentShellAttributes := strings.Fields(getEnv("ARD_SHELL_ATTRIBUTES", "", parseString))
 

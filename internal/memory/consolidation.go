@@ -15,6 +15,13 @@ import (
 
 var ErrDisabledMemory = errors.New("agent memory is disabled")
 
+const (
+	// buffer of events emitted by a running consolidation loop.
+	runtimeEventBuffer = 16
+	// consolidation runs once a day.
+	consolidationPeriod = 24 * time.Hour
+)
+
 type ConsolidatorConfig struct {
 	Model       string `toml:"model"`
 	Enabled     bool   `toml:"enabled"`
@@ -217,7 +224,7 @@ func (m *ConsolidationService) consolidateInBackground(ctx context.Context) erro
 			continue
 		}
 
-		evCh := make(chan runtime.Event, 16)
+		evCh := make(chan runtime.Event, runtimeEventBuffer)
 		defer close(evCh)
 
 		// for drop consolidation events
@@ -269,7 +276,7 @@ func (m *ConsolidationService) Run(ctx context.Context) {
 func NextConsolidation(now time.Time) time.Time {
 	next := time.Date(now.Year(), now.Month(), now.Day(), 23, 0, 0, 0, now.Location())
 	if !next.After(now) {
-		next = next.Add(24 * time.Hour)
+		next = next.Add(consolidationPeriod)
 	}
 	return next
 }

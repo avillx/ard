@@ -17,6 +17,9 @@ var ErrCallStackOverflow = errors.New("sub agent call is overflow")
 
 const maxSubAgentDepth = 3
 
+// buffer of events emitted by a running sub agent loop.
+const runtimeEventBuffer = 16
+
 type Service struct {
 	chatExecutor chat.Executor
 	sessService  *session.Service
@@ -53,7 +56,7 @@ func (s *Service) Call(
 
 	logger := s.logger.With("sub_agent", subAgentID, "session", sessID)
 
-	evCh := make(chan runtime.Event, 16)
+	evCh := make(chan runtime.Event, runtimeEventBuffer)
 	chatErrCh := make(chan error, 1)
 
 	go func() {
